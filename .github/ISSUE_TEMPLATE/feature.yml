@@ -1,0 +1,60 @@
+name: 기능·작업
+description: 새 기능이나 개발 작업(WBS 작업 패키지)을 등록합니다.
+title: "[WBS] "
+labels: ["type:feat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        제목 앞에 WBS 번호를 붙여 주세요. 예: `[4.6] 근접 검색 API`
+  - type: input
+    id: wbs
+    attributes:
+      label: WBS 번호
+      placeholder: "4.6"
+    validations:
+      required: true
+  - type: input
+    id: requirements
+    attributes:
+      label: 관련 요구사항·설계 ID
+      description: SRS(FR·NFR·AI-REQ)와 SDD(COMP·API·ADR) ID
+      placeholder: "FR-203, NFR-001, COMP-04, API-005"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목적
+      placeholder: 이 작업이 어떤 기능에 왜 필요한지
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 작업 내용
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      description: 테스트·확인 방법을 포함해 주세요.
+      value: |
+        - [ ] 단위 테스트 통과
+        - [ ] 
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: 담당 역할
+      options:
+        - R1 김예준 (백엔드·경로·인증·통합)
+        - R2 정재원 (AI·개인정보)
+        - R3 박동준 (프론트·지도)
+        - R4 이승근 (데이터·SQL·테스트)
+    validations:
+      required: true

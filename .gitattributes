@@ -1,0 +1,20 @@
+# 줄바꿈을 LF로 통일 (Docker 컨테이너는 리눅스)
+* text=auto eol=lf
+
+# Windows 전용 스크립트는 CRLF 유지
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 바이너리 파일
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.gz binary
+*.zip binary
