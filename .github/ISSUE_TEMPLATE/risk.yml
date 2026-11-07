@@ -1,0 +1,53 @@
+name: 리스크
+description: 계획서 17장 형식으로 리스크를 등록하거나 갱신합니다.
+title: "[RK] "
+labels: ["risk"]
+body:
+  - type: input
+    id: risk_id
+    attributes:
+      label: 리스크 ID
+      placeholder: "RK16 (새 리스크면 다음 번호)"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 리스크 내용과 분류
+    validations:
+      required: true
+  - type: dropdown
+    id: likelihood
+    attributes:
+      label: 발생 가능성
+      options:
+        - A 거의 확실 (90% 이상)
+        - B 높음 (60~90%)
+        - C 보통 (30~60%)
+        - D 낮음 (10~30%)
+        - E 희박 (10% 미만)
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 영향
+      options:
+        - 5 치명
+        - 4 큼
+        - 3 보통
+        - 2 경미
+        - 1 미미
+    validations:
+      required: true
+  - type: textarea
+    id: response
+    attributes:
+      label: 대응 계획
+    validations:
+      required: true
+  - type: input
+    id: trigger
+    attributes:
+      label: 감시 지표(트리거)
+      placeholder: "10/30까지 승인 미확인"

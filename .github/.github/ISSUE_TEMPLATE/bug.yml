@@ -1,0 +1,38 @@
+name: 오류 보고
+description: 잘못 동작하는 부분을 보고합니다.
+title: "[버그] "
+labels: ["type:fix"]
+body:
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 현상
+      description: 무엇이 잘못되었나요? 오류 메시지가 있으면 그대로 붙여 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      placeholder: "Windows 11 / Chrome 최신 / docker compose"
+  - type: input
+    id: requirements
+    attributes:
+      label: 관련 요구사항 ID
+      placeholder: "FR-502"

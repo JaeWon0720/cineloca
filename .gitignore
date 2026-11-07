@@ -1,0 +1,42 @@
+# ── 비밀키·환경변수 (NFR-009) ─────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python (backend, batch, poc, eval) ─────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ── Node (frontend, e2e) ────────────────────────
+node_modules/
+dist/
+.vite/
+coverage/
+npm-debug.log*
+playwright-report/
+test-results/
+
+# ── 데이터·로그 (시드는 GitHub Release로 배포) ────
+*.sql.gz
+*.dump
+db/backups/
+poc/**/raw/
+logs/
+*.log
+
+# ── 편집기·OS ────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
