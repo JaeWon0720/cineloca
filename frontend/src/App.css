@@ -1,0 +1,85 @@
+/* 사용자 화면 레이아웃: 상단 헤더 + 본문 + 하단 탭 (폭 360~1440px, NFR-004) */
+.app-shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-link {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 16px calc(var(--nav-h) + 16px);
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  height: var(--nav-h);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.bottom-nav ul {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.tab.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.page-desc {
+  color: var(--text);
+}
+
+.page-meta {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
