@@ -1,0 +1,38 @@
+/* 공통 기본 스타일 */
+:root {
+  --text: #1f2328;
+  --text-muted: #59636e;
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --border: #d1d9e0;
+  --accent: #0b6bcb;
+  --header-h: 52px;
+  --nav-h: 60px;
+
+  font-family: system-ui, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+}
+
+p {
+  margin: 0;
+}
