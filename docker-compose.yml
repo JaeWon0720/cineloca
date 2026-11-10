@@ -1,5 +1,5 @@
 # 씨네로케 개발용 Docker Compose (SDD 2.4, NFR-017)
-# Phase 3-2: db + api. web은 다음 단계에서 추가한다.
+# 서비스 3개: db(PostgreSQL+pgvector), api(FastAPI), web(React+nginx)
 # 값은 같은 폴더의 .env에서 읽는다(.env는 Git에 올리지 않음).
 name: cineloca
 
@@ -39,6 +39,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  web:
+    build: ./frontend                      # frontend/Dockerfile (빌드 후 nginx)
+    restart: unless-stopped
+    depends_on:
+      - api                                # nginx가 api 컨테이너 이름을 찾을 수 있게 먼저 시작
+    ports:
+      - "127.0.0.1:8080:80"                # 브라우저: http://127.0.0.1:8080
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   db-data:
