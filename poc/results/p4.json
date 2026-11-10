@@ -1,0 +1,31 @@
+{
+ "run_at": "2026-11-09T15:43:38+09:00",
+ "works": 436,
+ "thresholds": [
+  0.9,
+  0.6
+ ],
+ "auto_pct": 41.1,
+ "review_pct": 32.1,
+ "unmatched_pct": 26.8,
+ "by_release_known": {
+  "known": {
+   "auto": 82.5,
+   "review": 8.3,
+   "unmatched": 9.2
+  },
+  "unknown": {
+   "auto": 0.0,
+   "review": 55.7,
+   "unmatched": 44.3
+  }
+ },
+ "tv_ott_prefixed_titles": 78,
+ "auto_accuracy_pct": null,
+ "review_sample": "results/p4_review.csv (사람 판정 필요)",
+ "with_rule_c": {
+  "auto": 53.4,
+  "review": 19.7,
+  "unmatched": 26.8
+ }
+}

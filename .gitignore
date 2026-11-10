@@ -40,3 +40,8 @@ logs/
 Thumbs.db
 desktop.ini
 ~$*
+# ── 착수 PoC: KMDb 정보가 든 검수표·후보(TBD-01 확인 전 비공개) ──
+poc/results/review_*.csv
+poc/results/human_check_*.csv
+poc/results/p4*_review.csv
+poc/results/p4c*.json
