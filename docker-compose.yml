@@ -1,5 +1,5 @@
 # 씨네로케 개발용 Docker Compose (SDD 2.4, NFR-017)
-# Phase 3-1: db만 정의. api·web은 다음 단계에서 추가한다.
+# Phase 3-2: db + api. web은 다음 단계에서 추가한다.
 # 값은 같은 폴더의 .env에서 읽는다(.env는 Git에 올리지 않음).
 name: cineloca
 
@@ -21,6 +21,24 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: ./backend                       # backend/Dockerfile (Python 3.10)
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cineloca}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 값을 .env에 넣어 주세요}@db:5432/${POSTGRES_DB:-cineloca}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+    depends_on:
+      db:
+        condition: service_healthy         # DB가 준비된 뒤 시작
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:                           # API-025: DB까지 정상이면 200
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   db-data:
