@@ -1,0 +1,35 @@
+{
+ "run_at": "2026-11-09T16:29:33+09:00",
+ "validation_set": 187,
+ "noyear_works": 219,
+ "rules": {
+  "A_exact_unique": {
+   "validation_linked": 136,
+   "validation_correct": 136,
+   "validation_precision_pct": 100.0,
+   "noyear_auto": 76
+  },
+  "B_exact_unique_feature": {
+   "validation_linked": 142,
+   "validation_correct": 142,
+   "validation_precision_pct": 100.0,
+   "noyear_auto": 76
+  },
+  "C_exact_busan_evidence": {
+   "validation_linked": 140,
+   "validation_correct": 140,
+   "validation_precision_pct": 100.0,
+   "noyear_auto": 54
+  }
+ },
+ "known_wrong_examples_rule_a": [
+  "바람(1996년작에 연결, 부산 촬영작은 2009년작)",
+  "사자(2024년 애니메이션에 연결)"
+ ],
+ "adopted": "C_exact_busan_evidence",
+ "p4_after_rule_c": {
+  "auto": 53.4,
+  "review": 19.7,
+  "unmatched": 26.8
+ }
+}

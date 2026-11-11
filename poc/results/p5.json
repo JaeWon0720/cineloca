@@ -1,0 +1,49 @@
+{
+ "run_at": "2026-11-09T14:48:15+09:00",
+ "prompt_version": "v2(언급 없는 값 추측 금지 규칙 추가)",
+ "criterion": "필드 일치율 90% 이상",
+ "runs": [
+  {
+   "provider": "ollama:qwen3:8b",
+   "workers": 1,
+   "questions": 22,
+   "field_match_pct": 93.4,
+   "question_mean_match_pct": 93.9,
+   "out_of_scope_correct": 2,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 1.98,
+   "latency_mean_s": 1.53,
+   "errors": 0,
+   "pass": true
+  },
+  {
+   "provider": "ollama:qwen3:8b",
+   "workers": 4,
+   "questions": 22,
+   "field_match_pct": 93.4,
+   "question_mean_match_pct": 93.9,
+   "out_of_scope_correct": 2,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 4.45,
+   "latency_mean_s": 3.3,
+   "errors": 0,
+   "pass": true
+  },
+  {
+   "provider": "gemini:gemini-3.5-flash",
+   "workers": 1,
+   "questions": 22,
+   "complete": true,
+   "field_match_pct": 99.5,
+   "question_mean_match_pct": 99.5,
+   "out_of_scope_correct": 2,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 10.9,
+   "latency_mean_s": 7.76,
+   "errors": 0,
+   "pass": true
+  }
+ ],
+ "gemini_error": null,
+ "gemini_run_at": "2026-11-10T23:54:21+09:00"
+}

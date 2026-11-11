@@ -1,0 +1,49 @@
+{
+ "run_at": "2026-11-09T15:29:27+09:00",
+ "sources": {
+  "bfc": {
+   "label": "DATA-01 영화 속 부산정보(15164328)",
+   "endpoint": "https://apis.data.go.kr/6260000/BfcMovieBusanService/getBfcMovieBusan",
+   "total_count": 2066,
+   "collected": 2066,
+   "fields": {
+    "opusNm": {
+     "fill_rate": 1.0,
+     "example": "황제를 위하여"
+    },
+    "plcNm": {
+     "fill_rate": 1.0,
+     "example": "[철거] 해운대 그랜드호텔"
+    },
+    "opnDay": {
+     "fill_rate": 1.0,
+     "example": "2014-06-11"
+    }
+   }
+  },
+  "cinemap": {
+   "label": "DATA-02 씨네맵(15164338)",
+   "endpoint": "https://apis.data.go.kr/6260000/CineMapService/getCineMap",
+   "total_count": 2193,
+   "collected": 2193,
+   "fields": {
+    "opusNm": {
+     "fill_rate": 1.0,
+     "example": "그림자들의 섬"
+    },
+    "plcNm": {
+     "fill_rate": 1.0,
+     "example": "자갈치시장"
+    },
+    "roadNmAddr": {
+     "fill_rate": 1.0,
+     "example": "부산 중구 자갈치해안로 52 (남포동4가, 자갈치시장)"
+    }
+   }
+  }
+ },
+ "p1_check": {
+  "person_genre_coord_fields": [],
+  "verdict": "인물·장르·좌표 필드 없음 → P1 확인"
+ }
+}

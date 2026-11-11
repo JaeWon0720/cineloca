@@ -1,0 +1,32 @@
+{
+ "run_at": "2026-11-09T15:29:31+09:00",
+ "counts": {
+  "raw_bfc": 2066,
+  "raw_cinemap": 2193,
+  "records": 2855,
+  "works": 436,
+  "places": 1359,
+  "works_in_both_sources": 209
+ },
+ "rk1_tbd02": {
+  "criterion": "작품 50편·촬영지 150곳",
+  "pass": true
+ },
+ "p2": {
+  "works_ge3_places_pct": 65.1,
+  "works_ge2_districts_pct": 71.4,
+  "works_with_address": 426,
+  "criterion": "촬영지 3곳 이상 작품 30% 이상, 또는 2개 구 이상에 걸친 작품 30% 이상",
+  "pass": true
+ },
+ "p3": {
+  "places_shared_ge2_works_pct": 31.3,
+  "criterion": "10% 이상",
+  "pass": true
+ },
+ "places_with_address_pct": 77.7,
+ "top_work": {
+  "title": "황제를 위하여",
+  "places": 45
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "bfc": {
+  "opusNm": "work.title",
+  "plcNm": "location.name",
+  "opnDay": "work.release_date"
+ },
+ "cinemap": {
+  "opusNm": "work.title",
+  "plcNm": "location.name",
+  "roadNmAddr": "location.address"
+ }
+}

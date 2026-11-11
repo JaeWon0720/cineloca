@@ -1,0 +1,244 @@
+[
+ {
+  "id": "Q01",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [\n    \"마동석\"\n  ],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"station\",\n    \"name\": null\n  },\n  \"travel\": {\n    \"mode\": \"walk\",\n    \"max_min\": 10\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 6.432773341999564,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q02",
+  "raw": "{\"out_of_scope\": false, \"work_titles\": [\"헤어질 결심\"], \"persons\": [], \"genres\": [], \"districts\": [], \"release_year_from\": null, \"release_year_to\": null, \"anchor\": null, \"travel\": null, \"result_type\": \"location\"}",
+  "latency_s": 4.378775823000979,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q03",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [\n    \"범죄\"\n  ],\n  \"districts\": [\n    \"해운대구\"\n  ],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"work\"\n}",
+  "latency_s": 5.318760206000661,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q04",
+  "raw": "{\"out_of_scope\": false, \"work_titles\": [], \"persons\": [], \"genres\": [\"액션\"], \"districts\": [\"영도구\"], \"release_year_from\": 2010, \"release_year_to\": 2019, \"anchor\": null, \"travel\": null, \"result_type\": \"location\"}",
+  "latency_s": 3.362213080999936,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q05",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"station\",\n    \"name\": \"서면\"\n  },\n  \"travel\": {\n    \"mode\": \"subway\",\n    \"max_min\": 20\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 10.899818026999128,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q06",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [\n    \"송강호\"\n  ],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"work\"\n}",
+  "latency_s": 3.8217463290002343,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q07",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"current\",\n    \"name\": null\n  },\n  \"travel\": {\n    \"mode\": \"walk\",\n    \"max_min\": 15\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 9.567473687000529,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q08",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [\n    \"국제시장\"\n  ],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"location\"\n}",
+  "latency_s": 9.548058929000035,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q09",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [\"드라마\"],\n  \"districts\": [\"중구\", \"동구\"],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"location\"\n}",
+  "latency_s": 3.26125205399876,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q10",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": 1999,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"work\"\n}",
+  "latency_s": 3.240333592000752,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q11",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [\n    \"친구\"\n  ],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"station\",\n    \"name\": \"부산역\"\n  },\n  \"travel\": {\n    \"mode\": \"walk\",\n    \"max_min\": null\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 3.743883649000054,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q12",
+  "raw": "{\"out_of_scope\": false, \"work_titles\": [], \"persons\": [\"황정민\"], \"genres\": [], \"districts\": [], \"release_year_from\": 2015, \"release_year_to\": 2020, \"anchor\": null, \"travel\": null, \"result_type\": \"location\"}",
+  "latency_s": 2.467099549001432,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q13",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [\n    \"멜로/로맨스\"\n  ],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"place\",\n    \"name\": \"광안리\"\n  },\n  \"travel\": null,\n  \"result_type\": \"location\"\n}",
+  "latency_s": 3.864745328000936,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q14",
+  "raw": "{\"out_of_scope\": false, \"work_titles\": [], \"persons\": [], \"genres\": [\"스릴러\"], \"districts\": [\"기장군\"], \"release_year_from\": null, \"release_year_to\": null, \"anchor\": null, \"travel\": null, \"result_type\": \"work\"}",
+  "latency_s": 56.716729289000796,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q15",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [\n    \"변호인\"\n  ],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": {\n    \"mode\": \"subway\",\n    \"max_min\": 10\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 5.4115064249999705,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q16",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [\n    \"류승룡\",\n    \"김혜수\"\n  ],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"location\"\n}",
+  "latency_s": 3.145995449000111,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q17",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": {\n    \"type\": \"station\",\n    \"name\": \"남포\"\n  },\n  \"travel\": {\n    \"mode\": \"walk\",\n    \"max_min\": 5\n  },\n  \"result_type\": \"location\"\n}",
+  "latency_s": 4.020920637005474,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q18",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [\n    \"부산행\"\n  ],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"location\"\n}",
+  "latency_s": 4.6455226599937305,
+  "error": null,
+  "schema_ok": true,
+  "match": 0.8888888888888888,
+  "fields_ok": 8,
+  "fields": 9,
+  "wrong": [
+   "genres"
+  ]
+ },
+ {
+  "id": "Q19",
+  "raw": "{\n  \"out_of_scope\": false,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [\n    \"코미디\"\n  ],\n  \"districts\": [\n    \"수영구\",\n    \"사하구\"\n  ],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": \"work\"\n}",
+  "latency_s": 10.078606067007058,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q20",
+  "raw": "{\"out_of_scope\": false, \"work_titles\": [], \"persons\": [], \"genres\": [], \"districts\": [\"부산진구\"], \"release_year_from\": 2022, \"release_year_to\": 2022, \"anchor\": null, \"travel\": null, \"result_type\": \"location\"}",
+  "latency_s": 3.973353808003594,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 9,
+  "fields": 9,
+  "wrong": []
+ },
+ {
+  "id": "Q21",
+  "raw": "{\n  \"out_of_scope\": true,\n  \"work_titles\": [],\n  \"persons\": [],\n  \"genres\": [],\n  \"districts\": [],\n  \"release_year_from\": null,\n  \"release_year_to\": null,\n  \"anchor\": null,\n  \"travel\": null,\n  \"result_type\": null\n}",
+  "latency_s": 10.028660279000178,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 1,
+  "fields": 1
+ },
+ {
+  "id": "Q22",
+  "raw": "{\"out_of_scope\": true, \"work_titles\": [], \"persons\": [], \"genres\": [], \"districts\": [], \"release_year_from\": null, \"release_year_to\": null, \"anchor\": null, \"travel\": null, \"result_type\": null}",
+  "latency_s": 2.8684349770046538,
+  "error": null,
+  "schema_ok": true,
+  "match": 1.0,
+  "fields_ok": 1,
+  "fields": 1
+ }
+]

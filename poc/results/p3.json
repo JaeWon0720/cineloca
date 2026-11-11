@@ -1,0 +1,14 @@
+{
+ "run_at": "2026-11-09T15:40:51+09:00",
+ "places": 1359,
+ "with_address": 1056,
+ "without_address": 303,
+ "address_search_success_pct": 85.4,
+ "name_search_success_pct": 25.1,
+ "coord_rate_pct": 71.2,
+ "coord_rate_among_address_pct": 84.5,
+ "crs": "좌표 API entX·entY = UTM-K(EPSG:5179) → WGS84(EPSG:4326) 변환",
+ "in_busan_bbox_pct": 100.0,
+ "errors": 0,
+ "note": "이름 검색(via=name)으로 얻은 좌표는 건물명 일치라 검수 큐 대상"
+}

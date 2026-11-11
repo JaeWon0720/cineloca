@@ -1,0 +1,33 @@
+{
+ "run_at": "2026-11-09T14:46:10+09:00",
+ "criterion": "필드 일치율 90% 이상",
+ "runs": [
+  {
+   "provider": "ollama:qwen3:8b",
+   "workers": 1,
+   "questions": 22,
+   "field_match_pct": 84.6,
+   "question_mean_match_pct": 85.9,
+   "out_of_scope_correct": 2,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 1.78,
+   "latency_mean_s": 1.41,
+   "errors": 0,
+   "pass": false
+  },
+  {
+   "provider": "ollama:qwen3:8b",
+   "workers": 4,
+   "questions": 22,
+   "field_match_pct": 84.6,
+   "question_mean_match_pct": 85.9,
+   "out_of_scope_correct": 2,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 6.32,
+   "latency_mean_s": 3.9,
+   "errors": 0,
+   "pass": false
+  }
+ ],
+ "gemini_error": "GEMINI_API_KEY 없음 → 건너뜀"
+}
