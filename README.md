@@ -59,7 +59,24 @@ docs/       계획서·SRS·SDD·ADR
 
 ## 실행 방법
 
-Docker Compose 구성(Phase 3) 후 작성합니다.
+준비: Docker Desktop, Git
+
+```powershell
+git clone https://github.com/JaeWon0720/cineloca.git
+cd cineloca
+Copy-Item .env.example .env      # .env의 POSTGRES_PASSWORD에 영문·숫자 값 입력
+docker compose up -d --build
+docker compose ps                # db, api, web 모두 healthy 확인
+```
+
+| 주소 | 내용 |
+|---|---|
+| http://127.0.0.1:8080 | 웹 화면 |
+| http://127.0.0.1:8080/api/health | 상태 확인 (DB 연결 포함) |
+| http://127.0.0.1:8000/docs | API 문서 |
+
+- 끄기: `docker compose down` / DB까지 초기화: `docker compose down -v`
+- 화면만 고칠 때는 `frontend`에서 `npm run dev`(http://localhost:5173, `/api`는 8000번으로 전달)
 
 ## 데이터 출처·이용조건
 

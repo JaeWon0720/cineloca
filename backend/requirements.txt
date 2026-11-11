@@ -1,3 +1,4 @@
 # 실행에 필요한 패키지 (Python 3.10)
 fastapi>=0.115
 uvicorn[standard]>=0.30
+asyncpg>=0.29
