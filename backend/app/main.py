@@ -11,10 +11,12 @@ from fastapi import FastAPI
 from app import __version__
 from app.api.routers import health
 from app.data import db
+from app.support.privacy import install_privacy_log_filter
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    install_privacy_log_filter()  # 로그에 개인정보가 남지 않게 정제한다(NFR-003·005)
     yield
     await db.close_pool()  # 종료할 때 DB 연결을 정리한다
 
