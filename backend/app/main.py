@@ -9,7 +9,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import __version__
-from app.api.routers import health
+from app.api.errors import install_error_handlers
+from app.api.routers import health, locations, meta
 from app.data import db
 from app.support.privacy import install_privacy_log_filter
 
@@ -28,7 +29,10 @@ def create_app() -> FastAPI:
         description="영화·드라마 속 부산 촬영지 AI 안내 서비스 API",
         lifespan=lifespan,
     )
+    install_error_handlers(app)
     app.include_router(health.router, prefix="/api")
+    app.include_router(locations.router, prefix="/api")
+    app.include_router(meta.router, prefix="/api")
     return app
 
 
