@@ -4,7 +4,8 @@
   '[개인정보]'로 바꾼다 (FR-702, AI-REQ-03).
 - scrub(record): 로그로 남길 레코드에서 위치 좌표·비밀값을 빼고 문자열을 마스킹한다
   (NFR-003, NFR-005, NFR-009).
-- PrivacyLogFilter: 로그 메시지에 남은 개인정보 패턴을 기록 직전에 가린다.
+- PrivacyLogFilter: 로그 메시지에 남은 개인정보 패턴과 접근 로그의 클라이언트 IP를 가린다.
+- install_privacy_log_filter(): 서버 시작 시 root·uvicorn 로그 핸들러에 필터를 붙인다.
 
 외부 라이브러리 없이 동작하는 순수 모듈이다(SDD 3.3 시험 용이성).
 """
@@ -21,6 +22,9 @@ PLACEHOLDER = "[개인정보]"
 REMOVED = "[제거됨]"
 MASK_NOTICE = "개인정보로 보이는 내용을 가렸습니다"  # 사용자 안내 문구 (SDD 오류·예외 표)
 
+# 숫자 묶음 사이 구분자: '-', '.', 공백. 하이픈 앞뒤 공백도 허용한다(예: 010 - 1234 - 5678).
+_SEP = r"\s*[-.]?\s*"
+
 # 개인정보를 너무 적게 가리는 것보다 조금 넓게 가리는 쪽을 택한다(개인정보 우선).
 # 순서가 중요하다: 긴 패턴(이메일·주민번호·카드)을 먼저 바꿔야
 # 전화번호 패턴이 그 일부를 잘못 잡지 않는다.
@@ -29,41 +33,60 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # 주민등록번호: 생년월일 6자리(월 01~12, 일 01~31) + 성별 1~8 + 6자리
     (
         "rrn",
-        re.compile(r"(?<!\d)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])[-\s]?[1-8]\d{6}(?!\d)"),
+        re.compile(r"(?<!\d)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\s*-?\s*[1-8]\d{6}(?!\d)"),
     ),
-    # 카드번호: 4-4-4-4(16자리) 또는 4-6-5(15자리), 구분자는 '-'나 공백
+    # 카드번호: 4-4-4-4(16자리) 또는 4-6-5(15자리). 묶음마다 구분자가 달라도 가린다.
     (
         "card",
-        re.compile(r"(?<!\d)(?:\d{4}([-\s]?)\d{4}\1\d{4}\1\d{4}|\d{4}([-\s]?)\d{6}\2\d{5})(?!\d)"),
+        re.compile(
+            rf"(?<!\d)(?:\d{{4}}{_SEP}\d{{4}}{_SEP}\d{{4}}{_SEP}\d{{4}}"
+            rf"|\d{{4}}{_SEP}\d{{6}}{_SEP}\d{{5}})(?!\d)"
+        ),
     ),
     # 전화번호: 휴대폰(010 등), 지역번호(02, 051 등), 070, +82 국가번호
     (
         "phone",
         re.compile(
-            r"(?<![\d+])(?:\+82[-.\s]?(?:1[016789]|[2-6]\d?|70)|01[016789]|0[2-6]\d?|070)"
-            r"[-.\s]?\d{3,4}[-.\s]?\d{4}(?!\d)"
+            rf"(?<![\d+])(?:\+82{_SEP}(?:1[016789]|[2-6]\d?|70)|01[016789]|0[2-6]\d?|070)"
+            rf"{_SEP}\d{{3,4}}{_SEP}\d{{4}}(?!\d)"
         ),
     ),
 )
 
-# 로그에 값을 남기지 않을 키 (소문자로 비교)
-_LOCATION_KEYS = frozenset(
-    {"lat", "lon", "lng", "latitude", "longitude", "coords", "coordinates", "accuracy"}
-)
-_SECRET_KEYS = frozenset(
+# 키 이름은 단어로 나눠서 비교한다. 예: GEMINI_API_KEY → gemini/api/key, serviceKey → service/key
+# (부분 문자열로 비교하면 latency_ms의 'lat', template의 'lat'까지 지워져서 단어 단위로 본다)
+_SECRET_WORDS = frozenset({"password", "passwd", "authorization", "cookie", "secret", "token"})
+_SECRET_SUFFIXES = ("key", "token", "secret", "password", "passwd")  # apikey, servicekey …
+_LOCATION_WORDS = frozenset(
     {
-        "password",
-        "passwd",
-        "authorization",
-        "cookie",
-        "set-cookie",
-        "token",
-        "api_key",
-        "apikey",
-        "servicekey",
-        "secret",
+        "lat",
+        "lon",
+        "lng",
+        "latitude",
+        "longitude",
+        "coord",
+        "coords",
+        "coordinate",
+        "coordinates",
+        "accuracy",
     }
 )
+_LOCATION_NAMES = frozenset({"x", "y", "mapx", "mapy"})  # 카카오·TourAPI 좌표 이름
+
+_WORD_SPLIT = re.compile(r"[^A-Za-z0-9]+|(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _words(name: str) -> list[str]:
+    return [w.lower() for w in _WORD_SPLIT.split(name) if w]
+
+
+def _is_secret_key(name: str) -> bool:
+    return any(w in _SECRET_WORDS or w.endswith(_SECRET_SUFFIXES) for w in _words(name))
+
+
+def _is_location_key(name: str) -> bool:
+    flat = re.sub(r"[^a-z0-9]", "", name.lower())
+    return flat in _LOCATION_NAMES or any(w in _LOCATION_WORDS for w in _words(name))
 
 
 @dataclass(frozen=True)
@@ -91,7 +114,8 @@ def mask(text: str) -> MaskedText:
 def scrub(record: Any) -> Any:
     """로그용 레코드를 정제한 복사본을 돌려준다. 원본은 바꾸지 않는다.
 
-    - 위치 좌표 키(lat, lon …)와 비밀값 키(password, token …)의 값은 '[제거됨]'
+    - 위치 키(lat, user_lat, mapX, coords …)와
+      비밀값 키(GEMINI_API_KEY, access_token …)의 값은 '[제거됨]'
     - 모든 문자열은 mask() 적용
     - dict·list·tuple은 안쪽까지 같은 규칙 적용
     """
@@ -100,8 +124,8 @@ def scrub(record: Any) -> Any:
     if isinstance(record, Mapping):
         cleaned: dict[Any, Any] = {}
         for key, value in record.items():
-            name = str(key).lower()
-            if name in _LOCATION_KEYS or name in _SECRET_KEYS:
+            name = str(key)
+            if _is_location_key(name) or _is_secret_key(name):
                 cleaned[key] = REMOVED
             else:
                 cleaned[key] = scrub(value)
@@ -112,7 +136,11 @@ def scrub(record: Any) -> Any:
 
 
 class PrivacyLogFilter(logging.Filter):
-    """로그 레코드의 메시지와 인자에 남은 개인정보 패턴을 가린다(NFR-005: 마스킹된 형태로 기록)."""
+    """로그 레코드를 기록 직전에 정제한다(NFR-005: 마스킹된 형태로 기록).
+
+    - 메시지와 인자의 개인정보 패턴을 가린다.
+    - uvicorn 접근 로그의 첫 인자(클라이언트 주소)는 남기지 않는다(NFR-005 로그 항목에 IP 없음).
+    """
 
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.msg, str):
@@ -120,16 +148,44 @@ class PrivacyLogFilter(logging.Filter):
         if isinstance(record.args, Mapping):
             record.args = scrub(record.args)
         elif isinstance(record.args, tuple):
-            record.args = tuple(scrub(arg) for arg in record.args)
+            args = tuple(scrub(arg) for arg in record.args)
+            if record.name == "uvicorn.access" and args:
+                args = (REMOVED, *args[1:])
+            record.args = args
         return True
+
+
+class _PrivacyRootHandler(logging.StreamHandler):
+    """root 로거에 핸들러가 없을 때 붙이는 출력 핸들러(앱 로거 로그가 필터를 거치게 한다)."""
+
+
+def _uvicorn_like_formatter() -> logging.Formatter:
+    try:
+        from uvicorn.logging import DefaultFormatter
+
+        return DefaultFormatter("%(levelprefix)s %(message)s", use_colors=None)
+    except ImportError:  # uvicorn 없이 실행할 때
+        return logging.Formatter("%(levelname)s:  %(message)s")
 
 
 def install_privacy_log_filter(
     logger_names: Iterable[str] = ("", "uvicorn", "uvicorn.error", "uvicorn.access"),
 ) -> None:
-    """지정한 로거들의 핸들러에 PrivacyLogFilter를 붙인다. 여러 번 불러도 한 번만 붙는다."""
+    """지정한 로거들의 핸들러에 PrivacyLogFilter를 붙인다. 여러 번 불러도 한 번만 붙는다.
+
+    uvicorn 기본 설정에서는 root 로거에 핸들러가 없어서 logging.getLogger("app.xxx")로
+    남긴 로그가 필터를 거치지 않는다. 그래서 root에 핸들러가 없으면
+    uvicorn과 같은 형식의 핸들러를 붙인다.
+    """
+    names = list(logger_names)
+    root = logging.getLogger()
+    if "" in names and not root.handlers:
+        handler = _PrivacyRootHandler()
+        handler.setFormatter(_uvicorn_like_formatter())
+        root.addHandler(handler)
+
     log_filter = PrivacyLogFilter()
-    for name in logger_names:
+    for name in names:
         for handler in logging.getLogger(name).handlers:
             if not any(isinstance(f, PrivacyLogFilter) for f in handler.filters):
                 handler.addFilter(log_filter)

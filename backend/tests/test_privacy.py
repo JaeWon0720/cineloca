@@ -2,6 +2,8 @@
 
 import io
 import logging
+import logging.config
+from collections.abc import Iterator
 
 import pytest
 
@@ -28,12 +30,16 @@ from app.support.privacy import (
         ("051-123-4567", "phone"),
         ("02-1234-5678", "phone"),
         ("070-1234-5678", "phone"),
+        ("010 - 1234 - 5678", "phone"),
+        ("051 - 123 - 4567", "phone"),
         ("abc.def+x@gmail.com", "email"),
         ("900101-1234567", "rrn"),
         ("9001011234567", "rrn"),
+        ("900101 - 1234567", "rrn"),
         ("1234-5678-9012-3456", "card"),
         ("1234 5678 9012 3456", "card"),
         ("1234567890123456", "card"),
+        ("1234-5678 9012-3456", "card"),
         ("3782-822463-10005", "card"),
     ],
 )
@@ -110,6 +116,38 @@ def test_scrub_does_not_change_original() -> None:
     assert record == {"lat": 35.1, "query": "010-1234-5678"}
 
 
+@pytest.mark.parametrize(
+    "key",
+    [
+        "GEMINI_API_KEY",
+        "KMDB_SERVICE_KEY",
+        "DATA_GO_KR_SERVICE_KEY",
+        "JUSO_COORD_API_KEY",
+        "access_token",
+        "refreshToken",
+        "apikey",
+        "client_secret",
+        "Set-Cookie",
+        "user_lat",
+        "userLng",
+        "current_longitude",
+        "mapX",
+        "mapy",
+        "x",
+        "geo_coords",
+    ],
+)
+def test_scrub_removes_real_key_names(key: str) -> None:
+    assert scrub({key: "value"}) == {key: REMOVED}
+
+
+@pytest.mark.parametrize(
+    "key", ["latency_ms", "template", "translation", "platform", "long_text", "status", "path"]
+)
+def test_scrub_keeps_similar_but_safe_key_names(key: str) -> None:
+    assert scrub({key: 12}) == {key: 12}
+
+
 def _capture_logger(name: str) -> tuple[logging.Logger, io.StringIO]:
     stream = io.StringIO()
     handler = logging.StreamHandler(stream)
@@ -143,3 +181,77 @@ def test_install_privacy_log_filter_is_idempotent() -> None:
     filters = [f for f in logger.handlers[0].filters if isinstance(f, PrivacyLogFilter)]
     assert len(filters) == 1
     assert stream.getvalue().strip() == f"문의 {PLACEHOLDER}"
+
+
+@pytest.fixture
+def isolated_logging() -> Iterator[None]:
+    """root·uvicorn 로거 상태를 저장했다가 되돌린다(pytest의 로그 수집 핸들러도 잠시 뺀다)."""
+    names = ["", "uvicorn", "uvicorn.error", "uvicorn.access", "app.test"]
+    saved = {}
+    for name in names:
+        logger = logging.getLogger(name)
+        saved[name] = (list(logger.handlers), logger.level, logger.propagate, logger.disabled)
+        logger.handlers = []
+    yield
+    for name, (handlers, level, propagate, disabled) in saved.items():
+        logger = logging.getLogger(name)
+        logger.handlers = handlers
+        logger.setLevel(level)
+        logger.propagate = propagate
+        logger.disabled = disabled
+
+
+def test_app_logger_is_masked_via_root_handler(
+    isolated_logging: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    uvicorn_config = pytest.importorskip("uvicorn.config")
+    logging.config.dictConfig(uvicorn_config.LOGGING_CONFIG)  # uvicorn 기본 로그 설정
+    # 실제 서버처럼 root에 핸들러가 없는 상태로 만든다(pytest 로그 수집 핸들러 제거)
+    logging.getLogger().handlers = []
+
+    install_privacy_log_filter()
+    install_privacy_log_filter()  # 두 번 불러도 핸들러는 하나
+    app_logger = logging.getLogger("app.test")
+    app_logger.propagate = True
+    app_logger.warning("앱 로그 010-1234-5678")
+    logging.getLogger("uvicorn.error").warning("uvicorn 로그 a@b.co")
+
+    err = capsys.readouterr().err
+    assert "010-1234-5678" not in err and "a@b.co" not in err
+    assert f"앱 로그 {PLACEHOLDER}" in err
+    assert f"uvicorn 로그 {PLACEHOLDER}" in err
+    root_handlers = logging.getLogger().handlers
+    assert len(root_handlers) == 1
+    assert any(isinstance(f, PrivacyLogFilter) for f in root_handlers[0].filters)
+
+
+def test_access_log_does_not_keep_client_ip(
+    isolated_logging: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    uvicorn_config = pytest.importorskip("uvicorn.config")
+    logging.config.dictConfig(uvicorn_config.LOGGING_CONFIG)
+
+    install_privacy_log_filter()
+    logging.getLogger("uvicorn.access").info(
+        '%s - "%s %s HTTP/%s" %d', "203.0.113.7:51234", "GET", "/api/health", "1.1", 200
+    )
+
+    out = capsys.readouterr().out
+    assert "203.0.113.7" not in out
+    assert f'{REMOVED} - "GET /api/health HTTP/1.1" 200' in out
+
+
+def test_access_record_without_uvicorn_formatter() -> None:
+    record = logging.LogRecord(
+        "uvicorn.access",
+        logging.INFO,
+        __file__,
+        0,
+        '%s - "%s %s"',
+        ("10.0.0.1:1", "GET", "/"),
+        None,
+    )
+
+    PrivacyLogFilter().filter(record)
+
+    assert record.getMessage() == f'{REMOVED} - "GET /"'
