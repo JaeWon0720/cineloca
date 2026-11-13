@@ -2,7 +2,7 @@
 
 출력 모델은 Pydantic으로 검증한다. 허용 값 밖(예: 목록에 없는 장르·구)도 스키마 위반으로 본다.
 extract_query는 착수 PoC p5(프롬프트 v2, 필드 일치율 qwen3:8b 93.4%·Gemini 99.5%)의
-스키마를 그대로 쓴다.
+스키마를 바탕으로, 장르만 검색 필터의 장르 묶음 12개로 바꿨다(프롬프트 v3).
 나머지 작업의 스키마는 SDD 표를 옮긴 초안이며 스프린트 2에서 담당 기능과 함께 확정한다.
 structure_preference(F3 취향 구조화)는 Preference 형식이 아직 정해지지 않아 등록하지 않았다.
 """
@@ -14,24 +14,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-GENRES = (
-    "드라마",
-    "액션",
-    "범죄",
-    "스릴러",
-    "코미디",
-    "멜로/로맨스",
-    "공포(호러)",
-    "SF",
-    "판타지",
-    "미스터리",
-    "전쟁",
-    "가족",
-    "애니메이션",
-    "다큐멘터리",
-    "사극",
-    "어드벤처",
-)
+from app.core.genres import GENRE_GROUPS, GenreGroup
+
+# 장르 허용 값 = 검색 필터의 장르 묶음(app/core/genres.py).
+# AI가 뽑은 값이 API-005 요청에서 그대로 통과해야 한다.
+GENRES: tuple[str, ...] = tuple(GENRE_GROUPS)
+
 DISTRICTS = (
     "중구",
     "서구",
@@ -51,7 +39,6 @@ DISTRICTS = (
     "기장군",
 )
 
-Genre = Literal[GENRES]  # type: ignore[valid-type]
 District = Literal[DISTRICTS]  # type: ignore[valid-type]
 
 
@@ -70,7 +57,7 @@ class QueryConditions(BaseModel):
     out_of_scope: bool
     work_titles: list[str]
     persons: list[str]
-    genres: list[Genre]
+    genres: list[GenreGroup]  # 검색 API(API-005)와 같은 장르 묶음 12개
     districts: list[District]
     release_year_from: int | None = Field(ge=1900, le=2100)
     release_year_to: int | None = Field(ge=1900, le=2100)
@@ -123,7 +110,7 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "extract_query",
             QueryConditions,
-            prompt_version="v2",
+            prompt_version="v3",  # v2(PoC) → v3: 장르 묶음 12개
             user_text_fields=("query",),
         ),
         TaskSpec("summarize_results", GroundedText, temperature=0.2),
