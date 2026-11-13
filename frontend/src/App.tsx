@@ -1,6 +1,7 @@
 // COMP-01 Web Client 라우팅 (SRS 6.1 화면 목록)
 import { Route, Routes } from 'react-router'
 import './App.css'
+import './screens.css'
 import { UserLayout } from './layouts/UserLayout.tsx'
 import AdminPage from './pages/AdminPage.tsx'
 import AskPage from './pages/AskPage.tsx'

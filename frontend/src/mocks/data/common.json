@@ -1,0 +1,195 @@
+{
+ "sources": {
+  "ledger": [
+   {
+    "id": "DATA-01",
+    "provider": "부산영상위원회",
+    "name": "영화 속 부산정보",
+    "base_date": "2026-11-09",
+    "url": "https://www.data.go.kr/data/15164328/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-02",
+    "provider": "부산영상위원회",
+    "name": "씨네맵 정보",
+    "base_date": "2026-11-09",
+    "url": "https://www.data.go.kr/data/15164338/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-03",
+    "provider": "부산교통공사",
+    "name": "영상 로케이션 촬영 현황",
+    "base_date": null,
+    "url": "https://www.data.go.kr/data/15120670/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-04",
+    "provider": "한국영상자료원",
+    "name": "KMDb 영화 상세 정보",
+    "base_date": null,
+    "url": "https://www.kmdb.or.kr",
+    "license": "KMDb 이용약관(이미지 파일 저장 금지)",
+    "policy": "ID_ONLY"
+   },
+   {
+    "id": "DATA-06",
+    "provider": "행정안전부",
+    "name": "실시간 주소정보 조회·좌표 제공 API",
+    "base_date": null,
+    "url": "https://www.data.go.kr/data/15057017/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-07",
+    "provider": "카카오",
+    "name": "카카오 지도 JavaScript SDK",
+    "base_date": null,
+    "url": "https://apis.map.kakao.com",
+    "license": "카카오 지도 API 이용약관(응답·좌표 저장 금지)",
+    "policy": "NO_STORE"
+   },
+   {
+    "id": "DATA-08",
+    "provider": "부산교통공사",
+    "name": "역사 정보",
+    "base_date": null,
+    "url": "https://www.data.go.kr/data/15158991/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-09",
+    "provider": "부산교통공사",
+    "name": "역간 거리 및 소요시간 정보",
+    "base_date": null,
+    "url": "https://www.data.go.kr/data/15158989/openapi.do",
+    "license": "공공데이터 이용허락범위 제한 없음",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-10",
+    "provider": "한국관광공사",
+    "name": "TourAPI 이미지(부산)",
+    "base_date": null,
+    "url": "https://api.visitkorea.or.kr",
+    "license": "공공누리 제1유형만 사용",
+    "policy": "STORE"
+   },
+   {
+    "id": "DATA-11",
+    "provider": "오픈 모델 / Google",
+    "name": "Ollama 로컬 모델(주) · Gemini API 무료 티어(보조)",
+    "base_date": null,
+    "url": "",
+    "license": "Qwen3 Apache-2.0 · Gemini 약관",
+    "policy": "NO_STORE"
+   },
+   {
+    "id": "OSM",
+    "provider": "OpenStreetMap",
+    "name": "지도 타일(카카오 지도 대체 표시)",
+    "base_date": null,
+    "url": "https://www.openstreetmap.org/copyright",
+    "license": "ODbL, 출처 표시",
+    "policy": "NO_STORE"
+   },
+   {
+    "id": "SRC-METRO-20230406",
+    "provider": "메트로신문",
+    "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+    "base_date": "2023-04-06",
+    "url": "https://www.metroseoul.co.kr/article/20230406500189",
+    "license": "기사 인용(사실 정보만 사용)",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-METRO-20230313",
+    "provider": "메트로신문",
+    "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+    "base_date": "2023-03-13",
+    "url": "https://www.metroseoul.co.kr/article/20230313500231",
+    "license": "기사 인용(사실 정보만 사용)",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-CINE21-111092",
+    "provider": "씨네21",
+    "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+    "base_date": "2026-10-26",
+    "url": "https://cine21.com/news/view/?mag_id=111092",
+    "license": "기사 인용(사실 정보만 사용)",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-CINE21-111087",
+    "provider": "씨네21",
+    "name": "부산영상위원회 아카이브 총서 <부산의 장면들> #3 연재(군도: 민란의 시대 / 아홉산숲)",
+    "base_date": "2026-10-26",
+    "url": "https://cine21.com/news/view/?mag_id=111087",
+    "license": "기사 인용(사실 정보만 사용)",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-FN-20180103",
+    "provider": "파이낸셜뉴스",
+    "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+    "base_date": "2018-01-03",
+    "url": "https://www.fnnews.com/news/201801030900423529",
+    "license": "기사 인용(사실 정보만 사용)",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-TEAM-COORD",
+    "provider": "15팀(하자제발)",
+    "name": "시드 좌표·역 위치 수동 입력(근사값)",
+    "base_date": "2026-10-30",
+    "url": "",
+    "license": "팀 저작물",
+    "policy": "STORE"
+   },
+   {
+    "id": "SRC-TEAM-WORK",
+    "provider": "15팀(하자제발)",
+    "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+    "base_date": "2026-10-30",
+    "url": "",
+    "license": "팀 저작물",
+    "policy": "STORE"
+   }
+  ],
+  "notice_version": "2026-10",
+  "licenses": [
+   {
+    "name": "React · Vite · FastAPI · Pydantic",
+    "license": "MIT"
+   },
+   {
+    "name": "PostgreSQL · pgvector",
+    "license": "PostgreSQL License"
+   },
+   {
+    "name": "Ollama",
+    "license": "MIT"
+   },
+   {
+    "name": "Qwen3 (qwen3:8b)",
+    "license": "Apache-2.0"
+   },
+   {
+    "name": "Leaflet (지도 대체 표시)",
+    "license": "BSD-2-Clause"
+   },
+   {
+    "name": "OpenStreetMap 지도 타일 (대체 표시)",
+    "license": "ODbL — © OpenStreetMap contributors"
+   }
+  ]
+ }
+}
