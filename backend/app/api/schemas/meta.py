@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field
 
 from app.api.schemas.locations import District, RadiusM
+from app.core.genres import GenreGroup
 
 
 class NamedPoint(BaseModel):
@@ -36,5 +37,5 @@ class MetaResponse(BaseModel):
     default_radius_m: RadiusM
     districts: list[DistrictOption]
     stations: list[StationOption] = Field(description="도시철도역(C1 적재 전에는 빈 목록)")
-    genres: list[str]
+    genres: list[GenreGroup] = Field(description="장르 묶음(KMDb 장르를 12개로 묶음)")
     year_range: YearRange | None = Field(default=None, description="작품 개봉연도 범위")

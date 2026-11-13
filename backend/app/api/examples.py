@@ -19,6 +19,7 @@ from app.api.schemas.locations import (
     WorkBrief,
 )
 from app.api.schemas.meta import DistrictOption, MetaResponse, NamedPoint, YearRange
+from app.core.genres import GENRE_GROUPS
 from app.core.places import (
     BUSAN_STATION,
     DEFAULT_RADIUS_M,
@@ -44,7 +45,7 @@ SOURCES = {
     ),
 }
 
-# (id, 장소명, 구·군, 주소, 위도, 경도, 촬영 작품 [(id, 제목, 개봉연도, KMDb 연결)], 장르)
+# (id, 장소명, 구·군, 주소, 위도, 경도, 촬영 작품 [(id, 제목, 개봉연도, KMDb 연결)], 장르 묶음)
 _PLACES = [
     (
         1,
@@ -59,7 +60,7 @@ _PLACES = [
             (13, "쓰리 썸머 나잇", 2015, True),
             (14, "그날의 분위기", 2016, True),
         ],
-        {"드라마", "코메디", "재난"},
+        {"드라마", "코미디", "재난"},
     ),
     (
         2,
@@ -69,7 +70,7 @@ _PLACES = [
         35.15929,
         129.160583,
         [(15, "도둑들", 2012, True), (16, "소울메이트", 2023, True)],
-        {"범죄", "액션", "드라마"},
+        {"범죄·느와르", "액션·모험", "드라마"},
     ),
     (
         3,
@@ -79,7 +80,7 @@ _PLACES = [
         35.161404,
         129.162315,
         [(11, "해운대", 2009, True), (13, "쓰리 썸머 나잇", 2015, True)],
-        {"드라마", "코메디", "재난"},
+        {"드라마", "코미디", "재난"},
     ),
 ]
 
@@ -179,16 +180,6 @@ def meta() -> MetaResponse:
         default_radius_m=DEFAULT_RADIUS_M,
         districts=[DistrictOption(name=n, lat=a, lon=o) for n, (a, o) in DISTRICT_CENTERS.items()],
         stations=[],
-        genres=[
-            "드라마",
-            "액션",
-            "코메디",
-            "범죄",
-            "스릴러",
-            "미스터리",
-            "멜로드라마",
-            "느와르",
-            "재난",
-        ],
+        genres=list(GENRE_GROUPS),
         year_range=YearRange(min=2000, max=2025),
     )

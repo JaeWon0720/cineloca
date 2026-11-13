@@ -117,3 +117,13 @@ def test_openapi_lists_f2_endpoints(client: TestClient) -> None:
     assert "/api/locations/search" in paths and "post" in paths["/api/locations/search"]
     assert "/api/locations/{location_id}" in paths
     assert "/api/meta" in paths
+
+
+def test_genre_filter_uses_groups(client: TestClient) -> None:
+    meta = client.get("/api/meta").json()
+    disaster = client.post("/api/locations/search", json={"base": HAEUNDAE, "genres": ["재난"]})
+    raw_kmdb = client.post("/api/locations/search", json={"base": HAEUNDAE, "genres": ["코메디"]})
+
+    assert meta["genres"][0] == "드라마" and len(meta["genres"]) == 12
+    assert {h["name"] for h in disaster.json()["items"]} == {"해운대해수욕장", "해운대전통시장"}
+    assert raw_kmdb.status_code == 422  # KMDb 원래 장르명이 아니라 묶음 이름으로 받는다

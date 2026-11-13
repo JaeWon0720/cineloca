@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.api.schemas.common import SourceCard
+from app.core.genres import GenreGroup
 
 RadiusM = Literal[500, 1000, 3000]  # FR-203
 District = Literal[
@@ -45,8 +46,8 @@ class LocationSearchRequest(BaseModel):
 
     base: BasePoint
     radius_m: RadiusM = Field(default=1000, description="반경(m): 500·1000·3000, 기본 1000")
-    genres: list[str] = Field(
-        default_factory=list, max_length=20, description="장르(하나라도 맞으면)"
+    genres: list[GenreGroup] = Field(
+        default_factory=list, max_length=12, description="장르 묶음(하나라도 맞으면, API-007 목록)"
     )
     year_from: int | None = Field(default=None, ge=1900, le=2100, description="개봉연도 시작(포함)")
     year_to: int | None = Field(default=None, ge=1900, le=2100, description="개봉연도 끝(포함)")
