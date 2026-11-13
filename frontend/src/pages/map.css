@@ -1,0 +1,323 @@
+/* F2 지도 홈(UI-01)·촬영지 상세(UI-02) 화면 스타일 */
+.page-wide {
+  max-width: 1200px;
+}
+
+/* ---------- 조작 줄: 기준 위치 / 반경 / 필터 */
+.map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.base-pick {
+  display: flex;
+  flex: 1 1 200px;
+  max-width: 420px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.base-pick select {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-toggle .count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  color: var(--ink);
+  background: var(--marquee);
+  border-radius: 999px;
+}
+
+.filter-toggle.has {
+  border-color: var(--ink);
+}
+
+.filter-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.filter-sheet select {
+  width: 100%;
+}
+
+.year-range {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.year-range legend {
+  padding: 0 0 4px;
+  color: var(--text-muted);
+}
+
+.year-range select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 장르 필터 안내: KMDb와 연결된 작품만 장르로 걸러진다 */
+.hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  word-break: keep-all;
+}
+
+.filter-sheet .clear {
+  justify-self: start;
+  align-self: center;
+  min-height: 44px;
+}
+
+/* ---------- 지도 + 목록 */
+.map-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.map-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.list-pane h2.sub {
+  margin: 0;
+}
+
+/* 넓은 화면: 왼쪽 목록, 오른쪽 지도(스크롤해도 지도는 제자리) */
+@media (min-width: 960px) {
+  .map-layout {
+    grid-template-columns: minmax(320px, 400px) 1fr;
+    align-items: start;
+  }
+
+  .list-pane {
+    order: -1;
+  }
+
+  .map-pane {
+    position: sticky;
+    top: calc(var(--header-h) + 16px);
+  }
+
+  .map-pane .map {
+    height: calc(100svh - var(--header-h) - var(--nav-h) - 260px) !important;
+    min-height: 360px;
+  }
+}
+
+/* ---------- 촬영지 카드(목록) */
+.card.loc {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card.loc.active {
+  border-color: var(--ink);
+  box-shadow: inset 4px 0 0 var(--marquee);
+}
+
+.rank {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--marquee-soft);
+  border-radius: 50%;
+}
+
+.card.loc.active .rank {
+  background: var(--marquee);
+}
+
+.loc-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.loc-top {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.dist {
+  flex: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.loc-works {
+  font-size: 0.9375rem;
+}
+
+/* ---------- 고른 촬영지: 영화표 모양 요약 카드 (FR-206) */
+.ticket {
+  --notch: 10px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  color: #fff;
+  background: var(--ink);
+  border-radius: var(--radius-lg);
+}
+
+.ticket-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 16px 12px;
+}
+
+.ticket-main h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.375rem;
+}
+
+.ticket-main .meta {
+  color: #c9d6e3;
+}
+
+/* 표를 뜯는 자리: 점선과 양쪽 반원 홈 */
+.ticket-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 92px;
+  padding: 16px 14px 12px;
+  border-left: 2px dashed rgb(255 255 255 / 0.35);
+}
+
+.ticket-stub::before,
+.ticket-stub::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--notch) * -1 - 1px);
+  width: calc(var(--notch) * 2);
+  height: calc(var(--notch) * 2);
+  background: var(--bg);
+  border-radius: 50%;
+}
+
+.ticket-stub::before {
+  top: calc(var(--notch) * -1);
+}
+
+.ticket-stub::after {
+  bottom: calc(var(--notch) * -1);
+}
+
+.ticket-stub strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: var(--marquee);
+}
+
+.ticket-stub span {
+  font-size: 0.75rem;
+  color: #c9d6e3;
+}
+
+.ticket-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.ticket-actions .btn {
+  flex: 1 1 140px;
+}
+
+.ticket-actions .btn.primary {
+  color: var(--ink);
+  background: var(--marquee);
+  border-color: var(--marquee);
+}
+
+.ticket-actions .btn:not(.primary) {
+  color: #fff;
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.4);
+}
+
+/* ---------- 촬영지 상세 */
+.loc-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loc-hero h1 {
+  font-size: 2rem;
+}
+
+.photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.photos .photo {
+  width: 100%;
+}
+
+.cert-note {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.work-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.work-row .year {
+  flex: none;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}

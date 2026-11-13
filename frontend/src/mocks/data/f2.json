@@ -1,0 +1,1432 @@
+{
+ "meta": {
+  "default_base": {
+   "label": "부산역",
+   "lat": 35.115049,
+   "lon": 129.041193
+  },
+  "radius_options": [
+   500,
+   1000,
+   3000
+  ],
+  "default_radius_m": 1000,
+  "districts": [
+   {
+    "name": "중구",
+    "lat": 35.106811,
+    "lon": 129.032673
+   },
+   {
+    "name": "서구",
+    "lat": 35.107592,
+    "lon": 129.018101
+   },
+   {
+    "name": "동구",
+    "lat": 35.129101,
+    "lon": 129.045241
+   },
+   {
+    "name": "영도구",
+    "lat": 35.090146,
+    "lon": 129.067539
+   },
+   {
+    "name": "부산진구",
+    "lat": 35.163368,
+    "lon": 129.052932
+   },
+   {
+    "name": "동래구",
+    "lat": 35.204142,
+    "lon": 129.082592
+   },
+   {
+    "name": "남구",
+    "lat": 35.136104,
+    "lon": 129.083855
+   },
+   {
+    "name": "북구",
+    "lat": 35.235645,
+    "lon": 129.013478
+   },
+   {
+    "name": "해운대구",
+    "lat": 35.163094,
+    "lon": 129.164276
+   },
+   {
+    "name": "사하구",
+    "lat": 35.104103,
+    "lon": 128.97513
+   },
+   {
+    "name": "금정구",
+    "lat": 35.243052,
+    "lon": 129.092883
+   },
+   {
+    "name": "강서구",
+    "lat": 35.211285,
+    "lon": 128.980479
+   },
+   {
+    "name": "연제구",
+    "lat": 35.175807,
+    "lon": 129.079154
+   },
+   {
+    "name": "수영구",
+    "lat": 35.145404,
+    "lon": 129.112318
+   },
+   {
+    "name": "사상구",
+    "lat": 35.152477,
+    "lon": 128.990336
+   },
+   {
+    "name": "기장군",
+    "lat": 35.245221,
+    "lon": 129.221254
+   }
+  ],
+  "stations": [
+   {
+    "id": "S110",
+    "name": "자갈치",
+    "line": "1호선",
+    "lat": 35.0968,
+    "lon": 129.0277
+   },
+   {
+    "id": "S111",
+    "name": "남포",
+    "line": "1호선",
+    "lat": 35.0977,
+    "lon": 129.0347
+   },
+   {
+    "id": "S109",
+    "name": "토성",
+    "line": "1호선",
+    "lat": 35.096,
+    "lon": 129.019
+   },
+   {
+    "id": "S112",
+    "name": "중앙",
+    "line": "1호선",
+    "lat": 35.1035,
+    "lon": 129.036
+   },
+   {
+    "id": "S113",
+    "name": "부산역",
+    "line": "1호선",
+    "lat": 35.115,
+    "lon": 129.041
+   },
+   {
+    "id": "S114",
+    "name": "초량",
+    "line": "1호선",
+    "lat": 35.121,
+    "lon": 129.044
+   },
+   {
+    "id": "S115",
+    "name": "부산진",
+    "line": "1호선",
+    "lat": 35.1283,
+    "lon": 129.0475
+   },
+   {
+    "id": "S117",
+    "name": "범일",
+    "line": "1호선",
+    "lat": 35.1406,
+    "lon": 129.0594
+   },
+   {
+    "id": "S119",
+    "name": "서면",
+    "line": "1호선",
+    "lat": 35.1577,
+    "lon": 129.059
+   },
+   {
+    "id": "S123",
+    "name": "연산",
+    "line": "1호선",
+    "lat": 35.1859,
+    "lon": 129.0815
+   },
+   {
+    "id": "S124",
+    "name": "교대",
+    "line": "1호선",
+    "lat": 35.1958,
+    "lon": 129.08
+   },
+   {
+    "id": "S125",
+    "name": "동래",
+    "line": "1호선",
+    "lat": 35.2052,
+    "lon": 129.0784
+   },
+   {
+    "id": "S127",
+    "name": "온천장",
+    "line": "1호선",
+    "lat": 35.2203,
+    "lon": 129.0866
+   },
+   {
+    "id": "S212",
+    "name": "대연",
+    "line": "2호선",
+    "lat": 35.1355,
+    "lon": 129.092
+   },
+   {
+    "id": "S211",
+    "name": "경성대·부경대",
+    "line": "2호선",
+    "lat": 35.1378,
+    "lon": 129.1003
+   },
+   {
+    "id": "S209",
+    "name": "광안",
+    "line": "2호선",
+    "lat": 35.1572,
+    "lon": 129.113
+   },
+   {
+    "id": "S208",
+    "name": "수영",
+    "line": "2호선",
+    "lat": 35.166,
+    "lon": 129.115
+   },
+   {
+    "id": "S206",
+    "name": "센텀시티",
+    "line": "2호선",
+    "lat": 35.1693,
+    "lon": 129.1314
+   },
+   {
+    "id": "S204",
+    "name": "동백",
+    "line": "2호선",
+    "lat": 35.1617,
+    "lon": 129.1478
+   },
+   {
+    "id": "S203",
+    "name": "해운대",
+    "line": "2호선",
+    "lat": 35.1636,
+    "lon": 129.1588
+   },
+   {
+    "id": "S202",
+    "name": "중동",
+    "line": "2호선",
+    "lat": 35.1662,
+    "lon": 129.1685
+   },
+   {
+    "id": "S405",
+    "name": "반여농산물시장",
+    "line": "4호선",
+    "lat": 35.221,
+    "lon": 129.126
+   },
+   {
+    "id": "S406",
+    "name": "석대",
+    "line": "4호선",
+    "lat": 35.228,
+    "lon": 129.144
+   }
+  ],
+  "genres": [
+   "드라마",
+   "액션·모험",
+   "스릴러·미스터리",
+   "범죄·느와르",
+   "코미디",
+   "멜로·로맨스",
+   "SF·판타지",
+   "공포",
+   "시대극·전쟁",
+   "가족",
+   "청춘·스포츠",
+   "재난"
+  ],
+  "year_range": {
+   "min": 2014,
+   "max": 2023
+  }
+ },
+ "locations": [
+  {
+   "id": 1,
+   "name": "부산중앙고등학교",
+   "address": "부산 남구",
+   "gu": "남구",
+   "located": false,
+   "lat": null,
+   "lon": null,
+   "tags": [
+    "학교"
+   ],
+   "photos": [],
+   "nearest_station": null,
+   "caution": "school",
+   "caution_notice": "학교예요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "no_coordinates"
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": null,
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "비석문화마을",
+   "address": "부산 서구 아미동",
+   "gu": "서구",
+   "located": true,
+   "lat": 35.099,
+   "lon": 129.0145,
+   "tags": [
+    "골목",
+    "마을",
+    "언덕"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S109",
+    "name": "토성",
+    "line": "1호선",
+    "walk_min": 9
+   },
+   "caution": "residential",
+   "caution_notice": "주민이 사는 곳이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%B9%84%EC%84%9D%EB%AC%B8%ED%99%94%EB%A7%88%EC%9D%84,35.099,129.0145",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "구 동부산대학교",
+   "address": "부산 해운대구 반송동",
+   "gu": "해운대구",
+   "located": true,
+   "lat": 35.2263,
+   "lon": 129.153,
+   "tags": [
+    "학교"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S406",
+    "name": "석대",
+    "line": "4호선",
+    "walk_min": 14
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EA%B5%AC%20%EB%8F%99%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90,35.2263,129.153",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "영도대교",
+   "address": "부산 중구·영도구",
+   "gu": "영도구",
+   "located": true,
+   "lat": 35.0948,
+   "lon": 129.0368,
+   "tags": [
+    "다리",
+    "바다",
+    "원도심"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S111",
+    "name": "남포",
+    "line": "1호선",
+    "walk_min": 6
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%98%81%EB%8F%84%EB%8C%80%EA%B5%90,35.0948,129.0368",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "온천천",
+   "address": "부산 동래구·연제구 온천천 시민공원",
+   "gu": "동래구",
+   "located": true,
+   "lat": 35.2,
+   "lon": 129.083,
+   "tags": [
+    "하천",
+    "산책"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S124",
+    "name": "교대",
+    "line": "1호선",
+    "walk_min": 9
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%98%A8%EC%B2%9C%EC%B2%9C,35.2,129.083",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "충무동 새벽시장",
+   "address": "부산 서구 충무동",
+   "gu": "서구",
+   "located": true,
+   "lat": 35.094,
+   "lon": 129.023,
+   "tags": [
+    "시장",
+    "원도심"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S109",
+    "name": "토성",
+    "line": "1호선",
+    "walk_min": 7
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%B6%A9%EB%AC%B4%EB%8F%99%20%EC%83%88%EB%B2%BD%EC%8B%9C%EC%9E%A5,35.094,129.023",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "영주시민아파트",
+   "address": "부산 중구 영주동",
+   "gu": "중구",
+   "located": true,
+   "lat": 35.114,
+   "lon": 129.034,
+   "tags": [
+    "주거지",
+    "언덕"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S113",
+    "name": "부산역",
+    "line": "1호선",
+    "walk_min": 11
+   },
+   "caution": "residential",
+   "caution_notice": "주민이 사는 곳이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "residential"
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    },
+    {
+     "id": 2,
+     "title": "대외비",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%98%81%EC%A3%BC%EC%8B%9C%EB%AF%BC%EC%95%84%ED%8C%8C%ED%8A%B8,35.114,129.034",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230313",
+     "provider": "메트로신문",
+     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+     "base_date": "2023-03-13",
+     "url": "https://www.metroseoul.co.kr/article/20230313500231"
+    },
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "name": "대연 문화공원",
+   "address": "부산 남구 대연동",
+   "gu": "남구",
+   "located": false,
+   "lat": null,
+   "lon": null,
+   "tags": [
+    "공원"
+   ],
+   "photos": [],
+   "nearest_station": null,
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "no_coordinates"
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": null,
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "name": "수영만 요트경기장",
+   "address": "부산 해운대구 우동",
+   "gu": "해운대구",
+   "located": true,
+   "lat": 35.164,
+   "lon": 129.135,
+   "tags": [
+    "바다",
+    "야경"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S206",
+    "name": "센텀시티",
+    "line": "2호선",
+    "walk_min": 11
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 1,
+     "title": "리바운드",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%88%98%EC%98%81%EB%A7%8C%20%EC%9A%94%ED%8A%B8%EA%B2%BD%EA%B8%B0%EC%9E%A5,35.164,129.135",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230406",
+     "provider": "메트로신문",
+     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+     "base_date": "2023-04-06",
+     "url": "https://www.metroseoul.co.kr/article/20230406500189"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "name": "반여1동 주택가",
+   "address": "부산 해운대구 반여1동",
+   "gu": "해운대구",
+   "located": false,
+   "lat": null,
+   "lon": null,
+   "tags": [
+    "주거지"
+   ],
+   "photos": [],
+   "nearest_station": null,
+   "caution": "residential",
+   "caution_notice": "주민이 사는 곳이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "no_coordinates"
+   },
+   "works": [
+    {
+     "id": 2,
+     "title": "대외비",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": null,
+   "sources": [
+    {
+     "id": "SRC-METRO-20230313",
+     "provider": "메트로신문",
+     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+     "base_date": "2023-03-13",
+     "url": "https://www.metroseoul.co.kr/article/20230313500231"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "name": "코모도호텔",
+   "address": "부산 중구 중앙대로 151",
+   "gu": "중구",
+   "located": true,
+   "lat": 35.1103,
+   "lon": 129.0385,
+   "tags": [
+    "호텔",
+    "원도심"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S113",
+    "name": "부산역",
+    "line": "1호선",
+    "walk_min": 9
+   },
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 2,
+     "title": "대외비",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%BD%94%EB%AA%A8%EB%8F%84%ED%98%B8%ED%85%94,35.1103,129.0385",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230313",
+     "provider": "메트로신문",
+     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+     "base_date": "2023-03-13",
+     "url": "https://www.metroseoul.co.kr/article/20230313500231"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "name": "봉래나루로",
+   "address": "부산 영도구 봉래동",
+   "gu": "영도구",
+   "located": true,
+   "lat": 35.0915,
+   "lon": 129.042,
+   "tags": [
+    "바다",
+    "거리"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S111",
+    "name": "남포",
+    "line": "1호선",
+    "walk_min": 16
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 2,
+     "title": "대외비",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%B4%89%EB%9E%98%EB%82%98%EB%A3%A8%EB%A1%9C,35.0915,129.042",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230313",
+     "provider": "메트로신문",
+     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+     "base_date": "2023-03-13",
+     "url": "https://www.metroseoul.co.kr/article/20230313500231"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "name": "가덕도 대항동 도로",
+   "address": "부산 강서구 대항동",
+   "gu": "강서구",
+   "located": true,
+   "lat": 35.004,
+   "lon": 128.828,
+   "tags": [
+    "바다",
+    "드라이브"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S109",
+    "name": "토성",
+    "line": "1호선",
+    "walk_min": 328
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": "차도 — 보행 주의",
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 2,
+     "title": "대외비",
+     "release_year": 2023,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EA%B0%80%EB%8D%95%EB%8F%84%20%EB%8C%80%ED%95%AD%EB%8F%99%20%EB%8F%84%EB%A1%9C,35.004,128.828",
+   "sources": [
+    {
+     "id": "SRC-METRO-20230313",
+     "provider": "메트로신문",
+     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+     "base_date": "2023-03-13",
+     "url": "https://www.metroseoul.co.kr/article/20230313500231"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "name": "부산항국제여객터미널",
+   "address": "부산 동구 초량동",
+   "gu": "동구",
+   "located": true,
+   "lat": 35.1175,
+   "lon": 129.0495,
+   "tags": [
+    "항구",
+    "바다"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S114",
+    "name": "초량",
+    "line": "1호선",
+    "walk_min": 10
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 3,
+     "title": "공작",
+     "release_year": 2018,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%B6%80%EC%82%B0%ED%95%AD%EA%B5%AD%EC%A0%9C%EC%97%AC%EA%B0%9D%ED%84%B0%EB%AF%B8%EB%84%90,35.1175,129.0495",
+   "sources": [
+    {
+     "id": "SRC-CINE21-111092",
+     "provider": "씨네21",
+     "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+     "base_date": "2026-10-26",
+     "url": "https://cine21.com/news/view/?mag_id=111092"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "name": "부산환경공단 본부",
+   "address": "부산",
+   "gu": null,
+   "located": false,
+   "lat": null,
+   "lon": null,
+   "tags": [
+    "시설"
+   ],
+   "photos": [],
+   "nearest_station": null,
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "no_coordinates"
+   },
+   "works": [
+    {
+     "id": 3,
+     "title": "공작",
+     "release_year": 2018,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": null,
+   "sources": [
+    {
+     "id": "SRC-CINE21-111092",
+     "provider": "씨네21",
+     "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+     "base_date": "2026-10-26",
+     "url": "https://cine21.com/news/view/?mag_id=111092"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "name": "부산항대교",
+   "address": "부산 남구·영도구",
+   "gu": "남구",
+   "located": true,
+   "lat": 35.089,
+   "lon": 129.07,
+   "tags": [
+    "다리",
+    "바다",
+    "야경"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S111",
+    "name": "남포",
+    "line": "1호선",
+    "walk_min": 55
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 3,
+     "title": "공작",
+     "release_year": 2018,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%B6%80%EC%82%B0%ED%95%AD%EB%8C%80%EA%B5%90,35.089,129.07",
+   "sources": [
+    {
+     "id": "SRC-CINE21-111092",
+     "provider": "씨네21",
+     "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+     "base_date": "2026-10-26",
+     "url": "https://cine21.com/news/view/?mag_id=111092"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "name": "부산영화촬영스튜디오",
+   "address": "부산 해운대구 해운대해변로 52",
+   "gu": "해운대구",
+   "located": true,
+   "lat": 35.1585,
+   "lon": 129.1445,
+   "tags": [
+    "스튜디오"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S204",
+    "name": "동백",
+    "line": "2호선",
+    "walk_min": 8
+   },
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 3,
+     "title": "공작",
+     "release_year": 2018,
+     "kmdb_matched": false
+    },
+    {
+     "id": 7,
+     "title": "강철비",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%B6%80%EC%82%B0%EC%98%81%ED%99%94%EC%B4%AC%EC%98%81%EC%8A%A4%ED%8A%9C%EB%94%94%EC%98%A4,35.1585,129.1445",
+   "sources": [
+    {
+     "id": "SRC-CINE21-111092",
+     "provider": "씨네21",
+     "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+     "base_date": "2026-10-26",
+     "url": "https://cine21.com/news/view/?mag_id=111092"
+    },
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "name": "아홉산숲",
+   "address": "부산 기장군 철마면 웅천리",
+   "gu": "기장군",
+   "located": true,
+   "lat": 35.2958,
+   "lon": 129.151,
+   "tags": [
+    "숲",
+    "대나무"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S406",
+    "name": "석대",
+    "line": "4호선",
+    "walk_min": 123
+   },
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 4,
+     "title": "군도: 민란의 시대",
+     "release_year": 2014,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%95%84%ED%99%89%EC%82%B0%EC%88%B2,35.2958,129.151",
+   "sources": [
+    {
+     "id": "SRC-CINE21-111087",
+     "provider": "씨네21",
+     "name": "부산영상위원회 아카이브 총서 <부산의 장면들> #3 연재(군도: 민란의 시대 / 아홉산숲)",
+     "base_date": "2026-10-26",
+     "url": "https://cine21.com/news/view/?mag_id=111087"
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "name": "옛 해사고등학교",
+   "address": "부산 영도구 동삼동",
+   "gu": "영도구",
+   "located": true,
+   "lat": 35.0755,
+   "lon": 129.076,
+   "tags": [
+    "학교",
+    "근대건축"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S111",
+    "name": "남포",
+    "line": "1호선",
+    "walk_min": 73
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 5,
+     "title": "신과함께-죄와 벌",
+     "release_year": 2017,
+     "kmdb_matched": false
+    },
+    {
+     "id": 6,
+     "title": "1987",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%98%9B%20%ED%95%B4%EC%82%AC%EA%B3%A0%EB%93%B1%ED%95%99%EA%B5%90,35.0755,129.076",
+   "sources": [
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "name": "해운정사",
+   "address": "부산 해운대구 중동",
+   "gu": "해운대구",
+   "located": true,
+   "lat": 35.164,
+   "lon": 129.169,
+   "tags": [
+    "사찰"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S202",
+    "name": "중동",
+    "line": "2호선",
+    "walk_min": 4
+   },
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 6,
+     "title": "1987",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%ED%95%B4%EC%9A%B4%EC%A0%95%EC%82%AC,35.164,129.169",
+   "sources": [
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "name": "옛 한국은행 부산본부",
+   "address": "부산 중구",
+   "gu": "중구",
+   "located": false,
+   "lat": null,
+   "lon": null,
+   "tags": [
+    "근대건축"
+   ],
+   "photos": [],
+   "nearest_station": null,
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": false,
+    "radius_m": 100,
+    "excluded_reason": "no_coordinates"
+   },
+   "works": [
+    {
+     "id": 6,
+     "title": "1987",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": null,
+   "sources": [
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "name": "동래별장",
+   "address": "부산 동래구 온천동",
+   "gu": "동래구",
+   "located": true,
+   "lat": 35.2185,
+   "lon": 129.083,
+   "tags": [
+    "근대건축",
+    "정원"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S127",
+    "name": "온천장",
+    "line": "1호선",
+    "walk_min": 6
+   },
+   "caution": "private",
+   "caution_notice": "사유지·영업 시설이에요. 외부에서만 관람해 주세요.",
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 6,
+     "title": "1987",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EB%8F%99%EB%9E%98%EB%B3%84%EC%9E%A5,35.2185,129.083",
+   "sources": [
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "name": "정란각",
+   "address": "부산 동구 수정동",
+   "gu": "동구",
+   "located": true,
+   "lat": 35.1255,
+   "lon": 129.045,
+   "tags": [
+    "근대건축",
+    "원도심"
+   ],
+   "photos": [],
+   "nearest_station": {
+    "id": "S115",
+    "name": "부산진",
+    "line": "1호선",
+    "walk_min": 6
+   },
+   "caution": null,
+   "caution_notice": null,
+   "safety_note": null,
+   "cert": {
+    "eligible": true,
+    "radius_m": 100,
+    "excluded_reason": null
+   },
+   "works": [
+    {
+     "id": 6,
+     "title": "1987",
+     "release_year": 2017,
+     "kmdb_matched": false
+    }
+   ],
+   "directions_url": "https://map.kakao.com/link/to/%EC%A0%95%EB%9E%80%EA%B0%81,35.1255,129.045",
+   "sources": [
+    {
+     "id": "SRC-FN-20180103",
+     "provider": "파이낸셜뉴스",
+     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+     "base_date": "2018-01-03",
+     "url": "https://www.fnnews.com/news/201801030900423529"
+    }
+   ]
+  }
+ ],
+ "locationGenres": {
+  "1": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "2": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "3": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "4": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "5": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "6": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "7": [
+   "드라마",
+   "범죄·느와르",
+   "청춘·스포츠"
+  ],
+  "8": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "9": [
+   "드라마",
+   "청춘·스포츠"
+  ],
+  "10": [
+   "드라마",
+   "범죄·느와르"
+  ],
+  "11": [
+   "드라마",
+   "범죄·느와르"
+  ],
+  "12": [
+   "드라마",
+   "범죄·느와르"
+  ],
+  "13": [
+   "드라마",
+   "범죄·느와르"
+  ],
+  "14": [
+   "드라마",
+   "스릴러·미스터리"
+  ],
+  "15": [
+   "드라마",
+   "스릴러·미스터리"
+  ],
+  "16": [
+   "드라마",
+   "스릴러·미스터리"
+  ],
+  "17": [
+   "드라마",
+   "액션·모험",
+   "스릴러·미스터리"
+  ],
+  "18": [
+   "액션·모험",
+   "시대극·전쟁"
+  ],
+  "19": [
+   "드라마",
+   "SF·판타지"
+  ],
+  "20": [
+   "드라마"
+  ],
+  "21": [
+   "드라마"
+  ],
+  "22": [
+   "드라마"
+  ],
+  "23": [
+   "드라마"
+  ]
+ }
+}

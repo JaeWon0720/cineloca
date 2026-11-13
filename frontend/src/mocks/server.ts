@@ -2,9 +2,10 @@
 // 응답 모양은 백엔드 스키마(app/api/schemas)와 같게 유지한다. 기능별 처리기는 handlers/에 둔다.
 import type { ApiRequest, ApiResponse } from '../api/client.ts'
 import { commonHandlers } from './handlers/common.ts'
+import { locationHandlers } from './handlers/locations.ts'
 import { fail, type Handler } from './http.ts'
 
-const HANDLERS: Handler[] = [...commonHandlers]
+const HANDLERS: Handler[] = [...commonHandlers, ...locationHandlers]
 const DELAY_MS = import.meta.env.MODE === 'test' ? 0 : 150
 
 export async function mockRequest(req: ApiRequest): Promise<ApiResponse> {

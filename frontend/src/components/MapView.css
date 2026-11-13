@@ -1,0 +1,47 @@
+/* 지도: Leaflet 레이어가 헤더·탭 위로 올라오지 않게 쌓임 맥락을 만든다 */
+.map {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+/* 지도 핀: 극장 간판 전구색. 번호는 목록의 거리순 번호와 같다 */
+.pin {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--marquee);
+  border: 2px solid var(--ink);
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgb(16 38 63 / 0.35);
+}
+
+/* 카카오 지도에서는 핀을 버튼으로 그린다 */
+button.pin {
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pin > span {
+  transform: rotate(45deg);
+}
+
+.pin-active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--marquee);
+  transform: rotate(-45deg) scale(1.25);
+}
