@@ -28,6 +28,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cineloca}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 값을 .env에 넣어 주세요}@db:5432/${POSTGRES_DB:-cineloca}
       AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_DIR: /app/logs                   # 요청 로그(NFR-005), 컨테이너 안에 7일 보관
     depends_on:
       db:
         condition: service_healthy         # DB가 준비된 뒤 시작

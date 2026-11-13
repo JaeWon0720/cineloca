@@ -14,7 +14,8 @@ RUN pip install -r requirements.txt
 COPY app ./app
 
 # 관리자 권한이 아닌 사용자로 실행
-RUN useradd --create-home --uid 10001 appuser
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/logs && chown appuser /app/logs   # 요청 로그 폴더(NFR-005)
 USER appuser
 
 EXPOSE 8000

@@ -135,11 +135,16 @@ def scrub(record: Any) -> Any:
     return record
 
 
+_EXC_FORMATTER = logging.Formatter()
+
+
 class PrivacyLogFilter(logging.Filter):
     """로그 레코드를 기록 직전에 정제한다(NFR-005: 마스킹된 형태로 기록).
 
     - 메시지와 인자의 개인정보 패턴을 가린다.
     - uvicorn 접근 로그의 첫 인자(클라이언트 주소)는 남기지 않는다(NFR-005 로그 항목에 IP 없음).
+    - uvicorn 접근 로그의 경로에서 쿼리 문자열을 지운다.
+    - 스택 추적(예외 메시지 포함)의 개인정보 패턴을 가린다.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -151,7 +156,15 @@ class PrivacyLogFilter(logging.Filter):
             args = tuple(scrub(arg) for arg in record.args)
             if record.name == "uvicorn.access" and args:
                 args = (REMOVED, *args[1:])
+                # 접근 로그에는 경로만 남기고 쿼리 문자열은 지운다(SDD 8장 로그 정책)
+                if len(args) > 2 and isinstance(args[2], str):
+                    args = (*args[:2], args[2].split("?", 1)[0], *args[3:])
             record.args = args
+        if record.exc_info and not record.exc_text:
+            # 스택 추적의 예외 메시지에도 개인정보가 있을 수 있어 가린 문장을 미리 넣어 둔다
+            record.exc_text = mask(_EXC_FORMATTER.formatException(record.exc_info)).text
+        elif record.exc_text:
+            record.exc_text = mask(record.exc_text).text
         return True
 
 
