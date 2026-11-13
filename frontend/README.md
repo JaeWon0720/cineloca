@@ -15,7 +15,9 @@ React + Vite + TypeScript. Node.js 24 기준.
 | 주소 | 화면 |
 |---|---|
 | `/` | UI-01 지도 홈 |
+| `/locations/:id` | UI-02 촬영지 상세 |
 | `/works` | UI-03 작품 목록 |
+| `/works/:id` | UI-04 작품 상세 |
 | `/ask` | UI-05 AI 탐색 |
 | `/courses` | UI-06 코스 |
 | `/me` | UI-08 내 기록 |

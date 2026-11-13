@@ -11,6 +11,7 @@ import MapPage from './pages/MapPage.tsx'
 import MyRecordPage from './pages/MyRecordPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 import SourcesPage from './pages/SourcesPage.tsx'
+import WorkDetailPage from './pages/WorkDetailPage.tsx'
 import WorksPage from './pages/WorksPage.tsx'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Route index element={<MapPage />} />
         <Route path="locations/:id" element={<LocationDetailPage />} />
         <Route path="works" element={<WorksPage />} />
+        <Route path="works/:id" element={<WorkDetailPage />} />
         <Route path="ask" element={<AskPage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="me" element={<MyRecordPage />} />

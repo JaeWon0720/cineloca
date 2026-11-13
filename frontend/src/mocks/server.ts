@@ -3,9 +3,10 @@
 import type { ApiRequest, ApiResponse } from '../api/client.ts'
 import { commonHandlers } from './handlers/common.ts'
 import { locationHandlers } from './handlers/locations.ts'
+import { workHandlers } from './handlers/works.ts'
 import { fail, type Handler } from './http.ts'
 
-const HANDLERS: Handler[] = [...commonHandlers, ...locationHandlers]
+const HANDLERS: Handler[] = [...commonHandlers, ...locationHandlers, ...workHandlers]
 const DELAY_MS = import.meta.env.MODE === 'test' ? 0 : 150
 
 export async function mockRequest(req: ApiRequest): Promise<ApiResponse> {
