@@ -3,6 +3,7 @@
 import io
 import logging
 import logging.config
+import sys
 from collections.abc import Iterator
 
 import pytest
@@ -255,3 +256,40 @@ def test_access_record_without_uvicorn_formatter() -> None:
     PrivacyLogFilter().filter(record)
 
     assert record.getMessage() == f'{REMOVED} - "GET /"'
+
+
+def test_access_log_drops_query_string() -> None:
+    record = logging.LogRecord(
+        "uvicorn.access",
+        logging.INFO,
+        __file__,
+        0,
+        '%s - "%s %s HTTP/%s" %d',
+        ("10.0.0.1:1", "GET", "/api/locations/1?lat=35.15871&token=abc", "1.1", 200),
+        None,
+    )
+
+    PrivacyLogFilter().filter(record)
+
+    assert record.getMessage() == f'{REMOVED} - "GET /api/locations/1 HTTP/1.1" 200'
+
+
+def test_log_filter_masks_stack_trace() -> None:
+    try:
+        raise RuntimeError("연락처 010-9876-5432 처리 실패")
+    except RuntimeError:
+        record = logging.LogRecord(
+            "uvicorn.error",
+            logging.ERROR,
+            __file__,
+            0,
+            "Exception in ASGI application",
+            (),
+            sys.exc_info(),
+        )
+
+    PrivacyLogFilter().filter(record)
+    text = logging.Formatter().format(record)
+
+    assert "Traceback" in text and "RuntimeError" in text
+    assert "010-9876-5432" not in text and PLACEHOLDER in text
