@@ -9,7 +9,9 @@ from collections.abc import Mapping
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
+from app.core.genres import GENRE_GROUPS
 from app.data.ai_gateway import (
     AIUnavailable,
     DefaultPromptBuilder,
@@ -19,7 +21,7 @@ from app.data.ai_gateway import (
     TaskSpec,
 )
 from app.data.ai_gateway.circuit import CircuitBreaker
-from app.data.ai_gateway.tasks import TASKS, QueryConditions
+from app.data.ai_gateway.tasks import GENRES, TASKS, QueryConditions
 from app.data.ai_gateway.testing import FakeProvider
 from app.support.privacy import mask
 
@@ -27,7 +29,7 @@ GOOD = {
     "out_of_scope": False,
     "work_titles": ["부산행"],
     "persons": [],
-    "genres": ["액션"],
+    "genres": ["액션·모험"],
     "districts": ["해운대구"],
     "release_year_from": None,
     "release_year_to": None,
@@ -295,8 +297,9 @@ def test_default_prompt_uses_masked_text_and_allowed_values() -> None:
 
     assert "010-1234-5678" not in prompt.user
     assert "[개인정보] 마동석 영화 촬영지" in prompt.user
-    assert "해운대구" in prompt.system and "멜로/로맨스" in prompt.system
-    assert prompt.version == "v2"
+    assert "해운대구" in prompt.system
+    assert "범죄·느와르(범죄, 느와르, 갱스터)" in prompt.system  # 묶음 + 속하는 KMDb 장르
+    assert prompt.version == "v3"
     assert prompt.temperature == 0.0
     assert prompt.json_schema["title"] == "QueryConditions"
 
@@ -332,3 +335,28 @@ def test_circuit_breaker_unit() -> None:
     breaker.record_success()
     breaker.record_failure()
     assert breaker.allow()  # 성공하면 연속 실패 수가 초기화됨
+
+
+def test_query_genres_match_search_filter_groups() -> None:
+    """AI가 뽑은 장르가 검색 API(API-005)의 장르 묶음과 같은 값이어야 한다."""
+    assert list(GENRES) == list(GENRE_GROUPS)
+    assert QueryConditions.model_validate({**GOOD, "genres": list(GENRE_GROUPS)}).genres == list(
+        GENRE_GROUPS
+    )
+
+
+@pytest.mark.parametrize("old_value", ["범죄", "멜로/로맨스", "공포(호러)", "액션"])
+def test_query_rejects_fine_grained_genres(old_value: str) -> None:
+    """PoC의 세부 장르 값은 묶음 이름이 아니라서 스키마 위반 → 재요청·강등 대상."""
+    with pytest.raises(ValidationError):
+        QueryConditions.model_validate({**GOOD, "genres": [old_value]})
+
+
+def test_query_genres_pass_search_request_validation() -> None:
+    """추출 결과의 장르를 그대로 API-005 요청에 넣어도 통과한다."""
+    from app.api.schemas.locations import LocationSearchRequest
+
+    conditions = QueryConditions.model_validate({**GOOD, "genres": ["범죄·느와르", "재난"]})
+    request = LocationSearchRequest(base={"lat": 35.1, "lon": 129.0}, genres=conditions.genres)
+
+    assert request.genres == ["범죄·느와르", "재난"]
