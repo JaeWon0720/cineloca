@@ -10,5 +10,14 @@
  "crs": "좌표 API entX·entY = UTM-K(EPSG:5179) → WGS84(EPSG:4326) 변환",
  "in_busan_bbox_pct": 100.0,
  "errors": 0,
- "note": "이름 검색(via=name)으로 얻은 좌표는 건물명 일치라 검수 큐 대상"
+ "note": "이름 검색(via=name)으로 얻은 좌표는 건물명 일치라 검수 큐 대상",
+ "reliable_coord_rate_pct": 63.6,
+ "suspect_coords": {
+  "name_search": 76,
+  "dong_only_address": 27,
+  "total": 103,
+  "note": "장소명 검색 좌표와 번지 없는 주소의 좌표는 엉뚱한 곳이 많아 믿을 만한 좌표에서 뺌. C1에서 다시 확인(#25)"
+ },
+ "a3_target_pct": 85,
+ "a3_pass": false
 }
