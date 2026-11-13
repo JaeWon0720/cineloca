@@ -48,6 +48,10 @@ class SyncCounts(BaseModel):
     locations: int = Field(default=0, ge=0, description="병합 후 촬영지 수")
     match: MatchCounts = Field(default_factory=MatchCounts)
     geo: GeoCounts = Field(default_factory=GeoCounts)
+    unknown_genres: list[str] = Field(
+        default_factory=list,
+        description="장르 묶음표(app/core/genres.py)에 없는 KMDb 장르. 필터에서 빠지므로 경고",
+    )
 
 
 class Failure(BaseModel):
@@ -116,7 +120,18 @@ class SyncReport(BaseModel):
     rates: SyncRates | None
     prev_counts: SyncCounts | None
     guard: list[str] = Field(description="건수 가드 위반 사유(FR-612). 비어 있으면 통과")
+    warnings: list[str] = Field(description="반영은 했지만 관리자가 확인할 것")
     failures: list[Failure] = Field(description="가드 사유를 뺀 실패 목록")
+
+
+def warnings(counts: SyncCounts | None) -> list[str]:
+    if not counts or not counts.unknown_genres:
+        return []
+    names = ", ".join(counts.unknown_genres)
+    return [
+        f"장르 묶음표에 없는 KMDb 장르 {len(counts.unknown_genres)}종({names})은 "
+        "장르 필터에서 빠집니다. 묶음표에 추가해 주세요"
+    ]
 
 
 def build_report(
@@ -139,5 +154,6 @@ def build_report(
         rates=rates(counts) if counts else None,
         prev_counts=prev_counts,
         guard=[f.reason for f in failures if f.step == GUARD_STEP],
+        warnings=warnings(counts),
         failures=[f for f in failures if f.step != GUARD_STEP],
     )

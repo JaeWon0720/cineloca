@@ -131,3 +131,15 @@ def test_limit_failures_keeps_count_of_rest() -> None:
     assert len(kept) == MAX_FAILURES
     assert kept[-1].reason == "실패 51건을 더 생략했습니다"
     assert limit_failures(many[:3]) == many[:3]
+
+
+def test_report_warns_unknown_genres() -> None:
+    c = SyncCounts(works=400, locations=1300, unknown_genres=["웹툰원작", "AI영화"])
+
+    report = build_report(1, "schedule", "succeeded", None, None, c, None, [])
+
+    assert report.warnings == [
+        "장르 묶음표에 없는 KMDb 장르 2종(웹툰원작, AI영화)은 장르 필터에서 빠집니다. "
+        "묶음표에 추가해 주세요"
+    ]
+    assert build_report(1, "schedule", "failed", None, None, None, None, []).warnings == []
