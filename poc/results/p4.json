@@ -21,11 +21,25 @@
   }
  },
  "tv_ott_prefixed_titles": 78,
- "auto_accuracy_pct": null,
- "review_sample": "results/p4_review.csv (사람 판정 필요)",
+ "auto_accuracy_pct": 100.0,
+ "review_sample": "사람 확인 완료(2026-11-13, R3). 검수표는 KMDb 내용이 있어 저장소에 올리지 않음",
  "with_rule_c": {
   "auto": 53.4,
   "review": 19.7,
   "unmatched": 26.8
+ },
+ "judged": 25,
+ "pass": true,
+ "rule_c_accuracy_pct": 100.0,
+ "human_check": {
+  "checked_at": "2026-11-13",
+  "by": "R3",
+  "auto_sample": 25,
+  "auto_correct": 25,
+  "rule_c_sample": 25,
+  "rule_c_correct": 25,
+  "queue_checked": 22,
+  "queue_agree_with_ai": 21,
+  "queue_note": "1건은 사람 판정과 AI 판정이 달라 AI 판정(미수록)을 유지(팀장 결정)"
  }
 }
