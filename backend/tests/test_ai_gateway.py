@@ -306,7 +306,7 @@ def test_default_prompt_uses_masked_text_and_allowed_values() -> None:
 
 def test_other_task_prompts_are_not_written_yet() -> None:
     with pytest.raises(NotImplementedError):
-        DefaultPromptBuilder().build(TASKS["work_intro"], {})
+        DefaultPromptBuilder().build(TASKS["course_intro"], {})  # F3에서 작성
 
 
 def test_registered_tasks_match_sdd_table() -> None:

@@ -171,7 +171,13 @@ TASKS: dict[str, TaskSpec] = {
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
-        TaskSpec("work_intro", GroundedText, temperature=0.3, cache_ttl_s=_DAY_S),
+        TaskSpec(
+            "work_intro",  # F1 작품 소개(FR-109)
+            GroundedText,
+            temperature=0.3,
+            prompt_version="v1",
+            cache_ttl_s=_DAY_S,
+        ),
         TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
         TaskSpec("suggest_tags", TagSuggestion, prompt_version="v1"),  # FR-608
         TaskSpec("judge_match", MatchJudgement, prompt_version="v1"),  # FR-608
