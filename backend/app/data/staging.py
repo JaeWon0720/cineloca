@@ -9,11 +9,24 @@
 """
 
 import json
+import logging
 from collections.abc import Iterable
 
 import asyncpg
 
 STG_TABLES = ("stg.shooting", "stg.work", "stg.location", "stg.station")
+log = logging.getLogger(__name__)
+
+# 검수 항목의 KMDb id. 규칙 제안은 최상위 kmdb_id, AI 제안(#41)은 candidate 안에 있다.
+_PROPOSAL_KMDB_ID = (
+    "COALESCE(r.proposal->>'kmdb_id', r.proposal->'candidate'->>'kmdb_id',"
+    " r.proposal->'candidate'->>'docid')"
+)
+# 코스(추천 코스 출발지·경유지)가 쓰는 촬영지. 원본에서 빠져도 지우지 않는다.
+_USED_BY_COURSE = """
+    EXISTS (SELECT 1 FROM course_stop cs WHERE cs.location_id = l.id)
+    OR EXISTS (SELECT 1 FROM course c WHERE c.start_location_id = l.id)
+"""
 
 
 async def reset(conn: asyncpg.Connection) -> None:
@@ -34,13 +47,17 @@ async def known_stations(conn: asyncpg.Connection) -> dict[str, tuple[float, flo
 
 
 async def review_decisions(conn: asyncpg.Connection) -> dict[str, tuple[str, str | None]]:
-    """title_norm → (status, kmdb_id). 관리자가 처리한 매칭 검수(마지막 처리 기준)와
-    대기 중인 것."""
+    """title_norm → (status, kmdb_id). 작품별로 마지막 결정 하나.
+
+    - 관리자가 처리한 매칭 검수는 제안자(rule·ai)와 관계없이 쓴다. 나중에 처리한 것이 이긴다.
+    - 대기 중인 항목은 규칙 제안만 본다. AI 제안(#41)은 관리자가 처리하기 전까지 참고용이다.
+    """
     rows = await conn.fetch(
-        """
-        SELECT w.title_norm, r.status, r.proposal->>'kmdb_id' AS kmdb_id
+        f"""
+        SELECT w.title_norm, r.status, {_PROPOSAL_KMDB_ID} AS kmdb_id
         FROM review_item r JOIN work w ON w.id = r.target_id
         WHERE r.kind = 'match' AND r.target_type = 'work'
+          AND (r.status <> 'pending' OR r.proposer = 'rule')
         ORDER BY r.handled_at NULLS FIRST, r.id
         """
     )
@@ -102,8 +119,12 @@ async def write_shootings(conn: asyncpg.Connection, rows: Iterable[tuple]) -> No
     )
 
 
-async def publish(conn: asyncpg.Connection) -> None:
-    """stg → 서비스 테이블. 호출하는 쪽이 트랜잭션을 연다."""
+async def publish(conn: asyncpg.Connection) -> int:
+    """stg → 서비스 테이블. 호출하는 쪽이 트랜잭션을 연다.
+
+    원본에서 빠졌지만 추천 코스가 쓰고 있어 지우지 않고 남긴 촬영지 수를 돌려준다
+    (지우면 course_stop·course 외래 키 오류로 반영 전체가 실패한다). 0보다 크면 경고 로그를 남긴다.
+    """
     await conn.execute(
         """
         INSERT INTO station (id, name, line, lat, lon, gu)
@@ -145,10 +166,13 @@ async def publish(conn: asyncpg.Connection) -> None:
             station_walk_min = EXCLUDED.station_walk_min
         """
     )
-    await conn.execute(
-        "DELETE FROM location l"
-        " WHERE NOT EXISTS (SELECT 1 FROM stg.location s WHERE s.name_norm = l.name_norm)"
+    gone = "NOT EXISTS (SELECT 1 FROM stg.location s WHERE s.name_norm = l.name_norm)"
+    kept = await conn.fetchval(
+        f"SELECT count(*) FROM location l WHERE {gone} AND ({_USED_BY_COURSE})"
     )
+    await conn.execute(f"DELETE FROM location l WHERE {gone} AND NOT ({_USED_BY_COURSE})")
+    if kept:
+        log.warning("원본에서 빠졌지만 추천 코스가 쓰는 촬영지 %d곳은 지우지 않았습니다", kept)
     await conn.execute("DELETE FROM shooting")
     await conn.execute(
         """
@@ -165,7 +189,7 @@ async def publish(conn: asyncpg.Connection) -> None:
         DELETE FROM review_item r
         USING work w JOIN stg.work s ON s.title_norm = w.title_norm
         WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id
-          AND r.status = 'pending' AND s.match_status <> 'review'
+          AND r.proposer = 'rule' AND r.status = 'pending' AND s.match_status <> 'review'
         """
     )
     # 검수 대기 작품: 이미 큐에 있거나 처리된 작품은 다시 넣지 않는다
@@ -176,6 +200,8 @@ async def publish(conn: asyncpg.Connection) -> None:
         FROM stg.work s JOIN work w ON w.title_norm = s.title_norm
         WHERE s.match_status = 'review' AND s.candidate IS NOT NULL
           AND NOT EXISTS (SELECT 1 FROM review_item r
-                          WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id)
+                          WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id
+                            AND r.proposer = 'rule')
         """
     )
+    return kept

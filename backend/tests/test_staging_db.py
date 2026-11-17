@@ -6,6 +6,7 @@
 """
 
 import asyncio
+import json
 import os
 from collections.abc import Awaitable, Callable
 
@@ -23,7 +24,8 @@ def run(body: Callable[[asyncpg.Connection], Awaitable[None]]) -> None:
         conn = await asyncpg.connect(DSN)
         try:
             await conn.execute(
-                "TRUNCATE review_item, shooting, work, location, station RESTART IDENTITY CASCADE"
+                "TRUNCATE review_item, course_stop, course, shooting, work, location, station"
+                " RESTART IDENTITY CASCADE"
             )
             await body(conn)
         finally:
@@ -100,5 +102,61 @@ def test_pending_review_removed_when_work_no_longer_review() -> None:
         assert await conn.fetchval("SELECT count(*) FROM review_item") == 1
         await load(conn, [work("w1", kid="K9")], [LOC_A], shoot)
         assert await conn.fetchval("SELECT count(*) FROM review_item") == 0
+
+    run(body)
+
+
+def test_location_used_by_course_is_kept() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        shoots = [("w1", "a", "DATA-01", {}, None), ("w1", "b", "DATA-01", {}, None)]
+        await load(conn, [work("w1", kid="K1")], [LOC_A, LOC_B], shoots)
+        loc_b = await conn.fetchval("SELECT id FROM location WHERE name_norm = 'b'")
+        course = await conn.fetchval(
+            "INSERT INTO course (theme, title, status)"
+            " VALUES ('work', '코스', 'approved') RETURNING id"
+        )
+        await conn.execute(
+            "INSERT INTO course_stop (course_id, ord, location_id) VALUES ($1, 1, $2)",
+            course,
+            loc_b,
+        )
+
+        # 2회차: b가 원본에서 빠짐 → 코스가 쓰므로 지우지 않고, 반영은 성공
+        async with conn.transaction():
+            await staging.reset(conn)
+            await staging.write_works(conn, [work("w1", kid="K1")])
+            await staging.write_locations(conn, [LOC_A])
+            await staging.write_shootings(conn, [("w1", "a", "DATA-01", {}, None)])
+            kept = await staging.publish(conn)
+        assert kept == 1
+        assert await conn.fetchval("SELECT count(*) FROM location WHERE id = $1", loc_b) == 1
+        assert await conn.fetchval("SELECT count(*) FROM shooting") == 1
+
+    run(body)
+
+
+def test_ai_items_only_count_after_admin_handles_them() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        w = work("w1", "review", cand={"kmdb_id": "K9"})
+        await load(conn, [w], [LOC_A], [("w1", "a", "DATA-01", {}, None)])
+        wid = await conn.fetchval("SELECT id FROM work WHERE title_norm = 'w1'")
+        ai = {"verdict": "match", "candidate": {"docid": "K7", "title": "w1", "year": 2001}}
+        await conn.execute(
+            "INSERT INTO review_item (kind, target_type, target_id, proposal, proposer)"
+            " VALUES ('match', 'work', $1, $2::jsonb, 'ai')",
+            wid,
+            json.dumps(ai),
+        )
+        # 대기 중인 AI 제안은 규칙 제안을 덮지 않는다(#41)
+        assert await staging.review_decisions(conn) == {"w1": ("pending", "K9")}
+        # 다시 반영해도 규칙 항목은 하나, AI 항목은 그대로
+        await load(conn, [w], [LOC_A], [("w1", "a", "DATA-01", {}, None)])
+        rows = await conn.fetch("SELECT proposer FROM review_item ORDER BY id")
+        assert [r["proposer"] for r in rows] == ["rule", "ai"]
+        # 관리자가 AI 제안을 승인하면 그 KMDb id가 결정이 된다
+        await conn.execute(
+            "UPDATE review_item SET status = 'approved', handled_at = now() WHERE proposer = 'ai'"
+        )
+        assert await staging.review_decisions(conn) == {"w1": ("approved", "K7")}
 
     run(body)
