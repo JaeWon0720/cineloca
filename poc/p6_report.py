@@ -29,12 +29,18 @@ def main():
     if p3:
         L.append(f"| p3 좌표 | 확보율 기록, 부산 범위 100% 근접 | 주소검색 성공 {p3['address_search_success_pct']}%, 좌표 확보 "
                  f"{p3['coord_rate_pct']}%(주소 있는 장소 {p3['coord_rate_among_address_pct']}%), {p3['crs']}, 부산 범위 안 "
-                 f"{p3['in_busan_bbox_pct']}% | 기록 |")
+                 f"{p3['in_busan_bbox_pct']}%"
+                 + (f"; 믿을 만한 좌표 {p3['reliable_coord_rate_pct']}%(의심 좌표 {p3['suspect_coords']['total']}곳 제외, #25)"
+                    if p3.get('reliable_coord_rate_pct') is not None else "")
+                 + f" | {'기록' if p3.get('a3_pass') is None else ('A3 85% 통과' if p3['a3_pass'] else 'A3 85% 미달 → C1 재확인(#25)')} |")
     else:
         L.append("| p3 좌표 | 확보율·좌표계 | 대기(JUSO_SEARCH_API_KEY·JUSO_COORD_API_KEY) | — |")
     if p4:
         L.append(f"| p4 매칭 | 자동연결 정확도 95% | 자동 {p4['auto_pct']}%, 검수 큐 {p4['review_pct']}%, 미매칭 {p4['unmatched_pct']}%, "
-                 f"정확도 {fmt(p4['auto_accuracy_pct'], '%')} | {'통과' if p4.get('pass') else '판정 대기' if p4.get('pass') is None else '미달'} |")
+                 f"정확도 {fmt(p4['auto_accuracy_pct'], '%')}"
+                 + (f"(사람 확인 무작위 {h['auto_sample']}건, 규칙 C {p4['rule_c_accuracy_pct']}%/{h['rule_c_sample']}건, "
+                    f"검수 큐 AI 판정 {h['queue_agree_with_ai']}/{h['queue_checked']}건 일치)" if (h := p4.get('human_check')) else "")
+                 + f" | {'통과' if p4.get('pass') else '판정 대기' if p4.get('pass') is None else '미달'} |")
     else:
         L.append("| p4 매칭 | 정확도 95% | 대기(KMDB_SERVICE_KEY) | — |")
     if p5:
