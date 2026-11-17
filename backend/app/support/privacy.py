@@ -4,6 +4,7 @@
   '[개인정보]'로 바꾼다 (FR-702, AI-REQ-03).
 - scrub(record): 로그로 남길 레코드에서 위치 좌표·비밀값을 빼고 문자열을 마스킹한다
   (NFR-003, NFR-005, NFR-009).
+- strip_params(text): 문자열 속 'name=value'(URL 쿼리 등)에서 비밀값·위치 이름의 값을 지운다.
 - PrivacyLogFilter: 로그 메시지에 남은 개인정보 패턴과 접근 로그의 클라이언트 IP를 가린다.
 - install_privacy_log_filter(): 서버 시작 시 root·uvicorn 로그 핸들러에 필터를 붙인다.
 
@@ -89,6 +90,32 @@ def _is_location_key(name: str) -> bool:
     return flat in _LOCATION_NAMES or any(w in _LOCATION_WORDS for w in _words(name))
 
 
+# 문자열 속 'name=value' 쌍(URL 쿼리·폼 본문·오류 문장). 예: ?serviceKey=abc&pageNo=1, lat=35.1
+_PARAM = re.compile(r"(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_.-]*)=([^&\s\"'#,;)]*)")
+
+
+def strip_params(text: str) -> str:
+    """이름이 비밀값(serviceKey·confmKey·api_key·token …)이나 위치(lat·lon·x·y …)인 값을 지운다.
+
+    외부 API 키는 URL 쿼리로 보내는 곳이 많아(공공데이터포털·KMDb·주소 API),
+    HTTP 라이브러리 로그나 오류 메시지에 URL이 그대로 찍혀도 키가 남지 않게 한다(NFR-009, RK10).
+    """
+    if "=" not in text:
+        return text
+
+    def _replace(m: re.Match[str]) -> str:
+        name = m.group(1)
+        if m.group(2) and (_is_secret_key(name) or _is_location_key(name)):
+            return f"{name}={REMOVED}"
+        return m.group(0)
+
+    return _PARAM.sub(_replace, text)
+
+
+def _clean_text(text: str) -> str:
+    return mask(strip_params(text)).text
+
+
 @dataclass(frozen=True)
 class MaskedText:
     """마스킹 결과. kinds에는 가린 종류만 남긴다(원문 값은 남기지 않음)."""
@@ -116,11 +143,11 @@ def scrub(record: Any) -> Any:
 
     - 위치 키(lat, user_lat, mapX, coords …)와
       비밀값 키(GEMINI_API_KEY, access_token …)의 값은 '[제거됨]'
-    - 모든 문자열은 mask() 적용
+    - 모든 문자열은 strip_params()와 mask() 적용(URL 속 키·좌표 값, 개인정보 패턴)
     - dict·list·tuple은 안쪽까지 같은 규칙 적용
     """
     if isinstance(record, str):
-        return mask(record).text
+        return _clean_text(record)
     if isinstance(record, Mapping):
         cleaned: dict[Any, Any] = {}
         for key, value in record.items():
@@ -136,6 +163,15 @@ def scrub(record: Any) -> Any:
 
 
 _EXC_FORMATTER = logging.Formatter()
+_PLAIN = (str, int, float, bool, type(None), Mapping, list, tuple)
+
+
+def _as_loggable(arg: Any) -> Any:
+    """문자열·숫자·컨테이너가 아닌 인자(httpx.URL, 예외 등)는 문자열로 바꿔 같은 규칙을 적용한다.
+
+    httpx는 'HTTP Request: %s %s' 로그에 URL 객체를 넘겨서, 그대로 두면 키가 든 쿼리를 가릴 수 없다.
+    """
+    return arg if isinstance(arg, _PLAIN) else str(arg)
 
 
 class PrivacyLogFilter(logging.Filter):
@@ -144,16 +180,17 @@ class PrivacyLogFilter(logging.Filter):
     - 메시지와 인자의 개인정보 패턴을 가린다.
     - uvicorn 접근 로그의 첫 인자(클라이언트 주소)는 남기지 않는다(NFR-005 로그 항목에 IP 없음).
     - uvicorn 접근 로그의 경로에서 쿼리 문자열을 지운다.
+    - 메시지·인자·스택 추적 속 URL 쿼리의 키·좌표 값을 지운다(httpx 요청 로그 등).
     - 스택 추적(예외 메시지 포함)의 개인정보 패턴을 가린다.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.msg, str):
-            record.msg = mask(record.msg).text
+            record.msg = _clean_text(record.msg)
         if isinstance(record.args, Mapping):
             record.args = scrub(record.args)
         elif isinstance(record.args, tuple):
-            args = tuple(scrub(arg) for arg in record.args)
+            args = tuple(scrub(_as_loggable(arg)) for arg in record.args)
             if record.name == "uvicorn.access" and args:
                 args = (REMOVED, *args[1:])
                 # 접근 로그에는 경로만 남기고 쿼리 문자열은 지운다(SDD 8장 로그 정책)
@@ -162,9 +199,9 @@ class PrivacyLogFilter(logging.Filter):
             record.args = args
         if record.exc_info and not record.exc_text:
             # 스택 추적의 예외 메시지에도 개인정보가 있을 수 있어 가린 문장을 미리 넣어 둔다
-            record.exc_text = mask(_EXC_FORMATTER.formatException(record.exc_info)).text
+            record.exc_text = _clean_text(_EXC_FORMATTER.formatException(record.exc_info))
         elif record.exc_text:
-            record.exc_text = mask(record.exc_text).text
+            record.exc_text = _clean_text(record.exc_text)
         return True
 
 

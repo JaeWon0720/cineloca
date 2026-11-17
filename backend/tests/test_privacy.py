@@ -16,6 +16,7 @@ from app.support.privacy import (
     install_privacy_log_filter,
     mask,
     scrub,
+    strip_params,
 )
 
 
@@ -293,3 +294,84 @@ def test_log_filter_masks_stack_trace() -> None:
 
     assert "Traceback" in text and "RuntimeError" in text
     assert "010-9876-5432" not in text and PLACEHOLDER in text
+
+
+# ── URL 속 키·좌표 파라미터 (NFR-009, RK10) ─────────────────────
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "GET https://apis.data.go.kr/x/getBfc?serviceKey=SECRET123%2B&pageNo=1&numOfRows=1000",
+            f"GET https://apis.data.go.kr/x/getBfc?serviceKey={REMOVED}&pageNo=1&numOfRows=1000",
+        ),
+        (
+            "http://api.koreafilm.or.kr/search_json2.jsp?collection=kmdb_new2&ServiceKey=AB12&detail=Y",
+            f"http://api.koreafilm.or.kr/search_json2.jsp?collection=kmdb_new2&ServiceKey={REMOVED}&detail=Y",
+        ),
+        (
+            "addrLinkApi.do?confmKey=U01TX0&keyword=해운대",
+            f"addrLinkApi.do?confmKey={REMOVED}&keyword=해운대",
+        ),
+        ("api_key=SECRET999 실패", f"api_key={REMOVED} 실패"),
+        (
+            "/api/x?lat=35.15871&lon=129.16042&radius=1000",
+            f"/api/x?lat={REMOVED}&lon={REMOVED}&radius=1000",
+        ),
+        ("mapX=129.1&mapY=35.1&x=1&y=2", f"mapX={REMOVED}&mapY={REMOVED}&x={REMOVED}&y={REMOVED}"),
+    ],
+)
+def test_strip_params_removes_keys_and_coordinates(text: str, expected: str) -> None:
+    assert strip_params(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "latency_ms=12 template=v3 pageNo=2",  # 'lat'가 들어간 다른 이름은 그대로
+        "serviceKey= 비어 있음",  # 값이 없으면 바꿀 것이 없음
+        "a = b, 일반 문장",
+        "x는 1",
+    ],
+)
+def test_strip_params_keeps_ordinary_text(text: str) -> None:
+    assert strip_params(text) == text
+
+
+def test_scrub_strips_params_in_strings() -> None:
+    assert scrub({"url": "/p?token=abc&n=1"}) == {"url": f"/p?token={REMOVED}&n=1"}
+
+
+def test_log_filter_hides_key_in_httpx_url_object() -> None:
+    httpx = pytest.importorskip("httpx")
+    url = httpx.URL("https://apis.data.go.kr/x", params={"serviceKey": "SECRETKEY123", "pageNo": 1})
+    record = logging.LogRecord(
+        "httpx",
+        logging.INFO,
+        __file__,
+        0,
+        'HTTP Request: %s %s "%s %d %s"',
+        ("GET", url, "HTTP/1.1", 200, "OK"),
+        None,
+    )
+
+    PrivacyLogFilter().filter(record)
+
+    message = record.getMessage()
+    assert "SECRETKEY123" not in message
+    assert f"serviceKey={REMOVED}&pageNo=1" in message and '"HTTP/1.1 200 OK"' in message
+
+
+def test_log_filter_strips_params_in_message_and_stack_trace() -> None:
+    try:
+        raise RuntimeError("GET /x?confmKey=TOPSECRET 실패")
+    except RuntimeError:
+        record = logging.LogRecord(
+            "app.batch", logging.ERROR, __file__, 0, "요청 실패 ServiceKey=ABC", (), sys.exc_info()
+        )
+
+    PrivacyLogFilter().filter(record)
+    text = logging.Formatter().format(record)
+
+    assert "TOPSECRET" not in text and "ABC" not in text and "Traceback" in text
