@@ -68,7 +68,7 @@ class QueryConditions(BaseModel):
     result_type: Literal["location", "work"]
 
 
-# ── 근거 기반 문장 생성 (F4 요약, F1 소개) — 초안 ─────────────
+# ── 근거 기반 문장 생성 (F4 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
 class GroundedSentence(BaseModel):
     text: str = Field(min_length=1)
     entities: list[str]  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
@@ -163,7 +163,14 @@ TASKS: dict[str, TaskSpec] = {
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
-        TaskSpec("summarize_results", GroundedText, temperature=0.2, cache_ttl_s=_DAY_S),
+        TaskSpec(
+            "summarize_results",  # F4 결과 요약(FR-407)
+            GroundedText,
+            temperature=0.2,
+            prompt_version="v1",
+            user_text_fields=("query",),
+            cache_ttl_s=_DAY_S,
+        ),
         TaskSpec("work_intro", GroundedText, temperature=0.3, cache_ttl_s=_DAY_S),
         TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
         TaskSpec("suggest_tags", TagSuggestion, prompt_version="v1"),  # FR-608

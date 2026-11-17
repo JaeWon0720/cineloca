@@ -22,6 +22,7 @@ from app.data.ai_gateway.circuit import CircuitBreaker
 from app.data.ai_gateway.contracts import (
     Attempt,
     Embedder,
+    EvidenceInput,
     LLMClient,
     LLMProvider,
     LLMResult,
@@ -45,6 +46,7 @@ __all__ = [
     "DailyQuota",
     "DefaultPromptBuilder",
     "Embedder",
+    "EvidenceInput",
     "GeminiProvider",
     "LLMClient",
     "LLMProvider",
