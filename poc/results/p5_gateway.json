@@ -1,0 +1,104 @@
+{
+ "prompt_version": "v4",
+ "criterion": "필드 일치율 90% 이상",
+ "questions": "eval/p5_questions_genre_groups.json",
+ "runs": [
+  {
+   "provider": "ollama:qwen3:8b",
+   "prompt_version": "v4",
+   "workers": 1,
+   "questions": 26,
+   "complete": true,
+   "field_match_pct": 95.4,
+   "field_match_pct_q01_q22": 95.1,
+   "question_mean_match_pct": 95.7,
+   "out_of_scope_correct": 2,
+   "genre_ok": 24,
+   "genre_questions": 24,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 2.08,
+   "latency_mean_s": 1.68,
+   "errors": 0,
+   "wrong": {
+    "Q03": [
+     "anchor",
+     "result_type"
+    ],
+    "Q10": [
+     "release_year_from"
+    ],
+    "Q11": [
+     "work_titles"
+    ],
+    "Q12": [
+     "work_titles"
+    ],
+    "Q13": [
+     "districts"
+    ],
+    "Q14": [
+     "result_type"
+    ],
+    "Q15": [
+     "anchor"
+    ],
+    "Q20": [
+     "result_type"
+    ],
+    "Q24": [
+     "anchor"
+    ]
+   },
+   "pass": true
+  },
+  {
+   "provider": "ollama:qwen3:8b",
+   "prompt_version": "v4",
+   "workers": 4,
+   "questions": 26,
+   "complete": true,
+   "field_match_pct": 95.4,
+   "field_match_pct_q01_q22": 95.1,
+   "question_mean_match_pct": 95.7,
+   "out_of_scope_correct": 2,
+   "genre_ok": 24,
+   "genre_questions": 24,
+   "schema_ok_pct": 100.0,
+   "latency_p95_s": 4.82,
+   "latency_mean_s": 3.33,
+   "errors": 0,
+   "wrong": {
+    "Q03": [
+     "anchor",
+     "result_type"
+    ],
+    "Q10": [
+     "release_year_from"
+    ],
+    "Q11": [
+     "work_titles"
+    ],
+    "Q12": [
+     "work_titles"
+    ],
+    "Q13": [
+     "districts"
+    ],
+    "Q14": [
+     "result_type"
+    ],
+    "Q15": [
+     "anchor"
+    ],
+    "Q20": [
+     "result_type"
+    ],
+    "Q24": [
+     "anchor"
+    ]
+   },
+   "pass": true
+  }
+ ],
+ "local_run_at": "2026-11-17T16:30:09+09:00"
+}

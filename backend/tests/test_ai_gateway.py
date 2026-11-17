@@ -299,7 +299,8 @@ def test_default_prompt_uses_masked_text_and_allowed_values() -> None:
     assert "[개인정보] 마동석 영화 촬영지" in prompt.user
     assert "해운대구" in prompt.system
     assert "범죄·느와르(범죄, 느와르, 갱스터)" in prompt.system  # 묶음 + 속하는 KMDb 장르
-    assert prompt.version == "v3"
+    assert "어느 묶음에도 없는 장르" in prompt.system  # 애니메이션을 다른 묶음에 넣지 않음(#35)
+    assert prompt.version == "v4"
     assert prompt.temperature == 0.0
     assert prompt.json_schema["title"] == "QueryConditions"
 

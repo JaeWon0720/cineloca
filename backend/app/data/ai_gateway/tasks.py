@@ -3,6 +3,7 @@
 출력 모델은 Pydantic으로 검증한다. 허용 값 밖(예: 목록에 없는 장르·구)도 스키마 위반으로 본다.
 extract_query는 착수 PoC p5(프롬프트 v2, 필드 일치율 qwen3:8b 93.4%·Gemini 99.5%)의
 스키마를 바탕으로, 장르만 검색 필터의 장르 묶음 12개로 바꿨다(프롬프트 v3).
+묶음에 없는 장르를 다른 묶음에 넣지 않게 규칙을 더했다(프롬프트 v4, #35 재평가는 PoC 보고서).
 C1 제안(suggest_tags·judge_match)은 FR-608에서 확정했다(프롬프트 v1).
 나머지 작업의 스키마는 SDD 표를 옮긴 초안이며 스프린트 2에서 담당 기능과 함께 확정한다.
 structure_preference(F3 취향 구조화)는 Preference 형식이 아직 정해지지 않아 등록하지 않았다.
@@ -159,7 +160,7 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "extract_query",
             QueryConditions,
-            prompt_version="v3",  # v2(PoC) → v3: 장르 묶음 12개
+            prompt_version="v4",  # v2(PoC) → v3: 장르 묶음 12개 → v4: 묶음에 없는 장르는 뺌
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
