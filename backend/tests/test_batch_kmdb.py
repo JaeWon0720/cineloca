@@ -8,7 +8,7 @@ import asyncio
 import csv
 
 from app.batch import kmdb
-from app.batch.kmdb import Candidate, KmdbCsv, MatchResult, decide, demote_duplicates, rule_c, score
+from app.batch.kmdb import Candidate, KmdbCsv, decide, rule_c, score
 
 
 def C(title: str, **kw) -> Candidate:  # noqa: N802
@@ -168,19 +168,3 @@ def test_csv_loader_reads_columns_by_position(tmp_path) -> None:
     assert c.link == "https://www.kmdb.or.kr/db/kor/detail/movie/K/00001"
 
     assert [x.docid for x in asyncio.run(src.candidates("가짜 영화"))] == ["K00001"]
-
-
-def test_duplicate_docid_keeps_best_and_sends_rest_to_review() -> None:
-    a, b = Candidate("K1", "x"), Candidate("K2", "y")
-    res = {
-        "w1": MatchResult("matched", "score", 0.95, a),
-        "w2": MatchResult("matched", "rule_u", 0.92, a),
-        "w3": MatchResult("matched", "score", 0.97, b),
-        "w4": MatchResult("review", "score", 0.99, b),  # 검수 대기는 중복으로 세지 않음
-    }
-    out = demote_duplicates(res)
-    assert out["w1"] == res["w1"] and out["w3"] == res["w3"] and out["w4"] == res["w4"]
-    assert (out["w2"].status, out["w2"].rule, out["w2"].best) == ("review", "dup", a)
-
-    tied = {"w1": res["w1"], "w2": MatchResult("matched", "score", 0.95, a)}
-    assert {r.status for r in demote_duplicates(tied).values()} == {"review"}

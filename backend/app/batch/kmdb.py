@@ -38,7 +38,7 @@ AUTO, REVIEW = 0.9, 0.6
 TIE_GAP = 0.05
 MIN_YEAR_UNKNOWN = 1998
 SHORT_MIN = 40
-API_URL = "https://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp"
+API_URL = "http://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp"
 DETAIL_URL = "https://www.kmdb.or.kr/db/kor/detail/movie/{kind}/{no}"
 _HL = re.compile(r"\s*!H[SE]\s*")
 TV_PREFIXES = ("JTBC", "KBS", "MBC", "SBS", "tvN", "OCN", "ENA", "EBS", "TV조선", "MBN", "채널A")
@@ -159,7 +159,7 @@ def rule_u(title: str, cands: list[Candidate], media: str | None) -> Candidate |
 @dataclass(frozen=True)
 class MatchResult:
     status: str  # matched | review | unmatched (스키마 BR-11 값)
-    rule: str  # score | rule_c | rule_u | tie | dup | none
+    rule: str  # score | rule_c | rule_u | tie | none
     score: float
     best: Candidate | None
 
@@ -189,26 +189,6 @@ def decide(
     if best_s >= REVIEW:
         return MatchResult("review", "tie" if tied else "score", best_s, best)
     return MatchResult("unmatched", "none", best_s, best)
-
-
-def demote_duplicates(results: dict[str, MatchResult]) -> dict[str, MatchResult]:
-    """같은 KMDb 작품(docid)에 자동 연결된 작품이 둘 이상이면 점수가 가장 높은 하나만 남기고
-    나머지는 검수로 돌린다(work.kmdb_id UNIQUE라 반영 전체가 실패하지 않게).
-    1등이 동점이면 모두 검수."""
-    by_doc: dict[str, list[str]] = {}
-    for key, r in results.items():
-        if r.status == "matched" and r.best:
-            by_doc.setdefault(r.best.docid, []).append(key)
-    out = dict(results)
-    for keys in by_doc.values():
-        if len(keys) < 2:
-            continue
-        keys.sort(key=lambda k: -results[k].score)
-        tie = results[keys[0]].score == results[keys[1]].score
-        for k in keys if tie else keys[1:]:
-            r = results[k]
-            out[k] = MatchResult("review", "dup", r.score, r.best)
-    return out
 
 
 def stored_kmdb(c: Candidate) -> dict:
