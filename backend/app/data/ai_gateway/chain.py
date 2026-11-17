@@ -5,7 +5,11 @@
   429이고 Retry-After가 2초 이하면 같은 공급자에 1번 다시.
 - 스키마 위반(허용 값 밖 포함): 같은 공급자에 1번 다시 → 다음 공급자.
   공급자는 응답했으므로 차단기 실패로 세지 않는다.
-- 차단기가 열린 공급자, 한도를 넘은 공급자(allow_provider=False)는 건너뛴다.
+- 차단기가 열린 공급자, 한도를 넘은 공급자는 건너뛴다
+  (allow_provider=False 또는 quota.reserve=False).
+  quota는 공급자를 실제로 부르기 직전마다 호출 수를 1 올린다(재요청 포함).
+- 캐시(AI-REQ-15): cache_ttl_s가 있는 작업은 같은 입력이면 공급자를 부르지 않고 캐시를 쓴다.
+  적중하면 provider="cache", attempts=()(외부 호출 0회). 검증을 통과한 출력만 저장한다.
 - 남은 마감 시간이 min_attempt_s보다 적으면 더 시도하지 않고 바로 강등(AI_DEADLINE).
 """
 
@@ -18,12 +22,14 @@ import time
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
+from app.data.ai_gateway.cache import ResponseCache, cache_key
 from app.data.ai_gateway.circuit import CircuitBreaker
 from app.data.ai_gateway.contracts import Attempt, LLMProvider, LLMResult, MaskedInput
 from app.data.ai_gateway.errors import RATE_LIMITED, TIMEOUT, UPSTREAM, AIUnavailable, ProviderError
 from app.data.ai_gateway.prompts import PromptBuilder
+from app.data.ai_gateway.quota import DailyQuota
 from app.data.ai_gateway.tasks import TASKS, TaskSpec
 
 logger = logging.getLogger(__name__)
@@ -45,6 +51,8 @@ class ProviderChain:
         tasks: Mapping[str, TaskSpec] = TASKS,
         *,
         allow_provider: Callable[[str], bool] = lambda _name: True,
+        quota: DailyQuota | None = None,
+        cache: ResponseCache | None = None,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         min_attempt_s: float = 1.0,
@@ -54,6 +62,8 @@ class ProviderChain:
         self._prompts = prompts
         self._tasks = dict(tasks)
         self._allow_provider = allow_provider  # Gemini 일일 한도 100%면 False (NFR-005·018)
+        self._quota = quota
+        self._cache = cache
         self._clock = clock
         self._sleep = sleep
         self._min_attempt_s = min_attempt_s
@@ -75,6 +85,12 @@ class ProviderChain:
         prompt = self._prompts.build(spec, inputs)
 
         start = self._clock()
+        key = cache_key(spec, inputs) if self._cache is not None and spec.cache_ttl_s else None
+        if key is not None:
+            cached = await self._cache_get(spec, key)
+            if cached is not None:
+                return LLMResult(task, cached, "cache", self._ms_since(start), ())
+
         deadline = start + deadline_s
         attempts: list[Attempt] = []
         error_code = "AI_UNAVAILABLE"
@@ -98,6 +114,10 @@ class ProviderChain:
                 if remaining < self._min_attempt_s:
                     attempts.append(Attempt(name, "deadline", 0))
                     raise self._degrade(task, "AI_DEADLINE", attempts)
+
+                if self._quota is not None and not await self._quota.reserve(name):
+                    attempts.append(Attempt(name, "skipped_quota", 0))
+                    break  # 다음 공급자
 
                 called = self._clock()
                 try:
@@ -134,9 +154,27 @@ class ProviderChain:
                     break  # 다음 공급자
 
                 attempts.append(Attempt(name, "ok", self._ms_since(called)))
+                if key is not None:
+                    await self._cache_put(spec, key, data)
                 return LLMResult(task, data, name, self._ms_since(start), tuple(attempts))
 
         raise self._degrade(task, error_code, attempts)
+
+    async def _cache_get(self, spec: TaskSpec, key: str) -> BaseModel | None:
+        try:
+            hit = await self._cache.get(key)  # type: ignore[union-attr]
+            return None if hit is None else spec.output.model_validate(hit)
+        except Exception:  # 캐시 장애·옛 형식은 미적중으로 본다
+            logger.warning("AI 캐시 조회 실패 task=%s", spec.name)
+            return None
+
+    async def _cache_put(self, spec: TaskSpec, key: str, data: BaseModel) -> None:
+        try:
+            await self._cache.put(  # type: ignore[union-attr]
+                key, spec.name, data.model_dump(mode="json"), spec.cache_ttl_s or 0
+            )
+        except Exception:
+            logger.warning("AI 캐시 저장 실패 task=%s", spec.name)
 
     def _ms_since(self, t: float) -> int:
         return int((self._clock() - t) * 1000)
