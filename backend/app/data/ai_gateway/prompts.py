@@ -1,7 +1,8 @@
 # ruff: noqa: E501  (프롬프트 문장은 줄을 바꾸면 모델 입력이 달라져서 길이 검사에서 뺀다)
 """작업별 프롬프트 (PromptRegistry). 사용자 입력은 데이터로만 다룬다(AI-REQ-09).
 
-extract_query는 착수 PoC p5의 프롬프트 v2에서 장르 규칙만 장르 묶음 12개로 바꾼 v3이다.
+extract_query는 착수 PoC p5의 프롬프트 v2에서 장르 규칙만 장르 묶음 12개로 바꾸고(v3),
+묶음에 없는 장르를 빼는 규칙을 더한 v4이다(#35 재평가).
 suggest_tags·judge_match(C1, FR-608)는 v1이다. 결과는 검수 큐로만 가고 사람이 확정한다(BR-04).
 나머지 작업은 스프린트 2에서 작성한다.
 """
@@ -30,6 +31,7 @@ _EXTRACT_QUERY_SYSTEM = """너는 부산 영화·드라마 촬영지 검색 서�
 - work_titles: 질문에 나온 작품명(원문 그대로). persons: 배우·감독 이름.
 - genres: 다음 장르 묶음 이름만 쓴다(괄호 안은 그 묶음에 속하는 장르). 질문의 장르를 해당 묶음 이름으로 바꾼다.
   {genres}
+  어느 묶음에도 없는 장르(예: 애니메이션, 다큐멘터리)는 비슷한 묶음으로 바꾸지 말고 genres에서 빼며, work_titles에도 넣지 않는다.
 - districts: 다음 목록 안의 값만 쓴다(부산 구·군): {districts}.
   동네·명소 이름(광안리, 서면 등)은 구로 바꾸지 말고 anchor로 둔다.
 - release_year_from/to: 개봉연도 범위. 'OO년대'는 그 10년, 'OO년 이전'은 to=OO-1, 'OO년에'는 from=to=OO.

@@ -197,8 +197,8 @@ def test_cache_key_depends_on_masked_text_and_version() -> None:
 
     assert a == b  # 가린 뒤 같은 문장이면 같은 키(원문은 키에도 들어가지 않음)
     assert a != c and len(a) == 64
-    v4 = type(spec)(**{**spec.__dict__, "prompt_version": "v4"})
-    assert cache_key(v4, {"query": mask("광안리")}) != c
+    bumped = type(spec)(**{**spec.__dict__, "prompt_version": spec.prompt_version + "-next"})
+    assert cache_key(bumped, {"query": mask("광안리")}) != c  # 프롬프트를 바꾸면 캐시도 새로
 
 
 def test_cache_key_handles_dataclass_inputs() -> None:

@@ -14,6 +14,7 @@ C1 배치(`backend/app/batch`)는 p1·p2·p3·p4·p4b의 코드를 출발점으�
 | `p4b_noyear.py` | 개봉일 없는 작품의 자동 연결 규칙(BR-11 추가분) 검증 | `results/p4b.json` |
 | `p4c_remaining.py` | 남은 작품 재검색·방송 OTT 미수록 처리·검수 큐 | (검수표는 KMDb 정보라 커밋 안 함) |
 | `p5_llm.py` | 조건 추출: 로컬 qwen3:8b vs gemini-3.5-flash(TBD-05) | `results/p5*.json` |
+| `p5_gateway.py` | 조건 추출 재평가(#35): 백엔드 실제 프롬프트 + 장르 묶음 12개 평가셋 26문항. Gemini는 `--gemini`로 이어 실행 | `results/p5_gateway*.json` |
 | `p7_amenities.py` | 코스 주변 시설 후보 수·반경(FR-414, RK17) | `results/p7.json` |
 | `p6_report.py` | 위 결과를 `poc_report.md`로 모음 | `poc_report.md` |
 | `review_export.py` · `suggest_queue.py` · `review_score.py` | KMDb 검수표 만들기·1차 제안·채점 | (검수표는 커밋 안 함) |

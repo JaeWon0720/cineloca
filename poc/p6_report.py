@@ -53,6 +53,20 @@ def main():
                      + f"p95 {r['latency_p95_s']}초 | {('통과' if r['pass'] else '미달') if done else '진행 중'} |")
         if p5.get("gemini_error"):
             L.append(f"| p5 LLM (Gemini) | - | 중단 사유: {p5['gemini_error']} | — |")
+    p5g = load("p5_gateway.json")  # #35 재평가: 백엔드 실제 프롬프트, 장르 묶음 12개 평가셋 26문항
+    if p5g:
+        for r in p5g["runs"]:
+            done = r.get("complete", True)
+            L.append(f"| p5 재평가 ({r['provider']}, 프롬프트 {r['prompt_version']}, 동시 {r['workers']}) | 필드 일치율 90% | "
+                     + ("" if done else f"{r['questions']}/26문항까지: ")
+                     + f"일치율 {r['field_match_pct']}%(v2와 같은 22문항 {r['field_match_pct_q01_q22']}%), "
+                     + f"장르 {r['genre_ok']}/{r['genre_questions']}, 스키마 {r['schema_ok_pct']}%, "
+                     + f"범위 밖 {r['out_of_scope_correct']}/2, p95 {r['latency_p95_s']}초 | "
+                     + f"{('통과' if r['pass'] else '미달') if done else '진행 중'} |")
+        if not any(r["provider"].startswith("gemini") for r in p5g["runs"]):
+            L.append("| p5 재평가 (Gemini) | 필드 일치율 90% | 대기(`p5_gateway.py --gemini`) | — |")
+        elif p5g.get("gemini_error"):
+            L.append(f"| p5 재평가 (Gemini) | - | 중단 사유: {p5g['gemini_error']} | — |")
     if p7:
         z, m = p7["zero_pct"], p7["median"]
         L.append(f"| p7 주변 시설 | 0건 구간 50% 이하 | 음식점 500m 0건 {z['food_500m']}%(중앙값 {m['food_500m']}), 1km 0건 "
