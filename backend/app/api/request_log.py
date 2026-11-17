@@ -9,9 +9,9 @@
 
 import json
 import re
+import secrets
 import threading
 import time
-import uuid
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -26,6 +26,11 @@ KST = timezone(timedelta(hours=9))  # 한국은 서머타임이 없어 고정 �
 RETENTION_DAYS = 7
 REQUEST_ID_HEADER = "X-Request-Id"
 SCOPE_KEY = "cineloca.request_id"  # 500 처리기가 요청 ID를 꺼내 쓰는 자리
+
+# 요청 ID에 숫자를 쓰지 않는다. 숫자가 섞이면 개인정보 패턴(전화·카드·주민번호)에 걸려
+# 로그 정제 때 가려지고, 사용자가 받은 ID와 로그의 ID가 달라진다(ERR-016). 23자 × 16자리 ≈ 72비트
+_ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz"
+_ID_LENGTH = 16
 
 _FILE = re.compile(r"^requests-(\d{4}-\d{2}-\d{2})\.jsonl$")
 
@@ -70,6 +75,10 @@ class DailyJsonlWriter:
         return removed
 
 
+def new_request_id() -> str:
+    return "".join(secrets.choice(_ID_ALPHABET) for _ in range(_ID_LENGTH))
+
+
 def _route_template(scope: Scope) -> str | None:
     """라우터가 고른 경로 틀. 맞는 라우트가 없으면(404) 실제 경로 대신 None."""
     route = scope.get("route")
@@ -99,7 +108,7 @@ class RequestLogMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request_id = uuid.uuid4().hex[:16]  # 들어온 헤더 값은 쓰지 않는다(로그 위조 방지)
+        request_id = new_request_id()  # 들어온 헤더 값은 쓰지 않는다(로그 위조 방지)
         scope[SCOPE_KEY] = request_id
         ctx, token = request_context.begin(request_id)
         started = time.perf_counter()

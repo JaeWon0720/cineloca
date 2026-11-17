@@ -12,11 +12,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.request_log import KST, DailyJsonlWriter
+from app.api.request_log import KST, DailyJsonlWriter, new_request_id
 from app.core.config import Settings
 from app.main import _set_app_log_level, create_app
 from app.support import request_context
-from app.support.privacy import mask
+from app.support.privacy import mask, scrub
 
 HAEUNDAE = {"lat": 35.15871, "lon": 129.16042}
 
@@ -69,7 +69,7 @@ def test_records_template_status_and_latency(client: TestClient, log_dir: Path) 
     assert (rec["method"], rec["status"]) == ("GET", 200)
     assert rec["latency_ms"] >= 0
     assert res.headers["X-Request-Id"] == rec["request_id"]
-    assert re.fullmatch(r"[0-9a-f]{16}", rec["request_id"])
+    assert re.fullmatch(r"[a-z]{16}", rec["request_id"])
 
 
 def test_location_query_string_and_body_are_not_logged(client: TestClient, log_dir: Path) -> None:
@@ -192,3 +192,12 @@ def test_app_log_level(value: str, expected: int) -> None:
         assert logging.getLogger("app").level == expected
     finally:
         _set_app_log_level("INFO")
+
+
+def test_request_id_is_never_masked() -> None:
+    # 숫자가 섞인 16진수 ID는 약 0.5%가 전화번호 패턴으로 가려졌다(#39 리뷰)
+    ids = {new_request_id() for _ in range(20000)}
+
+    assert len(ids) == 20000
+    assert all(re.fullmatch(r"[a-z]{16}", i) for i in ids)
+    assert all(mask(i).text == i and scrub({"request_id": i})["request_id"] == i for i in ids)
