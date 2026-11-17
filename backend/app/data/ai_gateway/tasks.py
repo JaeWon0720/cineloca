@@ -148,7 +148,10 @@ class TaskSpec:
     timeout_s: float = 10.0  # 공급자 1회 제한 시간(NFR-002)
     prompt_version: str = "v0"
     user_text_fields: tuple[str, ...] = ()  # 마스킹(MaskedInput)이 필수인 입력 이름
+    cache_ttl_s: int | None = None  # 응답 캐시 시간(AI-REQ-15). None이면 캐시하지 않음(배치 작업)
 
+
+_DAY_S = 24 * 60 * 60  # 사용자 화면 작업은 24시간 캐시(AI-REQ-15)
 
 TASKS: dict[str, TaskSpec] = {
     spec.name: spec
@@ -158,10 +161,11 @@ TASKS: dict[str, TaskSpec] = {
             QueryConditions,
             prompt_version="v3",  # v2(PoC) → v3: 장르 묶음 12개
             user_text_fields=("query",),
+            cache_ttl_s=_DAY_S,
         ),
-        TaskSpec("summarize_results", GroundedText, temperature=0.2),
-        TaskSpec("work_intro", GroundedText, temperature=0.3),
-        TaskSpec("course_intro", CourseIntro, temperature=0.3),
+        TaskSpec("summarize_results", GroundedText, temperature=0.2, cache_ttl_s=_DAY_S),
+        TaskSpec("work_intro", GroundedText, temperature=0.3, cache_ttl_s=_DAY_S),
+        TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
         TaskSpec("suggest_tags", TagSuggestion, prompt_version="v1"),  # FR-608
         TaskSpec("judge_match", MatchJudgement, prompt_version="v1"),  # FR-608
     )

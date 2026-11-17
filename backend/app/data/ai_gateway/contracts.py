@@ -72,6 +72,6 @@ class LLMClient(Protocol):
 
 
 class Embedder(Protocol):
-    """임베딩(bge-m3, 1024차원, FR-617). 구현은 스프린트 2."""
+    """임베딩(bge-m3, 1024차원, FR-617). 구현은 providers.OllamaEmbedder."""
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]: ...

@@ -27,6 +27,12 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cineloca}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 값을 .env에 넣어 주세요}@db:5432/${POSTGRES_DB:-cineloca}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+      GEMINI_DAILY_LIMIT: ${GEMINI_DAILY_LIMIT:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-}
       AI_PROVIDER: ${AI_PROVIDER:-gemini}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_DIR: /app/logs                   # 요청 로그(NFR-005), 7일 보관
