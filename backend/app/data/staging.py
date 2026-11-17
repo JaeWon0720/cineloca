@@ -181,6 +181,7 @@ async def publish(conn: asyncpg.Connection) -> None:
         USING work w JOIN stg.work s ON s.title_norm = w.title_norm
         WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id
           AND r.status = 'pending' AND s.match_status <> 'review'
+          AND r.proposer = 'rule'
         """
     )
     # 검수 대기 작품: 이미 큐에 있거나 처리된 작품은 다시 넣지 않는다

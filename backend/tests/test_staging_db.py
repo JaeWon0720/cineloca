@@ -145,3 +145,21 @@ def test_ai_match_item_does_not_override_rule_decision() -> None:
         assert await conn.fetchval("SELECT count(*) FROM review_item WHERE proposer='rule'") == 1
 
     run(body)
+
+
+def test_pending_ai_item_survives_auto_match() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        shoot = [("w1", "a", "DATA-01", {}, None)]
+        await load(conn, [work("w1", "review", cand={"kmdb_id": "K9"})], [LOC_A], shoot)
+        wid = await conn.fetchval("SELECT id FROM work WHERE title_norm = 'w1'")
+        await conn.execute(
+            "INSERT INTO review_item (kind, target_type, target_id, proposal, proposer)"
+            " VALUES ('match', 'work', $1, '{\"candidate\": {\"docid\": \"K7\"}}', 'ai')",
+            wid,
+        )
+        # 다음 회차에 규칙이 자동 연결로 바뀌면 규칙 대기 항목만 지우고 AI 제안은 남긴다
+        await load(conn, [work("w1", kid="K9")], [LOC_A], shoot)
+        rows = await conn.fetch("SELECT proposer FROM review_item ORDER BY id")
+        assert [r["proposer"] for r in rows] == ["ai"]
+
+    run(body)
