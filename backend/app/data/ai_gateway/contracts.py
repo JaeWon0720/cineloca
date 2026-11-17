@@ -43,6 +43,16 @@ class LLMResult:
 
 
 @runtime_checkable
+class EvidenceInput(Protocol):
+    """근거 묶음. COMP-09의 Evidence가 이 모양이다(AI-REQ-01).
+
+    facts는 시스템이 지식베이스 검색 결과로 만든 줄이고, 프롬프트에는 이것만 근거로 들어간다.
+    """
+
+    facts: tuple[str, ...]
+
+
+@runtime_checkable
 class MaskedInput(Protocol):
     """마스킹을 거친 사용자 문장. COMP-10의 MaskedText가 이 모양이다(AI-REQ-03).
 
