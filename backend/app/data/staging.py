@@ -9,12 +9,9 @@
 """
 
 import json
-import logging
 from collections.abc import Iterable
 
 import asyncpg
-
-logger = logging.getLogger(__name__)
 
 STG_TABLES = ("stg.shooting", "stg.work", "stg.location", "stg.station")
 
@@ -38,12 +35,12 @@ async def known_stations(conn: asyncpg.Connection) -> dict[str, tuple[float, flo
 
 async def review_decisions(conn: asyncpg.Connection) -> dict[str, tuple[str, str | None]]:
     """title_norm → (status, kmdb_id). 관리자가 처리한 매칭 검수(마지막 처리 기준)와
-    대기 중인 것. 규칙 항목만 읽는다(AI 제안 #41은 참고용이라 결정을 덮지 않음)."""
+    대기 중인 것."""
     rows = await conn.fetch(
         """
         SELECT w.title_norm, r.status, r.proposal->>'kmdb_id' AS kmdb_id
         FROM review_item r JOIN work w ON w.id = r.target_id
-        WHERE r.kind = 'match' AND r.target_type = 'work' AND r.proposer = 'rule'
+        WHERE r.kind = 'match' AND r.target_type = 'work'
         ORDER BY r.handled_at NULLS FIRST, r.id
         """
     )
@@ -148,22 +145,10 @@ async def publish(conn: asyncpg.Connection) -> None:
             station_walk_min = EXCLUDED.station_walk_min
         """
     )
-    # 코스(course·course_stop)가 쓰는 촬영지는 지우지 않는다(외래 키 오류로 반영 전체 실패 방지).
-    # 남긴 곳은 촬영 기록이 없어지므로 관리자가 코스를 고쳐야 한다.
     await conn.execute(
-        """
-        DELETE FROM location l
-        WHERE NOT EXISTS (SELECT 1 FROM stg.location s WHERE s.name_norm = l.name_norm)
-          AND NOT EXISTS (SELECT 1 FROM course_stop cs WHERE cs.location_id = l.id)
-          AND NOT EXISTS (SELECT 1 FROM course c WHERE c.start_location_id = l.id)
-        """
-    )
-    kept = await conn.fetchval(
-        "SELECT count(*) FROM location l"
+        "DELETE FROM location l"
         " WHERE NOT EXISTS (SELECT 1 FROM stg.location s WHERE s.name_norm = l.name_norm)"
     )
-    if kept:
-        logger.warning("원본에서 빠졌지만 코스가 쓰고 있어 남긴 촬영지 %d곳", kept)
     await conn.execute("DELETE FROM shooting")
     await conn.execute(
         """
@@ -191,7 +176,6 @@ async def publish(conn: asyncpg.Connection) -> None:
         FROM stg.work s JOIN work w ON w.title_norm = s.title_norm
         WHERE s.match_status = 'review' AND s.candidate IS NOT NULL
           AND NOT EXISTS (SELECT 1 FROM review_item r
-                          WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id
-                            AND r.proposer = 'rule')
+                          WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = w.id)
         """
     )
