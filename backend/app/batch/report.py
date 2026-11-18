@@ -36,6 +36,11 @@ class GeoCounts(BaseModel):
 
     located: int = Field(default=0, ge=0, description="좌표 있음(자동·수동)")
     failed: int = Field(default=0, ge=0, description="좌표 없음")
+    by_source: dict[str, int] = Field(
+        default_factory=dict,
+        description="좌표 출처별 수(#25): address(주소 검색)·keyword(카카오 키워드 검색)"
+        "·none(좌표 없음)",
+    )
 
 
 class SyncCounts(BaseModel):
