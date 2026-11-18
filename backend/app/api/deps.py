@@ -1,25 +1,14 @@
-"""여러 라우터가 함께 쓰는 의존성: AI 클라이언트, 이용 안내 확인(FR-701)."""
+"""여러 라우터가 함께 쓰는 의존성: 이용 안내 확인(FR-701).
 
-from functools import lru_cache
+AI 클라이언트는 app/services/ai_client.py의 default_llm_client() 하나를 쓴다(#96).
+"""
+
 from typing import Annotated
 
 from fastapi import Header
 
 from app.api.errors import ApiError
 from app.core.notice import NOTICE_VERSION
-from app.data.ai_gateway import (
-    AISettings,
-    LLMClient,
-    PgAICache,
-    PgUsageCounter,
-    build_llm_client,
-)
-
-
-@lru_cache
-def get_llm_client() -> LLMClient:
-    """AI_PROVIDER로 고른 공급자 체인. 호출 수(Gemini 한도)와 응답 캐시는 DB에 둔다(ADR-013)."""
-    return build_llm_client(AISettings.from_env(), usage=PgUsageCounter(), cache=PgAICache())
 
 
 def require_notice(

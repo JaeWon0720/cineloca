@@ -4,13 +4,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.api.deps import get_llm_client, require_notice
+from app.api.deps import require_notice
 from app.api.errors import ERROR_RESPONSES, ApiError
 from app.api.schemas.amenities import AmenityRequest, AmenityResponse
 from app.api.schemas.common import ErrorResponse
 from app.core.config import get_settings
 from app.data.ai_gateway.tasks import FacilityConditions
 from app.data.tourapi import TourApiClient
+from app.services.ai_client import default_llm_client
 from app.services.amenity_finder import AmenityFinder
 from app.services.amenity_recommend import (
     AmenityRecommendService,
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/courses", tags=["F4 코스"])
 
 def get_amenity_service() -> AmenityRecommendService:
     finder = AmenityFinder(TourApiClient(get_settings().tour_api_key))
-    return AmenityRecommendService(get_llm_client(), finder)
+    return AmenityRecommendService(default_llm_client(), finder)
 
 
 Service = Annotated[AmenityRecommendService, Depends(get_amenity_service)]

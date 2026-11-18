@@ -8,7 +8,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from app.api.deps import require_notice
 from app.api.errors import ERROR_RESPONSES, ApiError
+from app.api.schemas.common import ErrorResponse
 from app.api.schemas.work_intro import (
     IntroFallback,
     IntroLocation,
@@ -66,7 +68,11 @@ def _response(r: IntroResult) -> WorkIntroResponse:
 @router.post(
     "/{work_id}/intro",
     response_model=WorkIntroResponse,
-    responses=_RESPONSES,
+    dependencies=[Depends(require_notice)],  # FR-701: 이용 안내를 확인한 요청만
+    responses={
+        **_RESPONSES,
+        403: {"model": ErrorResponse, "description": "이용 안내 미확인(NOTICE_REQUIRED)"},
+    },
     summary="API-004 AI 작품 소개",
 )
 async def introduce_work(
