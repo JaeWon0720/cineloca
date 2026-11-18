@@ -33,6 +33,7 @@ import httpx
 from rapidfuzz import fuzz, process
 
 from app.batch.merge import norm, year_of
+from app.core.names import TV_PREFIXES, split_media  # 머리말 규칙은 조회(F4 사전)와 같이 쓴다
 
 AUTO, REVIEW = 0.9, 0.6
 TIE_GAP = 0.05
@@ -41,13 +42,6 @@ SHORT_MIN = 40
 API_URL = "https://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp"
 DETAIL_URL = "https://www.kmdb.or.kr/db/kor/detail/movie/{kind}/{no}"
 _HL = re.compile(r"\s*!H[SE]\s*")
-TV_PREFIXES = ("JTBC", "KBS", "MBC", "SBS", "tvN", "OCN", "ENA", "EBS", "TV조선", "MBN", "채널A")
-OTT_PREFIXES = (
-    "넷플릭스", "디즈니+", "티빙", "왓챠", "쿠팡플레이", "카카오TV", "애플TV+", "아마존 프라임",
-    "웨이브", "시즌",
-)  # fmt: skip
-MEDIA_PREFIXES = TV_PREFIXES + OTT_PREFIXES
-_MEDIA = re.compile(r"^(" + "|".join(re.escape(m) for m in MEDIA_PREFIXES) + r")\s+(.+)$")
 
 
 @dataclass(frozen=True)
@@ -72,12 +66,6 @@ class CandidateSource(Protocol):
     has_location: bool
 
     async def candidates(self, title: str) -> list[Candidate]: ...
-
-
-def split_media(title: str) -> tuple[str, str | None]:
-    """'JTBC 나의 해방일지' → ('나의 해방일지', 'JTBC'). 머리말이 없으면 (title, None)."""
-    m = _MEDIA.match(" ".join(title.split()))
-    return (m.group(2), m.group(1)) if m else (title, None)
 
 
 def cand_year(c: Candidate) -> int | None:

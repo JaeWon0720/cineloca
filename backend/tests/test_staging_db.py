@@ -163,3 +163,21 @@ def test_pending_ai_item_survives_auto_match() -> None:
         assert [r["proposer"] for r in rows] == ["ai"]
 
     run(body)
+
+
+def test_publish_rebuilds_dictionary() -> None:
+    """반영이 끝나면 고유명사 사전(dict_entry, FR-403)이 새 작품·역을 담는다."""
+
+    async def body(conn: asyncpg.Connection) -> None:
+        await load(conn, [work("w1"), work("w2")], [LOC_A], [("w1", "a", "DATA-01", {}, None)])
+        await load(conn, [work("w1")], [LOC_A], [("w1", "a", "DATA-01", {}, None)])
+        rows = await conn.fetch(
+            "SELECT kind, surface FROM dict_entry WHERE kind IN ('work', 'station')"
+        )
+        assert sorted((r["kind"], r["surface"]) for r in rows) == [
+            ("station", "가"),
+            ("station", "가역"),
+            ("work", "w1"),
+        ]
+
+    run(body)
