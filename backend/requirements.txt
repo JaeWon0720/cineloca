@@ -5,5 +5,7 @@ asyncpg>=0.29
 httpx>=0.27
 # C1 배치 KMDb 매칭(제목 유사도)
 rapidfuzz>=3.9       # MIT
+# C1 배치 좌표 변환(UTM-K → WGS84)
+pyproj>=3.6           # MIT
 # F5 스탬프·배지 서명 토큰(ADR-009)
 PyJWT>=2.8           # MIT
