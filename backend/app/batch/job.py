@@ -9,6 +9,9 @@
   (설정을 끄면 다음 실행에서 바로 빠지고, 리포트의 출처별 건수가 맞도록).
 - 매칭: 관리자 검수 결과가 자동 판정보다 우선(FR-611). 같은 KMDb 작품에 두 작품이 붙으면
   하나만 남기고 검수로 돌린다(work.kmdb_id UNIQUE).
+- AI 제안(FR-608, 선택): Clients.ai가 있고 반영이 성공했을 때만 태그 없는 촬영지의 유형 태그와
+  검수 대기 작품의 매칭 판정을 제안받아 검수 큐에 '미검수'로 넣는다(BR-04, #89). 로컬 모델이
+  필요해서 진입점의 --ai-review로만 켠다. 이 단계가 실패해도 동기화 결과는 바뀌지 않는다.
 """
 
 import logging
@@ -18,12 +21,13 @@ from dataclasses import dataclass, field
 import asyncpg
 import httpx
 
-from app.batch import collect, kmdb, stations
+from app.batch import ai_review, collect, kmdb, stations
 from app.batch.geocode import JusoGeocoder, KakaoKeywordGeocoder, precise
 from app.batch.merge import Merged, merge
 from app.batch.report import Failure, GeoCounts, MatchCounts, SyncCounts, failure
 from app.batch.sync_record import guard_and_publish, record_failure
 from app.data import staging, sync_runs
+from app.data.ai_gateway import LLMClient
 
 log = logging.getLogger(__name__)
 GEO_SOURCES = ("address", "keyword", "none")
@@ -37,6 +41,8 @@ class Clients:
     kakao: KakaoKeywordGeocoder | None = None
     kmdb_source: kmdb.CandidateSource | None = None
     kmdb_store: bool = True  # DATA-04 STORE(2026-11-11 공공누리 제1유형 확인, #12)
+    ai: LLMClient | None = None  # FR-608 AI 제안 단계(선택, --ai-review)
+    ai_tag_limit: int | None = None  # 한 번에 태그를 물을 촬영지 수(없으면 전부)
 
 
 @dataclass
@@ -44,6 +50,7 @@ class Stats:
     match_rule: dict = field(default_factory=dict)
     station_located: int = 0
     seconds: float = 0.0
+    ai_review: dict | None = None  # FR-608 단계를 돌렸을 때 건수
 
 
 def _count(errors: dict[str, int], e: Exception) -> None:
@@ -97,7 +104,13 @@ async def _geocode(c: Clients, conn, m: Merged, failures: list[Failure]) -> dict
     return out
 
 
-async def _match(c: Clients, conn, m: Merged, failures: list[Failure]) -> list[tuple]:
+async def _match(
+    c: Clients,
+    conn,
+    m: Merged,
+    failures: list[Failure],
+    cands_out: dict[str, list[kmdb.Candidate]] | None = None,
+) -> list[tuple]:
     decisions = await staging.review_decisions(conn)
     places_of: dict[str, set[str]] = {}
     for wk, pk, _ in m.shootings:
@@ -115,6 +128,8 @@ async def _match(c: Clients, conn, m: Merged, failures: list[Failure]) -> list[t
         cands_of[key] = cands
         results[key] = kmdb.decide(w.title, w.release_year, cands, places_of.get(key, set()))
     failures += [failure("match", f"{k} {n}건", "DATA-04") for k, n in sorted(errors.items())]
+    if cands_out is not None:
+        cands_out.update(cands_of)  # AI 매칭 판정(FR-608)에 같은 후보를 넘긴다
     results = kmdb.demote_duplicates(results)
 
     # 검수 확정이 우선(FR-611). 확정된 KMDb 작품을 자동으로 잡은 다른 작품은 검수로 돌린다
@@ -203,7 +218,8 @@ async def run(
         sts = await _stations(c, conn, failures)
         counts.fetched["DATA-08"] = len(sts)
         coords = await _geocode(c, conn, m, failures)
-        works = await _match(c, conn, m, failures)
+        cands_of: dict[str, list[kmdb.Candidate]] = {}
+        works = await _match(c, conn, m, failures, cands_of)
     except Exception as e:
         await record_failure(conn, run_id, [failure("collect", e), *failures], counts)
         raise
@@ -227,7 +243,7 @@ async def run(
             conn,
             [(s.work_key, s.place_key, s.source_id, s.raw, None) for s in m.shootings.values()],
         )
-    await guard_and_publish(conn, run_id, counts, failures, staging.publish)
+    guard = await guard_and_publish(conn, run_id, counts, failures, staging.publish)
     stats = Stats(
         match_rule={
             r: sum(1 for w in works if w[7] == r and w[5] == "matched")
@@ -236,5 +252,61 @@ async def run(
         station_located=len(sts),
         seconds=round(time.monotonic() - t0, 1),
     )
+    if c.ai is not None and guard.passed:
+        stats.ai_review = await _ai_review(conn, c, m, works, cands_of)
+        stats.seconds = round(time.monotonic() - t0, 1)
     log.info("동기화 %s 끝: %.1f초", run_id, stats.seconds)
     return run_id, counts, stats
+
+
+async def _ai_review(
+    conn, c: Clients, m: Merged, works: list[tuple], cands_of: dict[str, list[kmdb.Candidate]]
+) -> dict:
+    """반영된 데이터로 FR-608 제안을 받는다. 실패해도 동기화는 그대로 두고 종류만 남긴다."""
+    assert c.ai is not None
+    places_of: dict[str, set[str]] = {}
+    for wk, pk, _ in m.shootings:
+        places_of.setdefault(wk, set()).add(pk)
+    review = [w[0] for w in works if w[5] == "review" and cands_of.get(w[0])]
+    try:
+        ids = {
+            r["title_norm"]: r["id"]
+            for r in await conn.fetch(
+                "SELECT id, title_norm FROM work WHERE title_norm = ANY($1::text[])", review
+            )
+        }
+        cases = [
+            ai_review.match_input(
+                ids[key],
+                m.works[key].title,
+                m.works[key].release_year,
+                cands_of[key],
+                place_keys=places_of.get(key, set()),
+                places=[m.places[p].name for p in sorted(places_of.get(key, set()))],
+            )
+            for key in review
+            if key in ids
+        ]
+        report = await ai_review.run_ai_review(
+            conn, c.ai, match_cases=cases, tag_limit=c.ai_tag_limit
+        )
+    except Exception as e:  # AI·DB 오류 종류만 남긴다(입력·응답 내용은 남기지 않음)
+        log.warning("AI 제안 단계 실패: %s", type(e).__name__)
+        return {"error": type(e).__name__}
+    return {
+        "tags": _suggest_stats(report.tags),
+        "matches": _suggest_stats(report.matches),
+        "inserted": report.inserted,
+        "stale_removed": report.stale_removed,
+    }
+
+
+def _suggest_stats(s: ai_review.SuggestStats) -> dict:
+    return {
+        "requested": s.requested,
+        "proposed": s.proposed,
+        "failed": s.failed,
+        "invalid": s.invalid,
+        "errors": dict(s.errors),
+        "providers": dict(s.providers),
+    }

@@ -11,6 +11,11 @@
   선택: JUSO_BASE_URL(주소 API 주소를 바꿀 때)
 정기 실행(FR-616)은 아직 없고 --once 수동 실행만 한다.
 
+AI 제안(FR-608, 선택): --ai-review를 주면 반영이 성공한 뒤 태그 없는 촬영지와 검수 대기 작품에
+AI 제안을 받아 검수 큐에 '미검수'로 넣는다. 공급자는 AI_PROVIDER(로컬 모델이 있는 곳에서
+ollama). Gemini 무료 한도(하루 20회)로는 촬영지 수백 곳을 못 돌리므로 로컬 모델에서 켠다.
+--ai-tag-limit N으로 한 번에 묻는 촬영지 수를 줄일 수 있다.
+
 로그: 로그 설정 뒤 PrivacyLogFilter를 붙이고(#39), httpx·httpcore는 WARNING으로 올린다.
 httpx는 요청 URL(serviceKey·confmKey 포함)을 INFO로 남기기 때문이다.
 출력·결과 파일은 UTF-8로 쓴다(#26, Windows 콘솔·파일에서 한글이 깨지지 않게).
@@ -31,6 +36,8 @@ import httpx
 
 from app.batch import job, kmdb
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
+from app.data.ai_gateway.factory import AISettings, build_llm_client
+from app.data.ai_gateway.store import PgUsageCounter
 from app.support.privacy import install_privacy_log_filter
 
 log = logging.getLogger("app.batch")
@@ -100,12 +107,30 @@ def build_clients(http: httpx.AsyncClient, env: MutableMapping[str, str] = os.en
     return job.Clients(http, _env(env, "DATA_GO_KR_SERVICE_KEY"), juso, kakao, source)
 
 
-async def main(trigger: str, out: Path | None) -> int:
+def build_ai(env: MutableMapping[str, str] = os.environ):
+    """FR-608 단계용 AI 클라이언트. 공급자가 none이면 None(단계를 건너뜀)."""
+    settings = AISettings.from_env(env)
+    if settings.provider == "none":
+        log.warning("AI_PROVIDER=none이라 AI 제안 단계를 건너뜁니다")
+        return None
+    if settings.provider == "gemini":
+        log.warning(
+            "Gemini 무료 한도로는 일부만 제안받습니다. 로컬 모델(AI_PROVIDER=ollama)을 권합니다"
+        )
+    return build_llm_client(settings, usage=PgUsageCounter())  # Gemini 하루 한도를 지킨다
+
+
+async def main(
+    trigger: str, out: Path | None, ai_review: bool = False, ai_tag_limit: int | None = None
+) -> int:
     if names := missing():
         print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
         return 2
     async with httpx.AsyncClient() as http:
         clients = build_clients(http)
+        if ai_review:
+            clients.ai = build_ai()
+            clients.ai_tag_limit = ai_tag_limit
         conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
         try:
             run_id, counts, stats = await job.run(conn, clients, trigger)
@@ -134,6 +159,8 @@ def cli(argv: list[str] | None = None) -> int:
     p.add_argument("--trigger", choices=["manual", "schedule"], default="manual")
     p.add_argument("--env-file", type=Path, help="KEY=값 파일. 없으면 저장소 루트 .env")
     p.add_argument("--out", type=Path, help="결과 JSON을 UTF-8 파일로도 저장")
+    p.add_argument("--ai-review", action="store_true", help="반영 뒤 AI 제안 단계(FR-608)도 실행")
+    p.add_argument("--ai-tag-limit", type=int, help="AI에 태그를 물을 촬영지 수(없으면 전부)")
     a = p.parse_args(argv)
     if a.env_file and not a.env_file.is_file():
         print(f"{a.env_file} 파일이 없습니다. {ENV_HINT}", file=sys.stderr)
@@ -141,7 +168,7 @@ def cli(argv: list[str] | None = None) -> int:
     if (env_file := a.env_file or ROOT_ENV).is_file():
         load_env_file(env_file)
     setup_logging(_env(os.environ, "LOG_LEVEL") or "INFO")
-    return asyncio.run(main(a.trigger, a.out))
+    return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit))
 
 
 if __name__ == "__main__":

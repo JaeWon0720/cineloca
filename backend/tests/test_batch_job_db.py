@@ -99,3 +99,110 @@ def test_run_publishes_and_second_run_reuses_address_coords(monkeypatch) -> None
             await conn.close()
 
     asyncio.run(main())
+
+
+# ── FR-608 AI 제안 단계(선택, #89) ──────────────────────────
+class TaskProvider:
+    """작업 이름에 맞춰 답하는 가짜 로컬 모델."""
+
+    name = "ollama"
+
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+        self.tasks: list[str] = []
+
+    async def complete(self, prompt, *, timeout_s: float) -> str:
+        from app.data.ai_gateway.errors import ProviderError
+
+        self.tasks.append(prompt.task)
+        if self.fail:
+            raise ProviderError("upstream", "꺼짐")
+        if prompt.task == "suggest_tags":
+            return '{"tags": ["해변"], "reason": "이름에 해변이 있음"}'
+        return '{"verdict": "match", "candidate": 1, "reason": "제목과 연도가 같음"}'
+
+
+def _ai(provider: TaskProvider):
+    from app.data.ai_gateway import DefaultPromptBuilder, ProviderChain
+
+    async def no_sleep(_s: float) -> None:
+        return None
+
+    return ProviderChain({"ollama": provider}, DefaultPromptBuilder(), sleep=no_sleep)
+
+
+def _review_for_byeonhoin(monkeypatch) -> None:
+    decide = kmdb.decide
+
+    def fake(title, year, cands, places):  # '변호인'을 검수 대기로 보낸다
+        if title == "변호인":
+            c = kmdb.Candidate(docid="K9", title="변호인", rel_date="20131218")
+            return kmdb.MatchResult("review", "score", 0.75, c)
+        return decide(title, year, cands, places)
+
+    monkeypatch.setattr(job.kmdb, "decide", fake)
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_ai_review_step_after_publish(monkeypatch, fail: bool) -> None:
+    monkeypatch.setattr(guard, "MIN_WORKS", 1)
+    monkeypatch.setattr(guard, "MIN_LOCATIONS", 1)
+    _review_for_byeonhoin(monkeypatch)
+
+    async def main() -> None:
+        conn = await asyncpg.connect(DSN)
+        try:
+            await conn.execute(
+                "TRUNCATE review_item, shooting, work, location, station, sync_run"
+                " RESTART IDENTITY CASCADE"
+            )
+            provider = TaskProvider(fail=fail)
+            async with httpx.AsyncClient(transport=httpx.MockTransport(data_go_kr)) as http:
+                c = job.Clients(http, "D", Juso(), Kakao(), Kmdb(), ai=_ai(provider))
+                run_id, _counts, stats = await job.run(conn, c)
+            status = await conn.fetchval("SELECT status FROM sync_run WHERE id=$1", run_id)
+            ai_items = await conn.fetch(
+                "SELECT kind, target_type, proposal FROM review_item WHERE proposer = 'ai'"
+            )
+
+            assert status == "succeeded"  # AI 단계 결과와 상관없이 동기화는 성공
+            assert set(provider.tasks) == {"suggest_tags", "judge_match"}
+            if fail:
+                # AI가 꺼져 있어도 실패 표시 항목만 남기고(#61: 다시 묻지 않게) 제안은 없다
+                assert ai_items and all("AI_UNAVAILABLE" in r["proposal"] for r in ai_items)
+                assert stats.ai_review["tags"]["failed"] >= 1
+            else:
+                kinds = {r["kind"] for r in ai_items}
+                assert kinds == {"tag", "match"}
+                match = next(r for r in ai_items if r["kind"] == "match")
+                # 이번 실행의 KMDb 후보(가짜 원본은 K1뿐)로 판정, 규칙 항목과 같은 키
+                assert '"kmdb_id": "K1"' in match["proposal"]
+                assert stats.ai_review["matches"]["proposed"] == 1
+                assert stats.ai_review["inserted"] == len(ai_items)
+        finally:
+            await conn.close()
+
+    asyncio.run(main())
+
+
+def test_ai_review_is_off_by_default(monkeypatch) -> None:
+    monkeypatch.setattr(guard, "MIN_WORKS", 1)
+    monkeypatch.setattr(guard, "MIN_LOCATIONS", 1)
+
+    async def main() -> None:
+        conn = await asyncpg.connect(DSN)
+        try:
+            await conn.execute(
+                "TRUNCATE review_item, shooting, work, location, station, sync_run"
+                " RESTART IDENTITY CASCADE"
+            )
+            async with httpx.AsyncClient(transport=httpx.MockTransport(data_go_kr)) as http:
+                _run_id, _counts, stats = await job.run(
+                    conn, job.Clients(http, "D", Juso(), None, Kmdb())
+                )
+            assert stats.ai_review is None
+            assert await conn.fetchval("SELECT count(*) FROM review_item WHERE proposer='ai'") == 0
+        finally:
+            await conn.close()
+
+    asyncio.run(main())
