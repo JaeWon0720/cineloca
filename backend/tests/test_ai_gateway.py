@@ -21,7 +21,7 @@ from app.data.ai_gateway import (
     TaskSpec,
 )
 from app.data.ai_gateway.circuit import CircuitBreaker
-from app.data.ai_gateway.tasks import GENRES, TASKS, QueryConditions
+from app.data.ai_gateway.tasks import GENRES, TASKS, GroundedText, QueryConditions
 from app.data.ai_gateway.testing import FakeProvider
 from app.support.privacy import mask
 
@@ -305,9 +305,9 @@ def test_default_prompt_uses_masked_text_and_allowed_values() -> None:
     assert prompt.json_schema["title"] == "QueryConditions"
 
 
-def test_other_task_prompts_are_not_written_yet() -> None:
+def test_unregistered_prompt_is_refused() -> None:
     with pytest.raises(NotImplementedError):
-        DefaultPromptBuilder().build(TASKS["course_intro"], {})  # F3에서 작성
+        DefaultPromptBuilder().build(TaskSpec("course_intro", GroundedText), {})  # CR-01로 빠짐
 
 
 def test_registered_tasks_match_sdd_table() -> None:
@@ -315,7 +315,6 @@ def test_registered_tasks_match_sdd_table() -> None:
         "extract_query",
         "summarize_results",
         "work_intro",
-        "course_intro",
         "structure_facility",
         "facility_reasons",
         "suggest_tags",
