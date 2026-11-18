@@ -1,4 +1,4 @@
-"""F1 API 계층 테스트 (API-001~003, FR-101~107). DB·KOBIS 없이 가짜 서비스로 형식·오류만 본다.
+"""F1 API 계층 테스트 (API-001~003, FR-101~107). DB 없이 가짜 서비스로 형식·오류만 본다.
 
 실제 조회는 test_archive_service_db.py(테스트 DB가 있을 때)에서 확인한다.
 """
@@ -14,7 +14,6 @@ from fastapi.testclient import TestClient
 from app.api.routers.works import get_archive_service
 from app.data import locations
 from app.data import works as repo
-from app.data.kobis import RatingUnavailable
 from app.main import create_app
 from app.services.archive_service import ArchiveService
 
@@ -127,21 +126,7 @@ def test_openapi_lists_f1_endpoints(client: TestClient) -> None:
     assert {"/api/works", "/api/works/{work_id}", "/api/works/{work_id}/rating"} <= set(paths)
 
 
-# ── get_rating: KOBIS 실패가 상세 화면을 막지 않는다(FR-107, ERR-006). DB는 가짜로 바꾼다 ──
-
-
-class FakeRatings:
-    def __init__(self, result: str | None | Exception | float) -> None:
-        self.result, self.codes = result, []
-
-    async def rating(self, movie_cd: str, timeout_s: float) -> str | None:
-        self.codes.append(movie_cd)
-        if isinstance(self.result, Exception):
-            raise self.result
-        if isinstance(self.result, float):
-            await asyncio.sleep(self.result)
-            return "늦은 답"
-        return self.result
+# ── get_rating: 배치가 저장한 KMDb 등급만 읽는다(FR-107, ADR-007). DB는 가짜로 바꾼다 ──
 
 
 @asynccontextmanager
@@ -149,39 +134,32 @@ async def _no_conn() -> AsyncIterator[None]:
     yield None
 
 
-def rating_of(monkeypatch, ratings: FakeRatings | None, code: str | None = "20990001", found=True):
-    async def kobis_code(_conn, _work_id):
-        return found, code
+def rating_of(monkeypatch, stored: str | None, found: bool = True):
+    async def kmdb_rating(_conn, _work_id):
+        return found, stored
 
     async def sources(_conn, ids):
         return [
-            locations.SourceRow(i, "영화진흥위원회", "KOBIS 영화정보", "https://kobis", None)
+            locations.SourceRow(i, "한국영상자료원", "KMDb 영화정보", "https://kmdb", None)
             for i in ids
         ]
 
-    monkeypatch.setattr(repo, "kobis_code", kobis_code)
+    monkeypatch.setattr(repo, "kmdb_rating", kmdb_rating)
     monkeypatch.setattr(locations, "sources", sources)
-    monkeypatch.setattr("app.services.archive_service.RATING_TIMEOUT_S", 0.05)
-    return asyncio.run(ArchiveService(connect=_no_conn, ratings=ratings).get_rating(1))
+    return asyncio.run(ArchiveService(connect=_no_conn).get_rating(1))
 
 
-def test_rating_ok_has_kobis_source(monkeypatch) -> None:
-    ratings = FakeRatings("15세이상관람가")
-    result = rating_of(monkeypatch, ratings)
+def test_rating_from_kmdb_has_kmdb_source(monkeypatch) -> None:
+    result = rating_of(monkeypatch, "15세관람가")
 
-    assert result["rating"] == "15세이상관람가" and ratings.codes == ["20990001"]
-    assert [s["id"] for s in result["sources"]] == ["DATA-05"]  # 출처 카드(FR-704)
-
-
-@pytest.mark.parametrize("result", [RatingUnavailable("HTTP 500"), 1.0, None])
-def test_rating_failure_or_timeout_is_null(monkeypatch, result) -> None:
-    assert rating_of(monkeypatch, FakeRatings(result)) == {"rating": None, "sources": []}
+    assert result["rating"] == "15세관람가"
+    assert [s["id"] for s in result["sources"]] == ["DATA-04"]  # 출처 카드(FR-704)
 
 
-def test_rating_without_code_or_key_does_not_call_kobis(monkeypatch) -> None:
-    ratings = FakeRatings("전체관람가")
+@pytest.mark.parametrize("stored", [None, "", "  "])
+def test_rating_missing_is_null(monkeypatch, stored) -> None:
+    assert rating_of(monkeypatch, stored) == {"rating": None, "sources": []}  # 화면은 '정보 없음'
 
-    assert rating_of(monkeypatch, ratings, code=None) == {"rating": None, "sources": []}
-    assert rating_of(monkeypatch, None) == {"rating": None, "sources": []}  # KOBIS_API_KEY 없음
-    assert rating_of(monkeypatch, ratings, found=False) is None  # 없는 작품 → 404
-    assert ratings.codes == []
+
+def test_rating_unknown_work_is_none(monkeypatch) -> None:
+    assert rating_of(monkeypatch, None, found=False) is None  # 라우터가 404로 바꾼다

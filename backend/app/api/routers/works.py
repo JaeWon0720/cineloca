@@ -6,13 +6,13 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.errors import ERROR_RESPONSES, ApiError
 from app.api.schemas.works import WorkDetail, WorkListResponse, WorkRating, WorkSort
-from app.services.archive_service import PAGE_SIZE, ArchiveService, default_rating_provider
+from app.services.archive_service import PAGE_SIZE, ArchiveService
 
 router = APIRouter(prefix="/works", tags=["F1 작품"])
 
 
 def get_archive_service() -> ArchiveService:
-    return ArchiveService(ratings=default_rating_provider())
+    return ArchiveService()
 
 
 Service = Annotated[ArchiveService, Depends(get_archive_service)]
@@ -52,10 +52,10 @@ async def get_work(work_id: int, service: Service) -> WorkDetail:
     "/{work_id}/rating",
     response_model=WorkRating,
     responses=_NOT_FOUND,
-    summary="API-003 KOBIS 관람등급 실시간",
+    summary="API-003 관람등급(KMDb)",
 )
 async def get_rating(work_id: int, service: Service) -> WorkRating:
-    """KOBIS를 3초 제한으로 부른다. 코드가 없거나 실패하면 rating=null(200)이다(FR-107)."""
+    """배치가 저장한 KMDb 관람등급. 없으면 rating=null(200)이다(FR-107)."""
     rating = await service.get_rating(work_id)
     if rating is None:
         raise ApiError(404, "WORK_NOT_FOUND", "작품을 찾을 수 없습니다")

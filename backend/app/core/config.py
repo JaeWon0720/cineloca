@@ -14,7 +14,6 @@ class Settings:
     # 카카오 약관 확인 전까지 좌표를 저장하지 않으므로 기본은 끈다(ADR-006).
     geocode_kakao_keyword: bool = False
     stamp_signing_key: str | None = None  # 스탬프·배지 서명 키(ADR-009). 비우면 F5만 503
-    kobis_api_key: str | None = None  # KOBIS 관람등급(API-003). 비우면 등급은 늘 null
 
 
 def _flag(name: str) -> bool:
@@ -29,5 +28,4 @@ def get_settings() -> Settings:
         log_level=(os.getenv("LOG_LEVEL") or "INFO").upper(),
         geocode_kakao_keyword=_flag("GEOCODE_KAKAO_KEYWORD"),
         stamp_signing_key=os.getenv("STAMP_SIGNING_KEY") or None,
-        kobis_api_key=os.getenv("KOBIS_API_KEY") or None,
     )

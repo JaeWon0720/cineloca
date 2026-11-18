@@ -2,50 +2,31 @@
 
 - 목록: 검색어를 배치와 같은 규칙(norm)으로 정규화해 작품명·감독·배우에서 찾는다(FR-101·102).
 - 상세: DB에 있는 값만 돌려준다. KMDb 저장본(work.kmdb)에 없는 항목은 null·빈 목록이다(FR-103~106).
-- 관람등급: KOBIS를 3초 제한으로 실시간 조회하고 저장하지 않는다. 코드가 없거나 실패·시간 초과면
-  rating=null이라 상세 화면을 막지 않는다(FR-107, ERR-006).
-- 출처 카드(FR-704): 작품·촬영 기록의 출처, KMDb 연결 작품이면 KMDb, 등급을 보여 주면 KOBIS.
+- 관람등급: 배치가 KMDb에서 받아 저장한 값(work.kmdb.rating)을 돌려준다. KMDb가 STORE라 실시간
+  조회는 하지 않는다. 없으면 rating=null(FR-107, ADR-007 'KMDb 단독, KOBIS 제외').
+- 출처 카드(FR-704): 작품·촬영 기록의 출처, KMDb 연결 작품이면 KMDb, 등급도 KMDb.
 - 결과는 API 응답 형식의 dict로 돌려준다(라우터가 응답 모델로 검증한다).
 AI 작품 소개(API-004)는 work_intro.py가 맡는다.
 """
 
 from __future__ import annotations
 
-import asyncio
-import logging
-import time
 from collections.abc import Callable, Iterable
 from contextlib import AbstractAsyncContextManager
-from typing import Any, Protocol
+from typing import Any
 
 import asyncpg
 
-from app.core.config import get_settings
 from app.core.names import norm  # work.title_norm을 만든 정규화 규칙(FR-602)
 from app.core.places import DISTRICT_CENTERS
 from app.data import db, locations
 from app.data import works as repo
-from app.data.kobis import KobisRatingProvider, RatingUnavailable
-
-logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 20  # FR-101: 한 쪽에 20편
 RELATED_LIMIT = 5  # FR-802
-RATING_TIMEOUT_S = 3.0  # FR-107
 KMDB_SOURCE = "DATA-04"
-KOBIS_SOURCE = "DATA-05"
 
 Connect = Callable[[], AbstractAsyncContextManager[asyncpg.Connection]]
-
-
-class RatingProvider(Protocol):
-    async def rating(self, movie_cd: str, timeout_s: float) -> str | None: ...
-
-
-def default_rating_provider() -> RatingProvider | None:
-    """KOBIS_API_KEY가 있을 때만 실제 KOBIS를 부른다. 없으면 등급은 늘 null."""
-    key = get_settings().kobis_api_key
-    return KobisRatingProvider(key) if key else None
 
 
 def _summary(w: repo.WorkRow) -> dict[str, Any]:
@@ -73,11 +54,8 @@ async def _cards(conn: asyncpg.Connection, ids: Iterable[str]) -> list[dict[str,
 
 
 class ArchiveService:
-    def __init__(
-        self, connect: Connect = db.connection, ratings: RatingProvider | None = None
-    ) -> None:
+    def __init__(self, connect: Connect = db.connection) -> None:
         self._connect = connect
-        self._ratings = ratings
 
     async def list_works(
         self,
@@ -144,30 +122,11 @@ class ArchiveService:
         }
 
     async def get_rating(self, work_id: int) -> dict[str, Any] | None:
-        """API-003. 없는 id면 None. KOBIS 응답은 등급 문자열만 쓰고 어디에도 남기지 않는다."""
+        """API-003. 없는 id면 None. 등급이 있으면 KMDb 출처 카드를 붙인다."""
         async with self._connect() as conn:
-            found, movie_cd = await repo.kobis_code(conn, work_id)
-        if not found:
-            return None
-        rating = await self._live_rating(movie_cd) if movie_cd and self._ratings else None
-        if rating is None:
-            return {"rating": None, "sources": []}
-        async with self._connect() as conn:
-            return {"rating": rating, "sources": await _cards(conn, [KOBIS_SOURCE])}
-
-    async def _live_rating(self, movie_cd: str) -> str | None:
-        assert self._ratings is not None
-        started = time.monotonic()
-        try:
-            return await asyncio.wait_for(
-                self._ratings.rating(movie_cd, RATING_TIMEOUT_S), timeout=RATING_TIMEOUT_S
-            )
-        except (RatingUnavailable, asyncio.TimeoutError) as e:
-            # ERR-006: 공급자·오류 종류·걸린 시간만 남긴다(응답 본문·키·URL은 남기지 않는다)
-            latency_ms = round((time.monotonic() - started) * 1000)
-            logger.warning(
-                "KOBIS 등급 조회 실패 provider=kobis error=%s latency_ms=%d",
-                type(e).__name__,
-                latency_ms,
-            )
-            return None
+            found, rating = await repo.kmdb_rating(conn, work_id)
+            if not found:
+                return None
+            if (rating := _text(rating)) is None:
+                return {"rating": None, "sources": []}
+            return {"rating": rating, "sources": await _cards(conn, [KMDB_SOURCE])}

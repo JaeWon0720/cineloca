@@ -1,6 +1,6 @@
 """ArchiveService·WorkRepository DB 테스트 (FR-101~107·802, API-001~003).
 
-스키마(db/init 01~04)를 적재한 '테스트 전용' DB가 있을 때만 돈다. 한 트랜잭션 안에서 표를 비우고
+스키마(db/init)를 적재한 '테스트 전용' DB가 있을 때만 돈다. 한 트랜잭션 안에서 표를 비우고
 시험 데이터를 넣은 뒤 끝나면 되돌리므로 기존 데이터는 바뀌지 않는다.
     CINELOCA_TEST_DATABASE_URL=postgresql://... python -m pytest tests/test_archive_service_db.py
 """
@@ -23,17 +23,16 @@ FIXTURE = """
 INSERT INTO source (id, org, name, url, license, policy) VALUES
  ('DATA-01', '부산영상위원회', '영화 속 부산정보', 'https://example.org/1', '제한 없음', 'STORE'),
  ('DATA-02', '부산영상위원회', '씨네맵', 'https://example.org/2', '제한 없음', 'STORE'),
- ('DATA-04', '한국영상자료원', 'KMDb', 'https://example.org/4', '시험', 'STORE'),
- ('DATA-05', '영화진흥위원회', 'KOBIS', 'https://example.org/5', '저장 금지', 'ID_ONLY');
+ ('DATA-04', '한국영상자료원', 'KMDb', 'https://example.org/4', '시험', 'STORE');
 INSERT INTO work (id, title, title_norm, release_year, genres, kmdb_id, kmdb, match_status,
-                  source_id, kobis_movie_cd) VALUES
+                  source_id) VALUES
  (1, '부산 항구', '부산항구', 2018, '{범죄,액션}', 'K1',
   '{"plot": "가짜 줄거리", "keywords": ["항구"], "link": "https://example.org/k1",
-    "source_id": "DATA-04"}',
-  'matched', 'DATA-01', '20990001'),
- (2, '옛날 드라마', '옛날드라마', 2001, '{}', NULL, NULL, 'unmatched', 'DATA-02', NULL),
- (3, '웃긴 영화', '웃긴영화', 2010, '{코메디}', 'K3', NULL, 'matched', 'DATA-01', NULL),
- (4, '가나다', '가나다', NULL, '{범죄}', 'K4', NULL, 'matched', 'DATA-01', NULL);
+    "rating": "15세관람가", "source_id": "DATA-04"}',
+  'matched', 'DATA-01'),
+ (2, '옛날 드라마', '옛날드라마', 2001, '{}', NULL, NULL, 'unmatched', 'DATA-02'),
+ (3, '웃긴 영화', '웃긴영화', 2010, '{코메디}', 'K3', NULL, 'matched', 'DATA-01'),
+ (4, '가나다', '가나다', NULL, '{범죄}', 'K4', NULL, 'matched', 'DATA-01');
 INSERT INTO person (id, name) VALUES (1, '김감독'), (2, '이 배우'), (3, '박배우'), (4, '최배우'),
  (5, '정배우'), (6, '강배우'), (7, '조배우');
 INSERT INTO work_person (work_id, person_id, role, ord) VALUES
@@ -46,11 +45,6 @@ INSERT INTO shooting (work_id, location_id, source_id) VALUES
  (1, 1, 'DATA-01'), (1, 1, 'DATA-02'), (1, 2, 'DATA-01'), (1, 3, 'DATA-01'),
  (2, 1, 'DATA-02'), (2, 3, 'DATA-02'), (3, 3, 'DATA-01'), (4, 2, 'DATA-01');
 """
-
-
-class Ratings:
-    async def rating(self, movie_cd: str, timeout_s: float) -> str | None:
-        return f"등급({movie_cd})"
 
 
 @asynccontextmanager
@@ -69,7 +63,7 @@ def run(body: Callable[[ArchiveService], Awaitable[None]]) -> None:
                 " work, location, station_time, station, source RESTART IDENTITY CASCADE"
             )
             await conn.execute(FIXTURE)
-            await body(ArchiveService(connect=lambda: _borrow(conn), ratings=Ratings()))
+            await body(ArchiveService(connect=lambda: _borrow(conn)))
         finally:
             await tx.rollback()
             await conn.close()
@@ -148,12 +142,13 @@ def test_detail_unmatched_and_missing() -> None:
     run(body)
 
 
-def test_rating_reads_code_only() -> None:
+def test_rating_reads_stored_kmdb_value() -> None:
     async def body(svc: ArchiveService) -> None:
         ok = await svc.get_rating(1)
-        assert ok is not None and ok["rating"] == "등급(20990001)"
-        assert [s["id"] for s in ok["sources"]] == ["DATA-05"]
-        assert await svc.get_rating(2) == {"rating": None, "sources": []}  # 코드 없음
+        assert ok is not None and ok["rating"] == "15세관람가"
+        assert [s["id"] for s in ok["sources"]] == ["DATA-04"]  # 등급 출처도 KMDb(ADR-007)
+        assert await svc.get_rating(2) == {"rating": None, "sources": []}  # KMDb 미연결
+        assert await svc.get_rating(3) == {"rating": None, "sources": []}  # 저장본 없음
         assert await svc.get_rating(999) is None
 
     run(body)

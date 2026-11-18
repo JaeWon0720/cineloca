@@ -1,7 +1,7 @@
 """F1 작품 아카이브 스키마: API-001 목록, API-002 상세, API-003 관람등급 (FR-101~107·802).
 
 - 이름은 F2 스키마(WorkBrief, kmdb_matched, sources)와 R3 화면(#45)의 타입을 따랐다.
-- 관람등급은 상세에 넣지 않고 API-003으로 따로 준다(KOBIS가 느려도 상세 화면을 막지 않게).
+- 관람등급은 SDD대로 API-003으로 따로 준다. 값은 KMDb 저장본이다(ADR-007, FR-107).
 - 포스터·스틸은 팀 결정으로 보여 주지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(BR-01, #12).
 """
 
@@ -62,7 +62,7 @@ class WorkDetail(WorkSummary):
 
 
 class WorkRating(BaseModel):
-    """API-003 응답. 등급을 알 수 없으면 rating=null, sources는 빈 목록(ERR-006)."""
+    """API-003 응답. KMDb에 등급이 없으면 rating=null(화면은 '정보 없음'), sources는 빈 목록."""
 
-    rating: str | None = Field(default=None, examples=["15세이상관람가"])
+    rating: str | None = Field(default=None, examples=["15세관람가"])
     sources: list[SourceCard]
