@@ -11,13 +11,13 @@
 from __future__ import annotations
 
 import hashlib
-import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
+from app.core.geo import haversine_m
 from app.data import courses as course_repo
 from app.data import db
 from app.data import locations as location_repo
@@ -25,7 +25,6 @@ from app.services.map_service import WORKS_PER_HIT, Connect, cert_info
 from app.support.tokens import Claims, TokenSigner
 
 KST = timezone(timedelta(hours=9))
-EARTH_RADIUS_M = 6_371_008.8  # 지구 평균 반지름(IUGG)
 MIN_BADGE_TARGETS = 2
 
 
@@ -64,13 +63,6 @@ class GeofenceResult(Enum):
     OK = "ok"
     LOW_ACCURACY = "low_accuracy"
     OUT_OF_RANGE = "out_of_range"
-
-
-def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp, dl = p2 - p1, math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(min(1.0, a)))
 
 
 class Geofence:

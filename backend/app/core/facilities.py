@@ -1,7 +1,8 @@
 """코스 주변 시설 추천 설정 (F4 FR-414~418, CR-01).
 
 시설 분류는 이 목록 안 값만 쓴다(AI 조건 구조화의 허용 값, 화면의 직접 고르기 선택지).
-후보(FR-414, TourAPI 위치기반 조회)의 분류도 이 이름으로 맞춰 넘긴다.
+후보(FR-414, app/core/amenities.py의 category_of)와 같은 이름을 쓴다. 분류를 모르는 후보는
+None으로 오고, 분류 조건에는 안 맞은 것으로 치고 거리 점수로만 순위를 매긴다.
 점수 = Σ 가중치 × 항목 점수(각 0~1). 가중치는 이 설정 파일로 관리한다(FR-416).
 값을 바꾸면 시설 추천 평가를 다시 돌린다.
 """
@@ -10,10 +11,19 @@ from typing import Literal
 
 FacilityKind = Literal["food", "lodging"]
 FoodCategory = Literal["밥", "카페"]
-LodgingCategory = Literal["호텔", "콘도", "펜션", "모텔", "캠핑", "게스트하우스"]
+LodgingCategory = Literal[
+    "호텔", "콘도·레지던스", "펜션·민박", "모텔", "캠핑", "게스트하우스·호스텔"
+]
 
 FOOD_CATEGORIES: tuple[str, ...] = ("밥", "카페")
-LODGING_CATEGORIES: tuple[str, ...] = ("호텔", "콘도", "펜션", "모텔", "캠핑", "게스트하우스")
+LODGING_CATEGORIES: tuple[str, ...] = (
+    "호텔",
+    "콘도·레지던스",
+    "펜션·민박",
+    "모텔",
+    "캠핑",
+    "게스트하우스·호스텔",
+)
 KIND_LABELS = {"food": "음식", "lodging": "숙박"}
 
 WEIGHTS: dict[str, float] = {"match": 0.6, "distance": 0.4}
