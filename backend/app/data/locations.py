@@ -284,6 +284,7 @@ class CertTarget:
     caution: str | None
     cert_radius_m: int
     cert_excluded: bool
+    gu: str | None = None
 
 
 @dataclass(frozen=True)
@@ -297,7 +298,7 @@ class StampCard:
 
 async def cert_targets(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int, CertTarget]:
     rows = await conn.fetch(
-        "SELECT id, name, lat, lon, caution, cert_radius_m, cert_excluded"
+        "SELECT id, name, lat, lon, caution, cert_radius_m, cert_excluded, gu"
         " FROM location WHERE id = ANY($1::int[])",
         list(ids),
     )
@@ -310,6 +311,7 @@ async def cert_targets(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int
             r["caution"],
             r["cert_radius_m"],
             r["cert_excluded"],
+            r["gu"],
         )
         for r in rows
     }
