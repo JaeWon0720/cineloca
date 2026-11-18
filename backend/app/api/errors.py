@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.request_log import REQUEST_ID_HEADER, SCOPE_KEY
 from app.api.schemas.common import ErrorBody, ErrorResponse
+from app.data.db import DatabaseUnavailable
 from app.support import request_context
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def error_response(
 ERROR_RESPONSES: dict[int | str, dict] = {
     404: {"model": ErrorResponse, "description": "대상 없음"},
     422: {"model": ErrorResponse, "description": "요청 형식 오류(INVALID_REQUEST)"},
+    503: {"model": ErrorResponse, "description": "DB 연결 실패(DB_UNAVAILABLE, ERR-015)"},
 }
 
 _HTTP_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 429: "RATE_LIMITED"}
@@ -50,6 +52,15 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def _api_error(_req: Request, exc: ApiError) -> JSONResponse:
         return error_response(exc.status_code, exc.code, exc.message, exc.retry_after)
+
+    @app.exception_handler(DatabaseUnavailable)
+    async def _db_unavailable(_req: Request, _exc: DatabaseUnavailable) -> JSONResponse:
+        # ERR-015: 화면은 브라우저에 저장된 스탬프북·코스를 계속 보여 준다
+        return error_response(
+            503,
+            "DB_UNAVAILABLE",
+            "지금 촬영지 정보를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.",
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error(_req: Request, exc: RequestValidationError) -> JSONResponse:
