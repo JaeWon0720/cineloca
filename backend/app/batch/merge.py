@@ -8,6 +8,8 @@
 import re
 from dataclasses import dataclass, field
 
+from app.core.names import norm  # 정규화 규칙(FR-602). 조회 쪽과 같이 쓴다
+
 DISTRICTS = (
     "중구",
     "서구",
@@ -26,15 +28,7 @@ DISTRICTS = (
     "사상구",
     "기장군",
 )
-_BRACKETS = re.compile(r"\(.*?\)|\[.*?\]")
-_PUNCT = re.compile(r"[\s·,.:;'\"「」『』<>《》!?~\-–—_/]")
 _YEAR = re.compile(r"(19|20)\d\d")
-
-
-def norm(s: str | None) -> str:
-    """작품명·장소명 비교용: 괄호 안 부가설명·공백·문장부호를 빼고 소문자로."""
-    s = _BRACKETS.sub("", (s or "").strip())
-    return _PUNCT.sub("", s).lower()
 
 
 def district_of(addr: str | None) -> str | None:
