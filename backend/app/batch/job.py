@@ -1,12 +1,14 @@
 """C1 동기화 한 번 (FR-601~607·611~613).
 
-수집 → 병합 → 역 → 좌표·최근접 역 → KMDb 매칭 → 스테이징 → 건수 가드 → 반영.
+수집 → 병합 → 역 → 역간 소요시간 → 좌표·최근접 역 → KMDb 매칭 → 스테이징 → 건수 가드 → 반영.
 
 - 단계 실패는 failures에 모은다(주소·키는 남기지 않음). 수집이 통째로 실패하면 'failed'.
 - 좌표(#25): 정확한 주소는 주소 API. 주소가 없거나 동까지만 있으면 카카오 키워드 검색을
   쓰되, 진입점이 GEOCODE_KAKAO_KEYWORD=true일 때만 kakao를 넘긴다(기본 끔 → 위치 미확인, ADR-006).
   지난 반영 좌표는 '같은 정확한 주소'일 때만 다시 쓴다. 키워드 검색 좌표는 매번 다시 찾는다
   (설정을 끄면 다음 실행에서 바로 빠지고, 리포트의 출처별 건수가 맞도록).
+- 역간 소요시간(DATA-09, FR-413): 받지 못해도 실행은 계속하고 실패로만 남긴다
+  (반영 때 station_time은 지난 값을 그대로 둔다).
 - 매칭: 관리자 검수 결과가 자동 판정보다 우선(FR-611). 같은 KMDb 작품에 두 작품이 붙으면
   하나만 남기고 검수로 돌린다(work.kmdb_id UNIQUE).
 - AI 제안(FR-608, 선택): Clients.ai가 있고 반영이 성공했을 때만 태그 없는 촬영지의 유형 태그와
@@ -21,7 +23,7 @@ from dataclasses import dataclass, field
 import asyncpg
 import httpx
 
-from app.batch import ai_review, collect, kmdb, stations
+from app.batch import ai_review, collect, kmdb, station_times, stations
 from app.batch.geocode import JusoGeocoder, KakaoKeywordGeocoder, precise
 from app.batch.merge import Merged, merge
 from app.batch.report import Failure, GeoCounts, MatchCounts, SyncCounts, failure
@@ -49,6 +51,7 @@ class Clients:
 class Stats:
     match_rule: dict = field(default_factory=dict)
     station_located: int = 0
+    station_pairs: int = 0
     seconds: float = 0.0
     ai_review: dict | None = None  # FR-608 단계를 돌렸을 때 건수
 
@@ -77,6 +80,21 @@ async def _stations(c: Clients, conn, failures: list[Failure]) -> list[stations.
             out.append(stations.Station(code, name, line, xy[0], xy[1]))
     failures += [failure("station_geocode", f"{k} {n}건", "DATA-08") for k, n in errors.items()]
     return out
+
+
+async def _station_times(
+    c: Clients, sts: list[stations.Station], failures: list[Failure]
+) -> tuple[int, list[tuple]]:
+    """(받은 구간 수, station_time 행). 수집이 실패하면 (0, [])."""
+    try:
+        rows = await collect.fetch_station_legs(c.http, c.data_go_kr_key)
+    except Exception as e:
+        failures.append(failure("station_time", e, "DATA-09"))
+        return 0, []
+    legs, skipped = station_times.parse(rows)
+    if skipped:
+        failures.append(failure("station_time", f"읽지 못한 구간 {skipped}건", "DATA-09"))
+    return len(rows), station_times.all_pairs(legs, sts)
 
 
 async def _geocode(c: Clients, conn, m: Merged, failures: list[Failure]) -> dict[str, tuple]:
@@ -217,6 +235,7 @@ async def run(
         m = merge(raw)
         sts = await _stations(c, conn, failures)
         counts.fetched["DATA-08"] = len(sts)
+        counts.fetched["DATA-09"], times = await _station_times(c, sts, failures)
         coords = await _geocode(c, conn, m, failures)
         cands_of: dict[str, list[kmdb.Candidate]] = {}
         works = await _match(c, conn, m, failures, cands_of)
@@ -237,6 +256,7 @@ async def run(
         await staging.write_stations(
             conn, [(s.id, s.name, s.line, s.lat, s.lon, s.gu) for s in sts]
         )
+        await staging.write_station_times(conn, times)
         await staging.write_works(conn, works)
         await staging.write_locations(conn, locs)
         await staging.write_shootings(
@@ -250,6 +270,7 @@ async def run(
             for r in ("score", "rule_c", "rule_u", "review")
         },
         station_located=len(sts),
+        station_pairs=len(times),
         seconds=round(time.monotonic() - t0, 1),
     )
     if c.ai is not None and guard.passed:

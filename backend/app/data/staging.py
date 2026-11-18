@@ -5,7 +5,9 @@
 - publish(): 가드 통과 뒤 같은 트랜잭션에서 서비스 테이블로 반영
   (sync_record.guard_and_publish가 부른다).
   id는 정규화 이름으로 찾아 유지하고, 이번 수집에 없는 작품·촬영지는 지운다.
+  끝에 고유명사 사전(dict_entry, FR-303)을 새 작품·역에 맞춘다.
 - 이전 반영 결과 읽기: 좌표 캐시(같은 주소면 다시 부르지 않음), 관리자 검수 결과
+- 역간 소요시간(station_time)은 이번 실행에서 받았을 때만 통째로 바꾼다(FR-413)
 """
 
 import json
@@ -14,9 +16,11 @@ from collections.abc import Iterable
 
 import asyncpg
 
+from app.data import dictionary
+
 logger = logging.getLogger(__name__)
 
-STG_TABLES = ("stg.shooting", "stg.work", "stg.location", "stg.station")
+STG_TABLES = ("stg.shooting", "stg.work", "stg.location", "stg.station", "stg.station_time")
 
 
 async def reset(conn: asyncpg.Connection) -> None:
@@ -97,6 +101,15 @@ async def write_locations(conn: asyncpg.Connection, rows: Iterable[tuple]) -> No
     )
 
 
+async def write_station_times(conn: asyncpg.Connection, rows: Iterable[tuple]) -> None:
+    await conn.copy_records_to_table(
+        "station_time",
+        schema_name="stg",
+        records=list(rows),
+        columns=["from_id", "to_id", "minutes"],
+    )
+
+
 async def write_shootings(conn: asyncpg.Connection, rows: Iterable[tuple]) -> None:
     await conn.executemany(
         "INSERT INTO stg.shooting (title_norm, name_norm, source_id, raw, base_date)"
@@ -115,6 +128,13 @@ async def publish(conn: asyncpg.Connection) -> None:
             lat = EXCLUDED.lat, lon = EXCLUDED.lon, gu = EXCLUDED.gu
         """
     )
+    # 역간 시간(DATA-09)은 이번에 받았을 때만 통째로 바꾼다. 못 받았으면 지난 값을 둔다
+    if await conn.fetchval("SELECT EXISTS (SELECT 1 FROM stg.station_time)"):
+        await conn.execute("DELETE FROM station_time")
+        await conn.execute(
+            "INSERT INTO station_time (from_id, to_id, minutes)"
+            " SELECT from_id, to_id, minutes FROM stg.station_time"
+        )
     # kmdb_id는 UNIQUE라 작품 사이에서 옮겨 갈 수 있게 먼저 비운다(같은 트랜잭션 안)
     await conn.execute("UPDATE work SET kmdb_id = NULL WHERE kmdb_id IS NOT NULL")
     await conn.execute(
@@ -196,3 +216,5 @@ async def publish(conn: asyncpg.Connection) -> None:
                             AND r.proposer = 'rule')
         """
     )
+    # F3 사전 대조(FR-303)가 새 작품·역 이름을 바로 찾게 사전을 같은 트랜잭션에서 맞춘다
+    await dictionary.rebuild(conn)

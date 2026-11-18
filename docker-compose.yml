@@ -36,6 +36,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-gemini}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       STAMP_SIGNING_KEY: ${STAMP_SIGNING_KEY:-}   # F5 서명 키(ADR-009). 비우면 방문 인증만 503
+      DATA_GO_KR_SERVICE_KEY: ${DATA_GO_KR_SERVICE_KEY:-}   # TourAPI 주변 시설(FR-414). 응답은 저장 안 함
       LOG_DIR: /app/logs                   # 요청 로그(NFR-005), 7일 보관
     volumes:
       - api-logs:/app/logs                 # 재빌드해도 요청 로그가 7일 남게(#39 리뷰)

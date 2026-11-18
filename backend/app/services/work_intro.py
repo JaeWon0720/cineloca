@@ -6,15 +6,23 @@
 - '없음' 단계는 줄거리를 근거에 넣지 않는다(AI-REQ-07). 두 단계 모두 결말·반전 표현 검사를 받는다.
 - 단계는 플래그가 아니라 정책 객체로 넘긴다(SDD 3.6 제어 결합 제거).
 - 강등(AI 장애, 검증 후 2문장 미만): 원문 줄거리와 촬영지 목록을 그대로 보여 준다(FR-110, AC-04).
-API(API-004)와 작품 조회(Repository)는 이 서비스를 부르는 쪽에서 붙인다.
+작품 조회는 PgWorkFacts(작품 상세 Repository, API-002와 같은 조회)가 맡고, API-004가 둘을 잇는다.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+import asyncpg
+
+from app.core.places import DISTRICT_CENTERS
+from app.data import db
+from app.data import works as works_repo
 from app.data.ai_gateway import AIUnavailable, LLMClient
+from app.support import request_context
 from app.support.grounding import Dropped, Evidence, GroundingVerifier, gate
 
 SpoilerLevel = Literal["none", "partial"]
@@ -164,7 +172,9 @@ class WorkIntroService:
                 "work_intro", {"evidence": evidence}, self._deadline_s
             )
         except AIUnavailable as e:
+            request_context.note_ai_attempts(e.attempts)
             return IntroResult("degraded", policy.level, fallback=fallback, reason=e.error_code)
+        request_context.note_ai_attempts(result.attempts)
         checked = self._verifier.verify(result.data.sentences, evidence)
         if not checked.enough(MIN_SENTENCES):
             return IntroResult(
@@ -183,3 +193,47 @@ class WorkIntroService:
             dropped=checked.dropped,
             ai_generated=True,
         )
+
+
+# ── 작품 조회(API-004) ──────────────────────────────────────
+Connect = Callable[[], AbstractAsyncContextManager[asyncpg.Connection]]
+
+
+def _text(value: object) -> str | None:
+    return value.strip() or None if isinstance(value, str) else None
+
+
+def work_facts(row: works_repo.WorkDetailRow) -> WorkFacts:
+    """작품 상세(API-002와 같은 조회)에서 소개 근거에 쓸 값만 꺼낸다.
+
+    줄거리는 KMDb 저장본(plot)만 쓰고, 구·군은 부산 16개 구·군 이름일 때만 넣는다(BR-15).
+    """
+    kmdb = row.kmdb or {}
+    return WorkFacts(
+        work_id=row.work.id,
+        title=row.work.title,
+        kmdb_matched=row.work.kmdb_matched,
+        release_year=row.work.release_year,
+        genres=tuple(row.work.genres),
+        director=row.work.director,
+        cast=tuple(row.cast),
+        synopsis=_text(kmdb.get("plot")),
+        locations=tuple(
+            LocationFact(loc.name, loc.gu if loc.gu in DISTRICT_CENTERS else None)
+            for loc in row.locations
+        ),
+    )
+
+
+class WorkFactsSource(Protocol):
+    async def get(self, work_id: int) -> WorkFacts | None: ...
+
+
+class PgWorkFacts:
+    def __init__(self, connect: Connect = db.connection) -> None:
+        self._connect = connect
+
+    async def get(self, work_id: int) -> WorkFacts | None:
+        async with self._connect() as conn:
+            row = await works_repo.get(conn, work_id)
+        return None if row is None else work_facts(row)
