@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.routers.work_intro import get_intro_service, get_work_facts
+from app.core.notice import NOTICE_VERSION
 from app.data.ai_gateway import DefaultPromptBuilder, ProviderChain, ProviderError
 from app.data.ai_gateway.testing import FakeProvider
 from app.main import create_app
@@ -45,7 +46,7 @@ def make_client(*replies) -> tuple[TestClient, FakeProvider]:
     app = create_app()
     app.dependency_overrides[get_intro_service] = lambda: WorkIntroService(chain)
     app.dependency_overrides[get_work_facts] = lambda: FakeFacts()
-    return TestClient(app), gemini
+    return TestClient(app, headers={"X-Notice-Version": NOTICE_VERSION}), gemini  # FR-701
 
 
 @pytest.fixture
@@ -106,3 +107,10 @@ def test_unknown_work_and_bad_level() -> None:
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "WORK_NOT_FOUND"
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+def test_intro_requires_notice_version() -> None:
+    client, _ = make_client()
+    res = TestClient(client.app).post("/api/works/31/intro")  # X-Notice-Version 없음
+
+    assert res.status_code == 403 and res.json()["error"]["code"] == "NOTICE_REQUIRED"

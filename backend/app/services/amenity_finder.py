@@ -20,13 +20,14 @@ from typing import Literal
 
 from app.core.amenities import CONTENT_TYPE, FacilityType, category_of, is_excluded
 from app.core.geo import haversine_m
-from app.data.tourapi import Place, TourApiClient, TourApiError
+from app.data.tourapi import TIMEOUT_S, Place, TourApiClient, TourApiError
 
 logger = logging.getLogger(__name__)
 
 RADIUS_M = 1000  # FR-414(착수 PoC p7: 1km에서 0건 구간 5%)
 MAX_STOPS = 10  # FR-403
 SOURCE_ID = "DATA-13"
+CALL_TIMEOUT_S = TIMEOUT_S  # 호출당 3초(SDD 2.3)
 
 SearchKind = Literal["segment", "lodging"]
 SearchStatus = Literal["ok", "empty", "failed"]
@@ -111,9 +112,14 @@ class AmenityFinder:
             "to_location_id": b.location_id if b else None,
         }
         try:
-            places = await self._client.nearby(
-                center[0], center[1], self._radius, CONTENT_TYPE[facility]
+            # 호출 전체를 3초로 묶는다(httpx 제한은 연결·읽기 단계마다라 넘을 수 있음, #80 리뷰)
+            places = await asyncio.wait_for(
+                self._client.nearby(center[0], center[1], self._radius, CONTENT_TYPE[facility]),
+                timeout=CALL_TIMEOUT_S,
             )
+        except asyncio.TimeoutError:
+            logger.warning("주변 시설 조회 실패 provider=tourapi error=timeout")
+            return AmenitySearch(**base, status="failed", error="timeout")
         except TourApiError as e:
             logger.warning("주변 시설 조회 실패 provider=tourapi error=%s", e.kind)
             return AmenitySearch(**base, status="failed", error=e.kind)
