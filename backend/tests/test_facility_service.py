@@ -24,7 +24,7 @@ from app.support.grounding import Evidence
 from app.support.privacy import mask
 
 
-def food(i: str, name: str, cat: str, d: int) -> FacilityCandidate:
+def food(i: str, name: str, cat: str | None, d: int) -> FacilityCandidate:
     return FacilityCandidate(i, name, "food", cat, 35.1, 129.0, d)
 
 
@@ -50,7 +50,10 @@ LAST = FacilitySegment(
     "lodging",
     "마지막 촬영지 범일동 철길",
     ("범일동 철길",),
-    (lodge("l1", "부산호텔", "호텔", 400), lodge("l2", "바다게스트하우스", "게스트하우스", 150)),
+    (
+        lodge("l1", "부산호텔", "호텔", 400),
+        lodge("l2", "바다게스트하우스", "게스트하우스·호스텔", 150),
+    ),
 )
 
 COND_AI = {"kinds": [], "food": ["밥"], "lodging": [], "keywords": ["국밥"]}
@@ -109,7 +112,7 @@ def test_schema_rejects_values_outside_lists(reply: dict) -> None:
 
 def test_ai_failure_opens_manual_selection() -> None:  # FR-418
     svc, _ = make(ProviderError("timeout"))
-    selected = FacilityConditions(lodging=["펜션"])
+    selected = FacilityConditions(lodging=["펜션·민박"])
 
     cond = asyncio.run(structure_conditions(svc._client, "조용한 숙소", selected))  # noqa: SLF001
 
@@ -147,14 +150,19 @@ def test_merge_selected_keeps_ai_when_nothing_chosen() -> None:
 
 
 # ── 후보 선정(FR-416) ───────────────────────────────────────
-def test_pick_filters_by_category_and_radius_and_ranks() -> None:
+def test_pick_ranks_category_first_then_distance() -> None:
     cond = FacilityConditions(food=["밥"], keywords=["국밥"])
 
     seg, last = FacilityPicker().pick((SEG1, LAST), cond)
 
-    assert [p.facility.id for p in seg.picks] == ["f1", "f5", "f3"]  # 밥만, 국밥 키워드·거리 순
+    assert [p.facility.id for p in seg.picks] == [
+        "f1",
+        "f5",
+        "f3",
+    ]  # 밥이 먼저, 국밥 키워드·거리 순
     assert seg.picks[0].matched == ("분류: 밥", "키워드: 국밥")
     assert seg.picks[2].parts["match"] == 0.5  # 분류만 맞음
+    assert seg.notice is None
     assert [p.facility.id for p in last.picks] == [
         "l2",
         "l1",
@@ -170,13 +178,53 @@ def test_pick_at_most_three_and_only_candidates() -> None:
     assert "f4" not in {p.facility.id for p in seg.picks}  # 1km 밖
 
 
-def test_kind_filter_and_empty_notice() -> None:
-    cafe_only = FacilityConditions(kinds=["food"], food=["카페"])
-    (seg,) = FacilityPicker().pick((SEG1, LAST), cafe_only)  # 숙박 구간은 건너뜀
-    assert [p.facility.id for p in seg.picks] == ["f2"]
+def test_kind_filter_and_category_scoring() -> None:
+    cafe = FacilityConditions(kinds=["food"], food=["카페"])
+    (seg,) = FacilityPicker().pick((SEG1, LAST), cafe)  # 숙박 구간은 건너뜀
+    assert [p.facility.id for p in seg.picks] == ["f2", "f1", "f5"]  # 카페 먼저, 나머지는 거리 순
+    assert seg.picks[1].matched == () and seg.notice is None
 
-    (empty,) = FacilityPicker().pick((LAST,), FacilityConditions(lodging=["캠핑"]))
-    assert empty.picks == () and "찾지 못했어요" in empty.notice
+    (camp,) = FacilityPicker().pick((LAST,), FacilityConditions(lodging=["캠핑"]))
+    assert [p.facility.id for p in camp.picks] == ["l2", "l1"]  # 캠핑이 없으면 가까운 곳
+    assert "고른 분류" in camp.notice
+
+
+def test_empty_notice() -> None:
+    far = FacilitySegment(
+        "last", "lodging", "마지막 촬영지", ("x",), (lodge("l9", "먼", "호텔", 1200),)
+    )
+    (empty,) = FacilityPicker().pick((far,), FacilityConditions())
+    assert empty.picks == () and empty.notice == "근처 1km 안에 시설이 없어요"
+
+
+def test_failed_search_is_told_apart_from_empty() -> None:  # FR-418, SDD 오류 표
+    failed = FacilitySegment("1-2", "food", "A~B 사이", ("A", "B"), (), failed=True)
+
+    a, b = FacilityPicker().pick((failed, LAST), FacilityConditions())
+
+    assert a.picks == () and a.notice == "시설 정보를 불러오지 못했어요"
+    assert [p.facility.id for p in b.picks] == ["l2", "l1"]  # 다른 구간은 그대로
+
+
+def test_unknown_category_is_ranked_by_distance_only() -> None:  # FR-414: 분류 모름 = None
+    seg = FacilitySegment(
+        "1-2",
+        "food",
+        "A~B 사이",
+        ("A", "B"),
+        (food("u1", "무명", None, 100), food("c1", "카페1", "카페", 700)),
+    )
+
+    (a,) = FacilityPicker().pick((seg,), FacilityConditions())
+    assert [p.facility.id for p in a.picks] == ["u1", "c1"]  # 조건 없으면 거리 순
+    (b,) = FacilityPicker().pick((seg,), FacilityConditions(food=["카페"]))
+    assert [p.facility.id for p in b.picks] == ["c1", "u1"]  # 분류 조건에는 안 맞음
+
+    from app.services.facility_service import fact_line, template_reason
+
+    unknown = a.picks[0]
+    assert fact_line(1, a, unknown) == "1. 무명 (음식) — A~B 사이에서 100m"
+    assert template_reason(a, unknown) == "A~B 사이에서 100m 거리에 있는 음식점이에요."
 
 
 def test_same_facility_not_repeated_across_segments() -> None:
@@ -235,8 +283,11 @@ def test_reason_failure_keeps_recommendations() -> None:  # FR-418
 
 def test_no_picks_skips_reason_call() -> None:
     svc, gemini = make()
+    far = FacilitySegment(
+        "last", "lodging", "마지막 촬영지", ("x",), (lodge("l9", "먼", "호텔", 1200),)
+    )
 
-    r = recommend(svc, selected=FacilityConditions(kinds=["lodging"], lodging=["캠핑"]))
+    r = asyncio.run(svc.recommend((far,)))
 
     assert [s.picks for s in r.segments] == [()]
     assert gemini.calls == []
@@ -252,7 +303,7 @@ def test_template_grammar() -> None:
     assert (
         template_reason(seg, hotel) == "마지막 촬영지 범일동 철길에서 400m 거리에 있는 호텔이에요."
     )
-    assert template_reason(seg, gh).endswith("게스트하우스예요.")
+    assert template_reason(seg, gh).endswith("게스트하우스·호스텔이에요.")
 
 
 def test_reason_prompt() -> None:
@@ -262,4 +313,7 @@ def test_reason_prompt() -> None:
     assert p.user == "근거:\n1. 할매국밥 (음식·밥) — X에서 300m"
     assert "맛·가격·분위기·평점" in p.system and p.version == "v1"
     s = DefaultPromptBuilder().build(TASKS["structure_facility"], {"text": mask("카페")})
-    assert "밥, 카페" in s.system and "호텔, 콘도, 펜션, 모텔, 캠핑, 게스트하우스" in s.system
+    assert (
+        "밥, 카페" in s.system
+        and "호텔, 콘도·레지던스, 펜션·민박, 모텔, 캠핑, 게스트하우스·호스텔" in s.system
+    )

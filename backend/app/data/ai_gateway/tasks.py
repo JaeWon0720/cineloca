@@ -6,8 +6,9 @@ extract_query는 착수 PoC p5(프롬프트 v2, 필드 일치율 qwen3:8b 93.4%�
 묶음에 없는 장르를 다른 묶음에 넣지 않게 규칙을 더했다(프롬프트 v4, #35 재평가는 PoC 보고서).
 C1 제안(suggest_tags·judge_match)은 FR-608에서 확정했다(프롬프트 v1).
 structure_facility·facility_reasons(F4 코스 주변 시설, FR-415·417, CR-01)는 v1이다.
-나머지 작업의 스키마는 SDD 표를 옮긴 초안이며 스프린트 2에서 담당 기능과 함께 확정한다.
-structure_preference(F3 취향 구조화)는 Preference 형식이 아직 정해지지 않아 등록하지 않았다.
+CR-01(11/9 수정본)로 AI 맞춤 코스(취향 구조화)와 코스 소개 생성이 빠져
+course_intro는 등록하지 않는다.
+기능 번호는 수정본 기준: F3 = AI 대화형 탐색(FR-301~312), F4 = 코스 + 주변 시설 추천.
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ DISTRICTS = (
 District = Literal[DISTRICTS]  # type: ignore[valid-type]
 
 
-# ── extract_query (F4 조건 추출, FR-402) ─────────────────────
+# ── extract_query (F3 조건 추출, FR-302) ─────────────────────
 class Anchor(BaseModel):
     type: Literal["station", "place", "current"]
     name: str | None = None
@@ -71,7 +72,7 @@ class QueryConditions(BaseModel):
     result_type: Literal["location", "work"]
 
 
-# ── 근거 기반 문장 생성 (F4 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
+# ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
 class GroundedSentence(BaseModel):
     text: str = Field(min_length=1)
     entities: list[str]  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
@@ -105,12 +106,6 @@ class FacilityReasons(BaseModel):
     """추천 이유(FR-417). 시설마다 한 문장. 대조에서 지워지면 템플릿 문장으로 바꾼다."""
 
     reasons: list[FacilityReason]
-
-
-# ── F3 코스 소개 — 초안 ──────────────────────────────────────
-class CourseIntro(BaseModel):
-    reasons: list[str]
-    intro: str = Field(min_length=1)
 
 
 # ── C1 배치 제안(검수 큐로만 감, FR-608·BR-04) ──────────────
@@ -193,7 +188,7 @@ TASKS: dict[str, TaskSpec] = {
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
-            "summarize_results",  # F4 결과 요약(FR-407)
+            "summarize_results",  # F3 결과 요약(FR-307)
             GroundedText,
             temperature=0.2,
             prompt_version="v1",
@@ -207,7 +202,6 @@ TASKS: dict[str, TaskSpec] = {
             prompt_version="v1",
             cache_ttl_s=_DAY_S,
         ),
-        TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
         TaskSpec(
             "structure_facility",  # F4 주변 시설 조건(FR-415)
             FacilityConditions,

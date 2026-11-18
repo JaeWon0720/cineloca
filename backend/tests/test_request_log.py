@@ -32,7 +32,7 @@ def _app(log_dir: Path) -> FastAPI:
     app = _with_fake_db(create_app(Settings(database_url=None, log_dir=str(log_dir))))
 
     @app.post("/api/test/ai")
-    async def ai_route() -> dict:  # F4 서비스가 하듯 AI 시도와 마스킹한 질의를 넘긴다
+    async def ai_route() -> dict:  # F3 서비스가 하듯 AI 시도와 마스킹한 질의를 넘긴다
         request_context.note_ai_attempts(
             [
                 SimpleNamespace(provider="ollama", outcome="timeout"),
