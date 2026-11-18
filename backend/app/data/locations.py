@@ -270,3 +270,53 @@ async def release_year_range(conn: asyncpg.Connection) -> tuple[int, int] | None
     if r is None or r["lo"] is None:
         return None
     return r["lo"], r["hi"]
+
+
+# ── 방문 인증(F5, COMP-07)이 쓰는 조회 ─────────────────────────
+@dataclass(frozen=True)
+class CertTarget:
+    """방문 인증 판정에 필요한 값만. 사용자 위치는 여기에 들어오지 않는다(BR-10)."""
+
+    id: int
+    name: str
+    lat: float | None
+    lon: float | None
+    caution: str | None
+    cert_radius_m: int
+    cert_excluded: bool
+
+
+@dataclass(frozen=True)
+class StampCard:
+    """스탬프북 한 칸(FR-507): 촬영지명과 작품(최근 작품 먼저)."""
+
+    id: int
+    name: str
+    works: list[WorkRow]
+
+
+async def cert_targets(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int, CertTarget]:
+    rows = await conn.fetch(
+        "SELECT id, name, lat, lon, caution, cert_radius_m, cert_excluded"
+        " FROM location WHERE id = ANY($1::int[])",
+        list(ids),
+    )
+    return {
+        r["id"]: CertTarget(
+            r["id"],
+            r["name"],
+            r["lat"],
+            r["lon"],
+            r["caution"],
+            r["cert_radius_m"],
+            r["cert_excluded"],
+        )
+        for r in rows
+    }
+
+
+async def stamp_cards(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int, StampCard]:
+    rows = await conn.fetch("SELECT id, name FROM location WHERE id = ANY($1::int[])", list(ids))
+    found = [r["id"] for r in rows]
+    works = await _works_by_location(conn, found) if found else {}
+    return {r["id"]: StampCard(r["id"], r["name"], works[r["id"]]) for r in rows}
