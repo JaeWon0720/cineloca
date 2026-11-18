@@ -315,6 +315,7 @@ def test_registered_tasks_match_sdd_table() -> None:
         "extract_query",
         "summarize_results",
         "work_intro",
+        "structure_preference",
         "course_intro",
         "suggest_tags",
         "judge_match",

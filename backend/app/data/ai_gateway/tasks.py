@@ -6,7 +6,9 @@ extract_query는 착수 PoC p5(프롬프트 v2, 필드 일치율 qwen3:8b 93.4%�
 묶음에 없는 장르를 다른 묶음에 넣지 않게 규칙을 더했다(프롬프트 v4, #35 재평가는 PoC 보고서).
 C1 제안(suggest_tags·judge_match)은 FR-608에서 확정했다(프롬프트 v1).
 나머지 작업의 스키마는 SDD 표를 옮긴 초안이며 스프린트 2에서 담당 기능과 함께 확정한다.
-structure_preference(F3 취향 구조화)는 Preference 형식이 아직 정해지지 않아 등록하지 않았다.
+structure_preference(F3 취향 구조화, FR-308)는 v1이다. 태그는 장소 유형 목록
+(app/core/place_tags.py)을 쓰고, '조용한' 같은 분위기 말은 태그로 바꾸지 않고
+임베딩 유사도(FR-309)에 맡긴다.
 """
 
 from __future__ import annotations
@@ -77,6 +79,23 @@ class GroundedSentence(BaseModel):
 
 class GroundedText(BaseModel):
     sentences: list[GroundedSentence] = Field(min_length=1)
+
+
+# ── F3 취향 구조화 (FR-308) ─────────────────────────────────
+MIN_BUDGET_H, MAX_BUDGET_H = 1.0, 8.0  # FR-307 시간 예산 1~8시간
+
+
+class Preference(BaseModel):
+    """취향·제약. 문장에 없는 항목은 비워 둔다. 선택 항목(출발지·시간 예산)이 있으면 그걸 따른다."""
+
+    genres: list[GenreGroup] = Field(default_factory=list)
+    tags: list[PlaceType] = Field(default_factory=list)  # 가고 싶은 장소 유형
+    work_titles: list[str] = Field(default_factory=list)
+    persons: list[str] = Field(default_factory=list)
+    districts: list[District] = Field(default_factory=list)
+    start: Anchor | None = None
+    time_budget_h: float | None = Field(default=None, ge=MIN_BUDGET_H, le=MAX_BUDGET_H)
+    avoid_tags: list[PlaceType] = Field(default_factory=list)  # 피할 장소 유형
 
 
 # ── F3 코스 소개 — 초안 ──────────────────────────────────────
@@ -177,6 +196,13 @@ TASKS: dict[str, TaskSpec] = {
             GroundedText,
             temperature=0.3,
             prompt_version="v1",
+            cache_ttl_s=_DAY_S,
+        ),
+        TaskSpec(
+            "structure_preference",  # F3 취향 구조화(FR-308)
+            Preference,
+            prompt_version="v1",
+            user_text_fields=("text",),
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
