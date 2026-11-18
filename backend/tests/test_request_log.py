@@ -13,16 +13,23 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.request_log import KST, DailyJsonlWriter, new_request_id
+from app.api.routers.locations import get_map_service
 from app.core.config import Settings
 from app.main import _set_app_log_level, create_app
 from app.support import request_context
 from app.support.privacy import mask, scrub
+from tests.f2_fake import FakeMapService
 
 HAEUNDAE = {"lat": 35.15871, "lon": 129.16042}
 
 
+def _with_fake_db(app: FastAPI) -> FastAPI:
+    app.dependency_overrides[get_map_service] = FakeMapService  # F2 API를 DB 없이 부른다
+    return app
+
+
 def _app(log_dir: Path) -> FastAPI:
-    app = create_app(Settings(database_url=None, log_dir=str(log_dir)))
+    app = _with_fake_db(create_app(Settings(database_url=None, log_dir=str(log_dir))))
 
     @app.post("/api/test/ai")
     async def ai_route() -> dict:  # F4 서비스가 하듯 AI 시도와 마스킹한 질의를 넘긴다
@@ -61,11 +68,11 @@ def _records(log_dir: Path) -> list[dict]:
 
 
 def test_records_template_status_and_latency(client: TestClient, log_dir: Path) -> None:
-    res = client.get("/api/locations/1")
+    res = client.get("/api/locations/4")
 
     (rec,) = _records(log_dir)
     assert set(rec) == {"ts", "request_id", "method", "path", "status", "latency_ms"}
-    assert rec["path"] == "/api/locations/{location_id}"  # 실제 값(1) 대신 경로 틀
+    assert rec["path"] == "/api/locations/{location_id}"  # 실제 값(4) 대신 경로 틀
     assert (rec["method"], rec["status"]) == ("GET", 200)
     assert rec["latency_ms"] >= 0
     assert res.headers["X-Request-Id"] == rec["request_id"]
@@ -136,7 +143,7 @@ def test_unhandled_error_returns_500_with_request_id(
 
 
 def test_no_log_dir_only_adds_request_id(tmp_path: Path) -> None:
-    client = TestClient(create_app(Settings(database_url=None)))
+    client = TestClient(_with_fake_db(create_app(Settings(database_url=None))))
 
     res = client.get("/api/meta")
 
@@ -147,7 +154,9 @@ def test_no_log_dir_only_adds_request_id(tmp_path: Path) -> None:
 def test_log_write_failure_does_not_break_response(tmp_path: Path) -> None:
     blocker = tmp_path / "logs"
     blocker.write_text("폴더 자리에 파일이 있음")
-    client = TestClient(create_app(Settings(database_url=None, log_dir=str(blocker))))
+    client = TestClient(
+        _with_fake_db(create_app(Settings(database_url=None, log_dir=str(blocker))))
+    )
 
     assert client.get("/api/meta").status_code == 200
 

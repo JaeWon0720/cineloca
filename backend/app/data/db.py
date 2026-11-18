@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import asyncpg
 
@@ -25,6 +27,34 @@ async def get_pool() -> asyncpg.Pool:
         else:  # 동시에 두 요청이 풀을 만든 경우 하나만 남긴다
             await pool.close()
     return _pool
+
+
+class DatabaseUnavailable(Exception):
+    """DB에 연결하지 못함(ERR-015). API는 503으로 알린다. 접속 정보는 메시지에 넣지 않는다."""
+
+
+@asynccontextmanager
+async def connection(timeout_s: float = 3.0) -> AsyncIterator[asyncpg.Connection]:
+    """풀에서 연결 하나를 빌린다. 연결 단계의 실패만 DatabaseUnavailable로 바꾼다.
+
+    질의 중 오류(SQL 문제 등)는 그대로 올라가 500으로 처리된다.
+    """
+    try:
+        pool = await asyncio.wait_for(get_pool(), timeout=timeout_s)
+        conn = await pool.acquire(timeout=timeout_s)
+    except (
+        OSError,
+        RuntimeError,
+        asyncio.TimeoutError,
+        asyncpg.PostgresError,
+        asyncpg.InterfaceError,
+    ):
+        logger.warning("DB 연결 실패")
+        raise DatabaseUnavailable from None
+    try:
+        yield conn
+    finally:
+        await pool.release(conn)
 
 
 async def close_pool() -> None:

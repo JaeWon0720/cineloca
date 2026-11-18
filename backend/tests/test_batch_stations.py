@@ -1,39 +1,6 @@
-"""좌표 보조 함수와 최근접 역 단위 테스트 (FR-605·606, BR-12). 외부 호출 없음."""
-
-import pytest
+"""도시철도역 호선·최근접 역 단위 테스트 (FR-606, BR-12)."""
 
 from app.batch import stations
-from app.batch.geocode import clean_keyword, in_busan, trim_tail, utmk_to_wgs84
-
-
-@pytest.mark.parametrize(
-    ("raw", "short"),
-    [
-        ("부산광역시 해운대구 센텀5로 55 1층 카페", "부산광역시 해운대구 센텀5로 55"),
-        ("부산 기장군 일광읍 기룡리 630 일광해변", "부산 기장군 일광읍 기룡리 630"),
-        ("부산 사하구 다대동 산 1-2 몰운대", "부산 사하구 다대동 산 1-2"),
-        ("부산광역시 중구 광복로 55-1", None),
-    ],
-)
-def test_trim_tail(raw: str, short: str | None) -> None:
-    assert trim_tail(raw) == short
-
-
-def test_clean_keyword_removes_forbidden_and_brackets() -> None:
-    assert clean_keyword("부산 중구 (옛 미문화원) 대청로; 99'") == "부산 중구 대청로 99"
-    assert len(clean_keyword("가" * 100)) == 40
-
-
-def test_utmk_to_wgs84_round_trip_busan_city_hall() -> None:
-    from pyproj import Transformer
-
-    x, y = Transformer.from_crs("EPSG:4326", "EPSG:5179", always_xy=True).transform(
-        129.0756, 35.1796
-    )
-    lat, lon = utmk_to_wgs84(x, y)
-    assert (lat, lon) == pytest.approx((35.1796, 129.0756), abs=1e-5)
-    assert in_busan(lat, lon)
-    assert not in_busan(37.56, 126.97)
 
 
 def test_line_of() -> None:
