@@ -1,6 +1,6 @@
 """AI 평가셋 파일과 채점 스크립트 테스트 (WBS 5.1, AI-REQ-10, 계획서 18.3).
 
-실제 공급자는 부르지 않는다. f4 채점 한 번은 가짜 공급자로 끝까지 돌린다.
+실제 공급자는 부르지 않는다. f3 채점 한 번은 가짜 공급자로 끝까지 돌린다.
 """
 
 import asyncio
@@ -22,10 +22,10 @@ from scripts.eval_ai import (
     load_jsonl,
     retrieval_counts,
     retrieval_scores,
-    run_f4,
+    run_f3,
     run_redteam,
     summarize_c1,
-    summarize_f4,
+    summarize_f3,
     summarize_redteam,
 )
 
@@ -50,8 +50,8 @@ def cond(**kw) -> dict:
 
 # ── 평가셋 파일 ──────────────────────────────────────────
 @pytest.fixture(scope="module")
-def f4_items() -> list[dict]:
-    return load_jsonl(EVAL_DIR / "f4_queries.jsonl")
+def f3_items() -> list[dict]:
+    return load_jsonl(EVAL_DIR / "f3_queries.jsonl")
 
 
 @pytest.fixture(scope="module")
@@ -59,13 +59,13 @@ def redteam_items() -> list[dict]:
     return load_jsonl(EVAL_DIR / "redteam.jsonl")
 
 
-def test_f4_set_has_60_valid_items(f4_items):
-    assert len(f4_items) == 60
-    ids = [x["id"] for x in f4_items]
+def test_f3_set_has_60_valid_items(f3_items):
+    assert len(f3_items) == 60
+    ids = [x["id"] for x in f3_items]
     assert len(set(ids)) == 60
-    for item in f4_items:
+    for item in f3_items:
         QueryConditions.model_validate(item["gold"])  # gold는 서비스 스키마 그대로
-        assert item["q"].strip() and len(item["q"]) <= 200  # FR-401
+        assert item["q"].strip() and len(item["q"]) <= 200  # FR-301
         assert item["tags"], item["id"]
         for alt in item.get("accept", {}).values():
             assert isinstance(alt, list)
@@ -77,8 +77,8 @@ def test_f4_set_has_60_valid_items(f4_items):
             assert item["follow_up_of"] in ids
 
 
-def test_f4_set_covers_condition_types(f4_items):
-    tags = {t for x in f4_items for t in x["tags"]}
+def test_f3_set_covers_condition_types(f3_items):
+    tags = {t for x in f3_items for t in x["tags"]}
     for t in (
         "work",
         "person",
@@ -95,7 +95,7 @@ def test_f4_set_covers_condition_types(f4_items):
         "dict_boundary",
     ):
         assert t in tags, t
-    assert sum(1 for x in f4_items if x.get("expect_locations")) >= 10
+    assert sum(1 for x in f3_items if x.get("expect_locations")) >= 10
 
 
 def test_redteam_set_has_30_items_and_mask_expectations_hold(redteam_items):
@@ -117,11 +117,15 @@ def test_c1_sample_has_50_rows_without_plot():
     assert all(r["check"] in ("", "정답", "오답", "모름") for r in rows)
 
 
-@pytest.mark.parametrize("name", ["f1_works.jsonl", "f3_prefs.jsonl"])
-def test_r3_sets_are_marked_examples(name):
-    items = load_jsonl(EVAL_DIR / name)
+def test_r3_set_is_marked_examples():
+    items = load_jsonl(EVAL_DIR / "f1_works.jsonl")
     assert len(items) == 3
     assert all(x.get("example") is True for x in items)
+
+
+def test_no_removed_course_preference_set():
+    # AI 맞춤 코스(취향 문장·시간 예산)는 CR-01로 없어졌다(구현 기준 정정표 11/18)
+    assert not (EVAL_DIR / "f3_prefs.jsonl").exists()
 
 
 # ── 필드 일치율 ──────────────────────────────────────────
@@ -160,7 +164,7 @@ def test_grade_conditions_accepts_alternatives():
     assert grade_conditions(gold, fixed, accept)["wrong"] == []
 
 
-def test_summarize_f4_pass_and_per_field():
+def test_summarize_f3_pass_and_per_field():
     rows = [
         {"gold_out_of_scope": False, "schema_ok": True, "fields_ok": 9, "fields": 9, "wrong": []},
         {
@@ -179,14 +183,14 @@ def test_summarize_f4_pass_and_per_field():
         },
         {"gold_out_of_scope": True, "schema_ok": True, "fields_ok": 1, "fields": 1, "wrong": []},
     ]
-    s = summarize_f4(rows)
+    s = summarize_f3(rows)
     assert s["field_match_pct"] == round(100 * 18 / 28, 1) and s["pass"] is False
     assert s["per_field_pct"]["genres"] == round(100 / 3, 1)
     assert s["per_field_pct"]["persons"] == round(200 / 3, 1)
     assert s["out_of_scope_correct"] == "1/1" and s["false_out_of_scope"] == 1
-    assert summarize_f4(rows[:2] + rows[3:])["pass"] is True  # 18/19 = 94.7%
+    assert summarize_f3(rows[:2] + rows[3:])["pass"] is True  # 18/19 = 94.7%
     down = {**rows[0], "error": "AI_UNAVAILABLE", "fields_ok": 0, "wrong": list(FIELDS)}
-    s = summarize_f4([rows[0], down])
+    s = summarize_f3([rows[0], down])
     assert s["field_match_pct"] == 50.0 and s["field_match_pct_answered"] == 100.0
     assert s["provider_errors"] == 1
 
@@ -250,7 +254,7 @@ def _chain(script) -> ProviderChain:
     )
 
 
-def test_run_f4_end_to_end_with_fake_provider():
+def test_run_f3_end_to_end_with_fake_provider():
     items = [
         {
             "id": "T1",
@@ -267,20 +271,20 @@ def test_run_f4_end_to_end_with_fake_provider():
         },
     ]
     fake = [cond(work_titles=["친구"]), OOS, "형식 아님", "또 형식 아님"]
-    rows, stopped = asyncio.run(run_f4(_chain(fake), items))
+    rows, stopped = asyncio.run(run_f3(_chain(fake), items))
     assert stopped is None
     assert [r["fields_ok"] for r in rows] == [9, 1, 0]
     assert rows[2]["error"] == "AI_SCHEMA" and rows[2]["schema_ok"] is False
     assert rows[0]["q_masked"] == mask(items[0]["q"]).text and "0000" not in rows[0]["q_masked"]
-    s = summarize_f4(rows)
+    s = summarize_f3(rows)
     assert s["field_match_pct"] == round(100 * 10 / 19, 1) and s["questions"] == 3
     assert s["provider_errors"] == 0  # 스키마 위반은 모델 탓이라 공급자 오류로 빼지 않는다
 
 
-def test_run_f4_stops_on_rate_limit():
+def test_run_f3_stops_on_rate_limit():
     items = [{"id": f"T{i}", "q": "친구 촬영지", "gold": cond()} for i in range(3)]
     script = [cond(), ProviderError("rate_limited", "HTTP 429")]
-    rows, stopped = asyncio.run(run_f4(_chain(script), items))
+    rows, stopped = asyncio.run(run_f3(_chain(script), items))
     assert len(rows) == 1 and stopped is not None and stopped.startswith("T1")
 
 

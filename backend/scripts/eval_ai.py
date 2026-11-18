@@ -2,12 +2,12 @@
 
 평가셋은 저장소 루트 eval/에 있다(형식·채점 규칙은 eval/README.md). backend 폴더에서:
 
-    python -m scripts.eval_ai f4 --limit 20 --out /tmp/eval-out      # 조건 추출(실제 공급자)
+    python -m scripts.eval_ai f3 --limit 20 --out /tmp/eval-out      # 조건 추출(실제 공급자)
     python -m scripts.eval_ai redteam --out /tmp/eval-out           # 마스킹 + 범위 밖·지시 주입
     python -m scripts.eval_ai redteam --mask-only                   # 마스킹만(AI 호출 없음)
     python -m scripts.eval_ai c1                                    # 사람이 채운 매칭 확인표 집계
 
-f4·redteam은 ai_smoke와 같이 루트 .env(AI_PROVIDER·GEMINI_API_KEY·OLLAMA_BASE_URL)를 읽어
+f3·redteam은 ai_smoke와 같이 루트 .env(AI_PROVIDER·GEMINI_API_KEY·OLLAMA_BASE_URL)를 읽어
 실제 공급자를 부른다. Gemini는 이 실행 안에서 GEMINI_DAILY_LIMIT회까지만 부르고 멈춘다.
 결과 파일에는 마스킹한 질문과 scrub()한 값만 남긴다(키·원문 개인정보 없음).
 """
@@ -61,7 +61,7 @@ FIELDS = (
     "result_type",
 )
 _LIST_FIELDS = ("work_titles", "persons", "genres", "districts")
-MAX_RESULTS = 20  # F4 결과 최대 건수(FR-406). 재현율 분모 상한
+MAX_RESULTS = 20  # F3 결과 최대 건수(FR-306). 재현율 분모 상한
 # 평가는 추출 품질을 본다. 공급자 1회 제한 시간을 서비스(10초, NFR-002)보다 늘릴 수 있고(--timeout),
 # 지연은 결과의 latency_p95_ms로 따로 본다.
 DEFAULT_TIMEOUT_S = 30.0
@@ -82,7 +82,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return items
 
 
-# ── F4 조건 추출 채점 (PoC p5 규칙) ─────────────────────────
+# ── F3 조건 추출 채점 (PoC p5 규칙) ─────────────────────────
 def nstr(value: Any) -> Any:
     """문자열은 공백과 '역'을 뺀 뒤 비교한다(예: '서면역' = '서면', '마 동석' = '마동석')."""
     return value.replace(" ", "").replace("역", "") if isinstance(value, str) else value
@@ -134,7 +134,7 @@ def _pct(num: float, den: float) -> float | None:
     return round(100 * num / den, 1) if den else None
 
 
-def summarize_f4(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def summarize_f3(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """문항별 결과 → 필드 일치율(전체 맞은 필드 / 전체 필드)과 필드별 정확도."""
     fields_ok = sum(r["fields_ok"] for r in rows)
     fields = sum(r["fields"] for r in rows)
@@ -171,7 +171,7 @@ def summarize_f4(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
-# ── F4 검색 정밀도·재현율 (검색 연결은 후속, eval/README.md) ─────
+# ── F3 검색 정밀도·재현율 (검색 연결은 후속, eval/README.md) ─────
 def retrieval_counts(
     expected: Iterable[str], got: Iterable[str], limit: int = MAX_RESULTS
 ) -> tuple[int, int, int]:
@@ -243,7 +243,7 @@ async def extract(client: LLMClient, question: str, deadline_s: float = 120.0) -
     }
 
 
-async def run_f4(
+async def run_f3(
     client: LLMClient, items: Sequence[Mapping[str, Any]], *, sleep_s: float = 0.0
 ) -> tuple[list[dict[str, Any]], str | None]:
     """문항별 채점 결과와 멈춘 이유(끝까지 했으면 None)."""
@@ -387,14 +387,14 @@ def _write(out_dir: Path | None, kind: str, report: dict[str, Any]) -> None:
     print(f"결과: {path}")
 
 
-async def main_f4(args: argparse.Namespace) -> int:
-    items = load_jsonl(args.file or EVAL_DIR / "f4_queries.jsonl")[: args.limit]
+async def main_f3(args: argparse.Namespace) -> int:
+    items = load_jsonl(args.file or EVAL_DIR / "f3_queries.jsonl")[: args.limit]
     client, settings = _client(args.timeout)
     print(settings)
     started = time.monotonic()
-    rows, stopped = await run_f4(client, items, sleep_s=args.sleep)
+    rows, stopped = await run_f3(client, items, sleep_s=args.sleep)
     summary = {
-        **summarize_f4(rows),
+        **summarize_f3(rows),
         "planned": len(items),
         "stopped": stopped,
         "elapsed_s": round(time.monotonic() - started, 1),
@@ -402,7 +402,7 @@ async def main_f4(args: argparse.Namespace) -> int:
         "timeout_s": args.timeout,
         "model": settings.gemini_model if settings.provider == "gemini" else settings.ollama_model,
     }
-    _write(args.out, "f4", {"summary": summary, "items": rows})
+    _write(args.out, "f3", {"summary": summary, "items": rows})
     return 0 if stopped is None else 2
 
 
@@ -428,7 +428,7 @@ def main_c1(args: argparse.Namespace) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI 평가셋 채점 (eval/README.md)")
-    parser.add_argument("set", choices=("f4", "redteam", "c1"))
+    parser.add_argument("set", choices=("f3", "redteam", "c1"))
     parser.add_argument("--file", type=Path, help="평가셋 파일(기본: eval/의 해당 파일)")
     parser.add_argument("--limit", type=int, default=None, help="앞에서부터 N문항만")
     parser.add_argument("--out", type=Path, default=None, help="결과 JSON을 둘 폴더")
@@ -441,7 +441,7 @@ def main() -> None:
     if args.set == "c1":
         raise SystemExit(main_c1(args))
     load_dotenv()
-    runner = main_f4 if args.set == "f4" else main_redteam
+    runner = main_f3 if args.set == "f3" else main_redteam
     raise SystemExit(asyncio.run(runner(args)))
 
 
