@@ -1,4 +1,4 @@
-"""고유명사 사전 DB 테스트 (FR-403, dict_entry). 스키마(db/init)를 적재한 '테스트 전용' DB가
+"""고유명사 사전 DB 테스트 (FR-303, dict_entry). 스키마(db/init)를 적재한 '테스트 전용' DB가
 있을 때만 돈다. 한 트랜잭션 안에서 표를 비우고 시험 데이터를 넣은 뒤 되돌린다.
     CINELOCA_TEST_DATABASE_URL=postgresql://... python -m pytest tests/test_dictionary_db.py
 """

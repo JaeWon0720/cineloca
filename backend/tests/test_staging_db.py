@@ -166,7 +166,7 @@ def test_pending_ai_item_survives_auto_match() -> None:
 
 
 def test_publish_rebuilds_dictionary() -> None:
-    """반영이 끝나면 고유명사 사전(dict_entry, FR-403)이 새 작품·역을 담는다."""
+    """반영이 끝나면 고유명사 사전(dict_entry, FR-303)이 새 작품·역을 담는다."""
 
     async def body(conn: asyncpg.Connection) -> None:
         await load(conn, [work("w1"), work("w2")], [LOC_A], [("w1", "a", "DATA-01", {}, None)])

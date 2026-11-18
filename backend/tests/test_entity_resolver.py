@@ -1,4 +1,4 @@
-"""DictionaryResolver 단위 테스트 (FR-403). DB 없이 가짜 사전 조회를 넣어 규칙만 본다."""
+"""DictionaryResolver 단위 테스트 (FR-303). DB 없이 가짜 사전 조회를 넣어 규칙만 본다."""
 
 import asyncio
 from collections.abc import Sequence
