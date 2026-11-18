@@ -3,3 +3,5 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 asyncpg>=0.29
 httpx>=0.27
+# C1 배치 KMDb 매칭(제목 유사도)
+rapidfuzz>=3.9       # MIT
