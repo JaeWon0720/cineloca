@@ -14,6 +14,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from app.core.names import station_label
 from app.core.places import DISTRICT_CENTERS
 from app.data import db
 from app.data import locations as location_repo
@@ -133,10 +134,10 @@ class CourseService:
             start_info = {"type": "current", "label": "현재 위치", "lat": None, "lon": None}
         elif start.type == "station":
             assert station is not None
-            origin = Point(station.lat, station.lon)
+            origin = Point(station.lat, station.lon, station.id, 0.0)  # 그 역에서 바로 탐
             start_info = {
                 "type": "station",
-                "label": f"{station.name}역({station.line})",
+                "label": f"{station_label(station.name)}({station.line})",  # 서면(1) → 서면역
                 "lat": station.lat,
                 "lon": station.lon,
             }
@@ -150,7 +151,15 @@ class CourseService:
                 "lon": first.lon,
             }
 
-        points = [Point(targets[i].lat, targets[i].lon) for i in ids]  # type: ignore[arg-type]
+        points = [
+            Point(
+                targets[i].lat,  # type: ignore[arg-type]
+                targets[i].lon,  # type: ignore[arg-type]
+                targets[i].nearest_station_id,
+                targets[i].station_walk_min,
+            )
+            for i in ids
+        ]
         estimator = TravelTimeEstimator(network)
         route = RoutePlanner(estimator).plan(origin, points, fixed_order)
         result = self._result(

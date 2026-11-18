@@ -285,6 +285,8 @@ class CertTarget:
     cert_radius_m: int
     cert_excluded: bool
     gu: str | None = None
+    nearest_station_id: str | None = None  # FR-606(C1이 계산)
+    station_walk_min: float | None = None
 
 
 @dataclass(frozen=True)
@@ -298,8 +300,8 @@ class StampCard:
 
 async def cert_targets(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int, CertTarget]:
     rows = await conn.fetch(
-        "SELECT id, name, lat, lon, caution, cert_radius_m, cert_excluded, gu"
-        " FROM location WHERE id = ANY($1::int[])",
+        "SELECT id, name, lat, lon, caution, cert_radius_m, cert_excluded, gu,"
+        " nearest_station_id, station_walk_min FROM location WHERE id = ANY($1::int[])",
         list(ids),
     )
     return {
@@ -312,6 +314,8 @@ async def cert_targets(conn: asyncpg.Connection, ids: Sequence[int]) -> dict[int
             r["cert_radius_m"],
             r["cert_excluded"],
             r["gu"],
+            r["nearest_station_id"],
+            float(r["station_walk_min"]) if r["station_walk_min"] is not None else None,
         )
         for r in rows
     }

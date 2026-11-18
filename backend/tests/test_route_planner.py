@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from app.batch.station_times import Edge, StationNode, all_pairs, graph
+from app.data.station_times import StationTimes
 from app.data.stations import Network, StationPoint
 from app.services.route_planner import (
     Point,
@@ -30,7 +30,9 @@ STATIONS = [
     StationPoint("102", "비", "1호선", north(3000).lat, BASE.lon),
     StationPoint("103", "씨", "1호선", north(6000).lat, BASE.lon),
 ]
-TIMES = {("101", "103"): 6.0, ("103", "101"): 6.0, ("101", "102"): 3.0, ("102", "101"): 3.0}
+TIMES = StationTimes(
+    {("101", "103"): 6.0, ("103", "101"): 6.0, ("101", "102"): 3.0, ("102", "101"): 3.0}
+)
 
 
 def test_walk_formula() -> None:
@@ -57,7 +59,7 @@ def test_long_hop_uses_subway_when_faster() -> None:
 def test_subway_not_used_when_slower_or_missing() -> None:
     far_from_station = Point(BASE.lat, BASE.lon + 0.03)  # 역에서 동쪽 약 2.7km
     est = TravelTimeEstimator(Network(STATIONS, TIMES))
-    no_times = TravelTimeEstimator(Network(STATIONS, {}))
+    no_times = TravelTimeEstimator(Network(STATIONS, StationTimes()))
 
     assert est.leg(far_from_station, north(1500, far_from_station)).mode == "walk"
     assert no_times.leg(north(50), north(5950)).mode == "walk"  # 역간 시간이 없으면 도보(UC-15)
@@ -98,27 +100,12 @@ def test_planner_orders_from_start_and_keeps_fixed_order() -> None:
     assert len(best.legs) == 3 and len(from_first.legs) == 2
 
 
-NODES = [
-    StationNode("119", "서면", "1호선"),
-    StationNode("120", "범내골", "1호선"),
-    StationNode("219", "서면", "2호선"),
-    StationNode("220", "전포", "2호선"),
-    StationNode("999", "섬", "4호선"),  # 이어지지 않은 역
-]
-EDGES = [Edge("119", "120", 2.0), Edge("219", "220", 2.5)]
+def test_stored_nearest_station_is_used_for_locations() -> None:
+    est = TravelTimeEstimator(Network(STATIONS, TIMES))
+    # 촬영지는 C1이 계산해 둔 최근접 역·도보 분을 쓴다(FR-606): 일부러 3분으로 둠
+    a = Point(north(50).lat, BASE.lon, "101", 3.0)
+    b = Point(north(5950).lat, BASE.lon, "103", 3.0)
 
+    leg = est.leg(a, b)
 
-def test_all_pairs_with_transfer() -> None:
-    pairs = all_pairs(NODES, EDGES, transfer_min=5.0)
-
-    assert pairs[("120", "220")] == 9.5  # 범내골 → 서면(1) → 환승 5분 → 서면(2) → 전포
-    assert pairs[("220", "120")] == 9.5
-    assert pairs[("119", "219")] == 5.0
-    assert not any("999" in k for k in pairs)
-    assert len(pairs) == 4 * 3
-
-
-def test_graph_ignores_bad_edges() -> None:
-    adj = graph(NODES, [Edge("119", "nope", 1), Edge("119", "119", 1), Edge("119", "120", 0)])
-
-    assert adj["119"] == [("219", 5.0)]  # 환승만 남음
+    assert leg.mode == "subway" and leg.minutes == pytest.approx(3.0 + 6.0 + 3.0)
