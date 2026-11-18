@@ -1,12 +1,12 @@
-"""F4 코스 API: API-011 나만의 코스 경로 (FR-403~405·413, BR-12·13)."""
+"""F4 코스 API: API-009 추천 코스 목록, API-010 상세, API-011 나만의 코스 경로 (FR-401~405·413)."""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.api.errors import ERROR_RESPONSES, ApiError
 from app.api.schemas.common import ErrorResponse
-from app.api.schemas.courses import CoursePlan, PlanRequest
+from app.api.schemas.courses import CourseDetail, CourseList, CoursePlan, PlanRequest, Theme
 from app.services.course_service import (
     CourseService,
     InvalidStops,
@@ -57,3 +57,33 @@ async def plan_course(req: PlanRequest, service: Service) -> CoursePlan:
     except StationNotFound:
         raise ApiError(404, "STATION_NOT_FOUND", "역을 찾을 수 없습니다") from None
     return CoursePlan.model_validate(result)
+
+
+@router.get(
+    "",
+    response_model=CourseList,
+    responses={422: ERROR_RESPONSES[422], 503: ERROR_RESPONSES[503]},
+    summary="API-009 추천 코스 목록",
+)
+async def list_courses(
+    service: Service, theme: Annotated[Theme | None, Query(description="작품·배우·지역")] = None
+) -> CourseList:
+    """관리자가 승인한 추천 코스만, 장소 수·예상 총 소요 시간·총 이동 거리와 함께(FR-401)."""
+    return CourseList.model_validate(await service.list_recommended(theme))
+
+
+@router.get(
+    "/{course_id}",
+    response_model=CourseDetail,
+    responses={404: ERROR_RESPONSES[404], 422: ERROR_RESPONSES[422], 503: ERROR_RESPONSES[503]},
+    summary="API-010 추천 코스 상세",
+)
+async def get_course(course_id: int, service: Service) -> CourseDetail:
+    """동선·방문 순서·구간 수단과 시간·체류 시간·총 소요 시간(FR-402)."""
+    try:
+        detail = await service.get_course(course_id)
+    except LocationNotLocated:
+        detail = None  # 데이터 갱신으로 좌표가 빠진 장소가 생기면 목록과 같이 숨긴다
+    if detail is None:
+        raise ApiError(404, "COURSE_NOT_FOUND", "추천 코스를 찾을 수 없습니다")
+    return CourseDetail.model_validate(detail)

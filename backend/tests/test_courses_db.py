@@ -96,3 +96,40 @@ def test_plan_custom_with_db_network() -> None:
         assert plan["subway_data"] is True
 
     run(body)
+
+
+COURSES = """
+INSERT INTO course (id, theme, theme_ref, title, start_station_id, status) VALUES
+ (1, 'district', '부산진구', '서면 한 바퀴', '119', 'approved'),
+ (2, 'work', '7', '초안 코스', NULL, 'draft'),
+ (3, 'person', '9', '배우 코스', NULL, 'approved'),
+ (4, 'district', '부산진구', '좌표 빠진 코스', NULL, 'approved');
+INSERT INTO course_stop (course_id, ord, location_id, dwell_min) VALUES
+ (1, 1, 2, 30), (1, 2, 1, 20),
+ (2, 1, 1, 20), (2, 2, 2, 20),
+ (3, 1, 1, 15), (3, 2, 2, 15),
+ (4, 1, 1, 20), (4, 2, 3, 20);
+"""
+
+
+def test_recommended_list_and_detail() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        await conn.execute(TIMES_SQL)
+        await conn.execute(COURSES)
+        service = CourseService(connect=lambda: _borrow(conn))
+
+        listed = (await service.list_recommended())["items"]
+        by_person = (await service.list_recommended("person"))["items"]
+        detail = await service.get_course(1)
+
+        assert [c["id"] for c in listed] == [1, 3]  # 승인 전(2)·좌표 빠진 코스(4) 제외
+        assert [c["id"] for c in by_person] == [3]
+        assert detail is not None and detail["title"] == "서면 한 바퀴"
+        assert [s["id"] for s in detail["stops"]] == [2, 1]  # 관리자가 정한 순서 그대로
+        assert [s["stay_min"] for s in detail["stops"]] == [30, 20]
+        assert detail["start"]["label"] == "서면역(1호선)" and detail["optimized"] is False
+        assert listed[0]["total_min"] == detail["total_min"]  # 목록과 상세가 같은 계산
+        assert listed[0]["stop_count"] == 2
+        assert await service.get_course(2) is None  # 승인 전
+
+    run(body)
