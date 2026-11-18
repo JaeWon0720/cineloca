@@ -3,6 +3,8 @@
 - DATA-01 영화 속 부산정보, DATA-02 씨네맵: 촬영지 원본
   (작품명 opusNm, 장소명 plcNm, 개봉일·도로명주소)
 - DATA-08 부산교통공사 역사 정보: 역 코드 scode, 역 이름 sname, 주소 saddr (호선·좌표 없음)
+- DATA-09 부산교통공사 역간 거리 및 소요시간 정보: 이웃 역 한 구간씩
+  (startSc·endSc 역 코드, time 이동 초, stoppingTime 정차 초, exchange 환승구분)
 공공데이터포털은 오류를 200 본문으로 줄 때가 있어 본문을 검사한다.
 키는 오류 메시지·로그에 남기지 않는다.
 """
@@ -19,6 +21,7 @@ BUSAN_SOURCES = {
     "DATA-02": "/6260000/CineMapService/getCineMap",
 }
 STATION_PATH = "/B551542/stationInfo/getStationInfo"
+STATION_TIME_PATH = "/B551542/distance/getDistance"
 PAGE_ROWS = 1000
 RETRY_WAITS = (2, 5, 10)
 
@@ -50,6 +53,19 @@ def find_items(obj: Any, marker: str) -> tuple[list[dict], int | None]:
     return items, total
 
 
+def _api_error(body: Any) -> str | None:
+    """공공데이터포털 공통 오류 본문이면 '코드: 메시지'. 응답 객체를 넘기면 본문을 읽어 본다."""
+    if isinstance(body, httpx.Response):
+        try:
+            body = body.json()
+        except ValueError:
+            return None
+    if isinstance(body, dict) and "OpenAPI_ServiceResponse" in body:
+        head = body["OpenAPI_ServiceResponse"].get("cmmMsgHeader", {})
+        return f"API 오류 {head.get('returnReasonCode')}: {head.get('returnAuthMsg')}"
+    return None
+
+
 async def get_json(
     http: httpx.AsyncClient, url: str, params: dict, waits: Iterable[float] = RETRY_WAITS
 ) -> Any:
@@ -62,13 +78,11 @@ async def get_json(
                 await asyncio.sleep(waits[i])
                 continue
             if r.status_code != 200:
-                raise CollectError(f"HTTP {r.status_code}")
+                # 활용신청 안 된 키(코드 30)는 403 본문으로 온다(DATA-09에서 확인)
+                raise CollectError(_api_error(r) or f"HTTP {r.status_code}")
             body = r.json()
-            if isinstance(body, dict) and "OpenAPI_ServiceResponse" in body:
-                head = body["OpenAPI_ServiceResponse"].get("cmmMsgHeader", {})
-                raise CollectError(
-                    f"API 오류 {head.get('returnReasonCode')}: {head.get('returnAuthMsg')}"
-                )
+            if msg := _api_error(body):
+                raise CollectError(msg)
             return body
         except (httpx.TransportError, ValueError) as e:
             if i >= len(waits):
@@ -102,3 +116,8 @@ async def fetch_busan(http: httpx.AsyncClient, key: str) -> dict[str, list[dict]
 
 async def fetch_stations(http: httpx.AsyncClient, key: str) -> list[dict]:
     return await fetch_all(http, STATION_PATH, key, "scode", {"_type": "json"})
+
+
+async def fetch_station_legs(http: httpx.AsyncClient, key: str) -> list[dict]:
+    """DATA-09 역간 구간 전체. DATA-08과 같은 키를 쓰지만 활용신청은 따로 해야 한다."""
+    return await fetch_all(http, STATION_TIME_PATH, key, "startSc", {"act": "json"})
