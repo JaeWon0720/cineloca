@@ -10,6 +10,7 @@ class Settings:
     database_url: str | None
     log_dir: str | None = None  # 요청 로그 폴더(NFR-005). 비우면 파일로 남기지 않는다
     log_level: str = "INFO"  # app 로거 수준. 콘솔이 시끄러우면 WARNING
+    stamp_signing_key: str | None = None  # 스탬프·배지 서명 키(ADR-009). 비우면 F5만 503
 
 
 @lru_cache
@@ -18,4 +19,5 @@ def get_settings() -> Settings:
         database_url=os.getenv("DATABASE_URL") or None,
         log_dir=os.getenv("LOG_DIR") or None,
         log_level=(os.getenv("LOG_LEVEL") or "INFO").upper(),
+        stamp_signing_key=os.getenv("STAMP_SIGNING_KEY") or None,
     )
