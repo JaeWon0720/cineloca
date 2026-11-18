@@ -1,4 +1,4 @@
-"""역간 소요시간 조회 DB 테스트 (COMP-12, FR-313). 코스 계산(TravelTimeEstimator)이 쓰는 표.
+"""역간 소요시간 조회 DB 테스트 (COMP-12, FR-413). 코스 계산(TravelTimeEstimator)이 쓰는 표.
 
 스키마(db/init)를 적재한 '테스트 전용' DB가 있을 때만 돈다(station·station_time을 비운다).
     CINELOCA_TEST_DATABASE_URL=postgresql://... python -m pytest tests/test_station_times_db.py

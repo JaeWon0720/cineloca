@@ -1,4 +1,4 @@
-"""역간 소요시간 조회 (COMP-12, FR-313, BR-12, NFR-001). 코스 계산(TravelTimeEstimator)이 쓴다.
+"""역간 소요시간 조회 (COMP-12, FR-413, BR-12, NFR-001). 코스 계산(TravelTimeEstimator)이 쓴다.
 
 station_time은 배치가 DATA-09로 미리 계산한 '모든 역 쌍의 최소 소요시간(분)'이다
 (app/batch/station_times.py). 요청마다 경로를 찾지 않고 이 표를 한 번 읽어 찾으면 된다.
