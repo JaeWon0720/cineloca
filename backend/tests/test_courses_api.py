@@ -13,6 +13,7 @@ from app.core.config import Settings
 from app.data import locations as location_repo
 from app.data import stations as station_repo
 from app.data.locations import CertTarget
+from app.data.station_times import StationTimes
 from app.data.stations import Network, StationPoint
 from app.main import create_app
 from app.services.course_service import CourseService
@@ -39,7 +40,7 @@ PLACES = {
 STATION = StationPoint("101", "에이", "1호선", LAT, LON)
 NETWORK = Network(
     [STATION, StationPoint("103", "씨", "1호선", LAT + 9000 * M, LON)],
-    {("101", "103"): 10.0, ("103", "101"): 10.0},
+    StationTimes({("101", "103"): 10.0, ("103", "101"): 10.0}),
 )
 
 

@@ -17,6 +17,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from app.core.names import station_label
 from app.core.places import DISTRICT_CENTERS
 from app.data import courses as course_repo
 from app.data import db
@@ -78,8 +79,14 @@ def _station(s: StationPoint | None) -> dict[str, Any] | None:
 
 
 def _station_start(s: StationPoint) -> tuple[Point, dict[str, Any]]:
-    info = {"type": "station", "label": f"{s.name}역({s.line})", "lat": s.lat, "lon": s.lon}
-    return Point(s.lat, s.lon), info
+    label = f"{station_label(s.name)}({s.line})"  # 서면(1) → 서면역
+    info = {"type": "station", "label": label, "lat": s.lat, "lon": s.lon}
+    return Point(s.lat, s.lon, s.id, 0.0), info  # 역 출발은 그 역에서 바로 탄다
+
+
+def _point(t: location_repo.CertTarget) -> Point:
+    """촬영지 → 경로 계산 점. 최근접 역·도보 분은 C1이 계산해 둔 값(FR-606)."""
+    return Point(t.lat, t.lon, t.nearest_station_id, t.station_walk_min)  # type: ignore[arg-type]
 
 
 def _location_start(t: location_repo.CertTarget) -> dict[str, Any]:
@@ -225,7 +232,7 @@ class CourseService:
         if station:
             origin, start_info = _station_start(station)
         elif start_loc and start_loc.id not in ids and start_loc.lat is not None:
-            origin = Point(start_loc.lat, start_loc.lon)  # type: ignore[arg-type]
+            origin = _point(start_loc)
             start_info = _location_start(start_loc)
         stays = dict(row.stops)
         result = self._compute(start_info, origin, ids, targets, network, True, stays)
@@ -241,7 +248,7 @@ class CourseService:
         fixed_order: bool,
         stays: dict[int, int] | None = None,
     ) -> dict[str, Any]:
-        points = [Point(targets[i].lat, targets[i].lon) for i in ids]  # type: ignore[arg-type]
+        points = [_point(targets[i]) for i in ids]
         estimator = TravelTimeEstimator(network)
         route = RoutePlanner(estimator).plan(origin, points, fixed_order)
         visit = [ids[i] for i in route.order]

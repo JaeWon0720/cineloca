@@ -13,7 +13,6 @@ from contextlib import asynccontextmanager
 import asyncpg
 import pytest
 
-from app.batch.station_times import Edge, StationNode, all_pairs, publish
 from app.data import stations as station_repo
 from app.services.course_service import CourseService, StartSpec, reset_network_cache
 
@@ -29,6 +28,15 @@ INSERT INTO location (id, name, name_norm, gu, lat, lon) VALUES
  (1, '범내골 촬영지', '범내골촬영지', '부산진구', {35.147 + 30 * M}, 129.059),
  (2, '전포 촬영지', '전포촬영지', '부산진구', {35.155 + 30 * M}, 129.069),
  (3, '좌표 없음', '좌표없음', '부산진구', NULL, NULL);
+"""
+
+
+# 역간 소요시간(분): 배치(#84)가 계산해 둔 값이라고 보고 직접 넣는다
+TIMES_SQL = """
+INSERT INTO station_time (from_id, to_id, minutes) VALUES
+ ('119', '219', 2), ('219', '119', 2), ('119', '120', 2), ('120', '119', 2),
+ ('219', '220', 2), ('220', '219', 2), ('120', '220', 6), ('220', '120', 6),
+ ('120', '219', 4), ('219', '120', 4), ('119', '220', 4), ('220', '119', 4);
 """
 
 
@@ -57,22 +65,13 @@ def run(body: Callable[[asyncpg.Connection], Awaitable[None]]) -> None:
     asyncio.run(main())
 
 
-NODES = [
-    StationNode("119", "서면", "1호선"),
-    StationNode("219", "서면", "2호선"),
-    StationNode("120", "범내골", "1호선"),
-    StationNode("220", "전포", "2호선"),
-]
-EDGES = [Edge("119", "120", 2.0), Edge("219", "220", 2.0)]
-
-
-def test_publish_and_load_network() -> None:
+def test_load_network_reads_stations_and_times() -> None:
     async def body(conn: asyncpg.Connection) -> None:
-        n = await publish(conn, all_pairs(NODES, EDGES, transfer_min=5.0))
+        await conn.execute(TIMES_SQL)
         net = await station_repo.load_network(conn)
 
-        assert n == 12 and len(net.stations) == 4
-        assert net.times[("120", "220")] == 9.0  # 2 + 환승 5 + 2
+        assert len(net.stations) == 4 and len(net.times) == 12
+        assert net.times.between("120", "220") == 6.0
         assert (await station_repo.get_station(conn, "219")).line == "2호선"  # type: ignore[union-attr]
         assert await station_repo.get_station(conn, "999") is None
 
@@ -81,7 +80,7 @@ def test_publish_and_load_network() -> None:
 
 def test_plan_custom_with_db_network() -> None:
     async def body(conn: asyncpg.Connection) -> None:
-        await publish(conn, all_pairs(NODES, EDGES, transfer_min=5.0))
+        await conn.execute(TIMES_SQL)
         service = CourseService(connect=lambda: _borrow(conn))
         start = StartSpec("station", id="120")
 
@@ -115,7 +114,7 @@ INSERT INTO course_stop (course_id, ord, location_id, dwell_min) VALUES
 
 def test_recommended_list_and_detail() -> None:
     async def body(conn: asyncpg.Connection) -> None:
-        await publish(conn, all_pairs(NODES, EDGES, transfer_min=5.0))
+        await conn.execute(TIMES_SQL)
         await conn.execute(COURSES)
         service = CourseService(connect=lambda: _borrow(conn))
 

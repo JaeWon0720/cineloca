@@ -32,6 +32,8 @@ SUBWAY_FROM_WALK_M = 1000  # 도보 거리가 이보다 길면 도시철도와 �
 class Point:
     lat: float
     lon: float
+    station_id: str | None = None  # 촬영지는 C1이 계산해 둔 최근접 역(FR-606)
+    station_walk_min: float | None = None
 
 
 @dataclass(frozen=True)
@@ -56,29 +58,38 @@ class TravelTimeEstimator:
 
     @property
     def has_subway(self) -> bool:
-        return bool(self._net.stations and self._net.times)
+        return bool(self._net.stations and len(self._net.times))
 
-    def nearest(self, p: Point) -> tuple[StationPoint, float] | None:
-        """가장 가까운 역과 그 역까지 직선거리(m)."""
+    def station_of(self, p: Point) -> tuple[StationPoint, float] | None:
+        """(최근접 역, 그 역까지 도보 분). 촬영지는 저장된 값, 현재 위치·역은 여기서 계산한다."""
+        by_id = self._by_id
+        if p.station_id in by_id and p.station_walk_min is not None:
+            return by_id[p.station_id], p.station_walk_min  # type: ignore[index]
         best = min(
             self._net.stations,
             key=lambda s: haversine_m(p.lat, p.lon, s.lat, s.lon),
             default=None,
         )
-        return (best, haversine_m(p.lat, p.lon, best.lat, best.lon)) if best else None
+        if best is None:
+            return None
+        return best, walk_minutes(haversine_m(p.lat, p.lon, best.lat, best.lon))
+
+    @property
+    def _by_id(self) -> dict[str, StationPoint]:
+        return {s.id: s for s in self._net.stations}
 
     def leg(self, a: Point, b: Point) -> Leg:
         straight = haversine_m(a.lat, a.lon, b.lat, b.lon)
         walk = Leg("walk", walk_minutes(straight), straight)
         if straight * DETOUR <= SUBWAY_FROM_WALK_M or not self.has_subway:
             return walk
-        na, nb = self.nearest(a), self.nearest(b)
+        na, nb = self.station_of(a), self.station_of(b)
         if na is None or nb is None or na[0].id == nb[0].id:
             return walk
-        ride = self._net.times.get((na[0].id, nb[0].id))
+        ride = self._net.times.between(na[0].id, nb[0].id)
         if ride is None:
             return walk
-        to_board, from_alight = walk_minutes(na[1]), walk_minutes(nb[1])
+        to_board, from_alight = na[1], nb[1]
         total = to_board + ride + from_alight
         if total >= walk.minutes:
             return walk

@@ -1,4 +1,4 @@
-"""F4 질의 세션 (COMP-06 SessionStore, FR-408, AI-REQ-15).
+"""F3 질의 세션 (COMP-06 SessionStore, FR-308, AI-REQ-15).
 
 - 세션마다 최근 3턴의 해석 조건을 서버 메모리에 30분 둔다(SRS 데이터 표 '질의 세션').
   DB에는 남기지 않는다(저장 정책: 세션은 저장 금지).
@@ -30,7 +30,7 @@ _VALUE_FIELDS = ("release_year_from", "release_year_to", "anchor", "travel")
 
 
 def merge_conditions(prev: QueryConditions | None, new: QueryConditions) -> QueryConditions:
-    """후속 질의 조건 합치기(FR-408). 새 질의가 말한 항목만 바꾼다."""
+    """후속 질의 조건 합치기(FR-308). 새 질의가 말한 항목만 바꾼다."""
     if prev is None:
         return new
     merged: dict[str, Any] = {
@@ -55,7 +55,7 @@ class Session:
     touched: float
     turns: deque[QueryConditions] = field(default_factory=lambda: deque(maxlen=MAX_TURNS))
     calls: deque[float] = field(default_factory=deque)
-    pending: Any = None  # 고르기 대기(FR-403 4a)·칩 다시 검색(FR-412)에 쓰는 마지막 상태
+    pending: Any = None  # 고르기 대기(FR-303 4a)·칩 다시 검색(FR-312)에 쓰는 마지막 상태
 
     @property
     def last(self) -> QueryConditions | None:

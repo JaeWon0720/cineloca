@@ -375,3 +375,37 @@ def test_log_filter_strips_params_in_message_and_stack_trace() -> None:
     text = logging.Formatter().format(record)
 
     assert "TOPSECRET" not in text and "ABC" not in text and "Traceback" in text
+
+
+# ── 세대 단위 상세 주소(#87, 레드팀 R10~R12) ─────────────────
+@pytest.mark.parametrize(
+    ("text", "masked"),
+    [
+        (
+            "부산광역시 가상구 예시로 123 101동 1001호 근처",
+            "부산광역시 가상구 예시로 123 [개인정보] 근처",
+        ),
+        ("해운대구 가상동 99-9번지 2층에 살아요", "해운대구 가상동 [개인정보] 2층에 살아요"),
+        ("예시아파트 3동 304호 근처", "예시아파트 [개인정보] 근처"),
+        ("1001 호 앞에서", "[개인정보] 앞에서"),
+        ("12번지 골목", "[개인정보] 골목"),
+    ],
+)
+def test_masks_unit_level_address(text: str, masked: str) -> None:
+    result = mask(text)
+
+    assert result.text == masked and "address" in result.kinds
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2호선 서면역 근처, 1호선 남포역",  # 지하철 노선
+        "4호선 5호선",
+        "광안해변로 219 근처 촬영지",  # 도로명 번호만은 공공장소 주소일 수 있어 둠
+        "우1동 해운대 1호 태풍",  # 행정동, 두 자리 이하 호
+        "부산타워 2층 카페",
+    ],
+)
+def test_keeps_search_place_words(text: str) -> None:
+    assert mask(text).text == text

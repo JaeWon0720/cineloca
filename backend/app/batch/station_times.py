@@ -1,99 +1,102 @@
-"""역간 소요시간 전 쌍 계산 (BR-12, FR-413, SDD '역간 소요시간 사전 계산 station_time').
+"""역간 소요시간 미리 계산 (FR-413, BR-12, NFR-001). 원본은 DATA-09.
 
-원본(부산교통공사 역간 거리 및 소요시간, 15158989)은 이웃한 역 사이 시간만 있다.
-코스 경로 계산은 '출발역 → 도착역' 시간이 필요하므로 배치에서 모든 역 쌍의 최단 시간을 미리 구해
-station_time에 넣는다. 원본 수집·적재는 C1 배치(R4)가 하고, 이 모듈은 계산과 반영만 한다.
+DATA-09(부산교통공사 역간 거리 및 소요시간 정보)는 이웃한 두 역 사이를 방향별로 한 줄씩 준다.
+  startSc·endSc 역 코드(DATA-08과 같음), time 이동 초, stoppingTime 정차 초, dist 0.1km,
+  exchange: Y = 환승 통로(같은 역의 다른 호선, 예: 서면 119 → 219 120초), N = 일반 구간
+  (포털 명세의 'N = 경전철, 빈칸 = 일반역' 설명과 달리 실제 응답은 위와 같다. 2026-11-18 응답 사본
+   tests/fixtures/real/data09_getDistance.json)
+동해선·부산김해경전철 구간과 환승 통로도 들어 있다.
 
-- 같은 호선의 이웃 역: 원본 시간(양방향).
-- 환승: 이름이 같고 호선이 다른 역(예: 서면 1호선·2호선)은 TRANSFER_MIN분으로 잇는다.
-- 다익스트라를 역마다 돌린다(역 약 150곳 → 쌍 2만여 개, 1초 안).
+배치는 이 구간들로 모든 역 쌍의 최소 소요시간(분)을 구해 station_time에 넣는다.
+코스 계산(TravelTimeEstimator, R1)은 표를 읽어 찾기만 한다(app/data/station_times.py).
+- 한 구간 = 이동시간 + 정차시간. 정차시간은 출발역 기준 값이라 경로에는 출발역·중간역의
+  정차가 들어간다.
+- 환승은 원본의 환승 통로 구간만 쓴다. 이름만 같은 역(예: 1호선 좌천과 동해선 좌천)은 다른 역이라
+  잇지 않는다. 구현 기준 정정표(11/18)의 '환승 5분(같은 이름·다른 호선)'은 원본이 없을 때
+  정한 값이라 원본의 환승 통로 시간(2~8분)을 쓴다(#81 리뷰에서 R1과 합의, 남은 결정
+  '환승 5분 유지 여부').
+- 반대 방향 줄이 없으면 같은 시간으로 본다. 같은 구간이 여러 번 오면 짧은 쪽을 쓴다.
 """
 
-from __future__ import annotations
-
 import heapq
-import re
-from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-import asyncpg
-
-TRANSFER_MIN = 5.0  # 환승 걷기·기다림. BR-12에 값이 없어 정한 값(SDD 정정 목록)
+from app.batch.stations import Station
 
 
 @dataclass(frozen=True)
-class StationNode:
-    id: str
-    name: str
-    line: str
-
-
-@dataclass(frozen=True)
-class Edge:
-    """이웃한 두 역 사이 소요시간(분). 원본 한 줄."""
-
+class Leg:
     from_id: str
     to_id: str
-    minutes: float
+    seconds: float
 
 
-def _base_name(name: str) -> str:
-    """'서면역'·'서면(1호선)' → '서면'. 환승역을 이름으로 찾는다."""
-    return re.sub(r"\(.*?\)|역$", "", name.strip()).strip()
+def _sec(v) -> float | None:
+    try:
+        s = float(str(v).strip())
+    except (TypeError, ValueError):
+        return None
+    return s if s >= 0 else None
 
 
-def graph(
-    stations: Sequence[StationNode], edges: Iterable[Edge], transfer_min: float = TRANSFER_MIN
-) -> dict[str, list[tuple[str, float]]]:
-    ids = {s.id for s in stations}
-    adj: dict[str, list[tuple[str, float]]] = defaultdict(list)
-    for e in edges:
-        if e.from_id in ids and e.to_id in ids and e.from_id != e.to_id and e.minutes > 0:
-            adj[e.from_id].append((e.to_id, e.minutes))
-            adj[e.to_id].append((e.from_id, e.minutes))
-    by_name: dict[str, list[StationNode]] = defaultdict(list)
-    for s in stations:
-        by_name[_base_name(s.name)].append(s)
-    for group in by_name.values():
-        for a in group:
-            for b in group:
-                if a.id != b.id and a.line != b.line:
-                    adj[a.id].append((b.id, transfer_min))
-    return adj
+def parse(rows: Iterable[Mapping]) -> tuple[list[Leg], int]:
+    """원본 줄 → 구간. 코드·이동시간이 없거나 숫자가 아닌 줄은 건너뛰고 그 수를 함께 준다."""
+    legs: list[Leg] = []
+    skipped = 0
+    for r in rows:
+        a, b = str(r.get("startSc") or "").strip(), str(r.get("endSc") or "").strip()
+        run = _sec(r.get("time"))
+        if not a or not b or a == b or run is None:
+            skipped += 1
+            continue
+        legs.append(Leg(a, b, run + (_sec(r.get("stoppingTime")) or 0.0)))
+    return legs, skipped
 
 
-def all_pairs(
-    stations: Sequence[StationNode], edges: Iterable[Edge], transfer_min: float = TRANSFER_MIN
-) -> dict[tuple[str, str], float]:
-    """모든 (출발역, 도착역) 최단 시간(분, 소수 첫째 자리). 이어지지 않은 쌍은 빠진다."""
-    adj = graph(stations, edges, transfer_min)
-    out: dict[tuple[str, str], float] = {}
-    for s in stations:
-        dist = {s.id: 0.0}
-        heap = [(0.0, s.id)]
-        while heap:
-            d, u = heapq.heappop(heap)
-            if d > dist.get(u, float("inf")):
-                continue
-            for v, w in adj.get(u, ()):
-                nd = d + w
-                if nd < dist.get(v, float("inf")):
-                    dist[v] = nd
-                    heapq.heappush(heap, (nd, v))
-        for t, d in dist.items():
-            if t != s.id:
-                out[(s.id, t)] = round(d, 1)
+def graph(legs: Iterable[Leg]) -> dict[str, dict[str, float]]:
+    """역 코드 → {이웃 역 코드: 분}."""
+    legs = list(legs)
+    given = {(leg.from_id, leg.to_id) for leg in legs}
+    g: dict[str, dict[str, float]] = {}
+
+    def add(a: str, b: str, minutes: float) -> None:
+        cur = g.setdefault(a, {}).get(b)
+        if cur is None or minutes < cur:
+            g[a][b] = minutes
+        g.setdefault(b, {})
+
+    for leg in legs:
+        add(leg.from_id, leg.to_id, leg.seconds / 60)
+        if (leg.to_id, leg.from_id) not in given:
+            add(leg.to_id, leg.from_id, leg.seconds / 60)
+    return g
+
+
+def shortest_from(g: Mapping[str, Mapping[str, float]], start: str) -> dict[str, float]:
+    """한 역에서 갈 수 있는 모든 역까지 최소 분(다익스트라)."""
+    best = {start: 0.0}
+    heap = [(0.0, start)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > best[u]:
+            continue
+        for v, w in g.get(u, {}).items():
+            if d + w < best.get(v, float("inf")):
+                best[v] = d + w
+                heapq.heappush(heap, (d + w, v))
+    return best
+
+
+def all_pairs(legs: Iterable[Leg], stations: Iterable[Station]) -> list[tuple[str, str, float]]:
+    """station_time 행 (출발 역, 도착 역, 분). 두 역 모두 역 목록(station 표)에 있는 쌍만 넣는다
+    (외래 키). 경로는 목록 밖 역(예: 부산 밖 2호선 양산 구간)도 지날 수 있다."""
+    g = graph(legs)
+    ids = sorted({s.id for s in stations})
+    known = set(ids)
+    out = []
+    for a in ids:
+        for b, d in sorted(shortest_from(g, a).items()):
+            if b != a and b in known:
+                out.append((a, b, round(d, 1)))
     return out
-
-
-async def publish(conn: asyncpg.Connection, pairs: dict[tuple[str, str], float]) -> int:
-    """station_time을 새 계산 결과로 바꾼다(한 트랜잭션). 반영한 쌍 수."""
-    async with conn.transaction():
-        await conn.execute("DELETE FROM station_time")
-        await conn.copy_records_to_table(
-            "station_time",
-            records=[(a, b, m) for (a, b), m in pairs.items()],
-            columns=["from_id", "to_id", "minutes"],
-        )
-    return len(pairs)

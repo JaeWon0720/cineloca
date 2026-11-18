@@ -1,11 +1,11 @@
-"""F4 AI 대화형 탐색 (COMP-06 QueryService, UC-05·06, SD-02, FR-401~412).
+"""F3 AI 대화형 탐색 (COMP-06 QueryService, UC-05·06, SD-02, FR-301~412).
 
 파이프라인(UC-05 기본 흐름):
   1 입력 검증(200자) → 2 마스킹(UC-14) → 3 조건 추출(AI, 10초) → 범위 밖 안내(3c)
-  → 4 후속 질의면 세션 조건과 합침(FR-408) → 5 사전 대조(FR-403, 후보 여럿이면 고르기)
-  → 6 템플릿 검색(FR-404) + 0건이면 조건 완화(FR-405) → 7 결과 20건
-  → 8 상위 10건 근거로 요약·대조(FR-407, COMP-09) → 9 세션 저장
-강등: 조건 추출 실패·10초 초과 → 필터 패널(FR-411, 이전 조건 미리 채움).
+  → 4 후속 질의면 세션 조건과 합침(FR-308) → 5 사전 대조(FR-303, 후보 여럿이면 고르기)
+  → 6 템플릿 검색(FR-304) + 0건이면 조건 완화(FR-305) → 7 결과 20건
+  → 8 상위 10건 근거로 요약·대조(FR-307, COMP-09) → 9 세션 저장
+강등: 조건 추출 실패·10초 초과 → 필터 패널(FR-311, 이전 조건 미리 채움).
       요약 실패 → 요약 없이 결과만(8a). 결과 0건 → 요약 생성 안 함(근거 게이트).
 
 AI가 만드는 것은 조건 JSON과 요약 문장뿐이다. 검색은 확정된 조건을 템플릿 매개변수로만
@@ -26,13 +26,13 @@ from app.support import request_context
 from app.support.grounding import Evidence, GroundingVerifier, gate
 from app.support.privacy import MASK_NOTICE, MaskedText, mask
 
-MAX_QUERY_CHARS = 200  # FR-401
-EXTRACT_DEADLINE_S = 10.0  # FR-411
+MAX_QUERY_CHARS = 200  # FR-301
+EXTRACT_DEADLINE_S = 10.0  # FR-311
 SUMMARY_DEADLINE_S = 8.0  # NFR-006
-MAX_RESULTS = 20  # FR-406
-SUMMARY_TOP = 10  # FR-407
-SUMMARY_MAX_SENTENCES = 3  # FR-407
-# FR-405 조건 완화 순서: 이동 제약 → 개봉연도 → 장르 → 구·군
+MAX_RESULTS = 20  # FR-306
+SUMMARY_TOP = 10  # FR-307
+SUMMARY_MAX_SENTENCES = 3  # FR-307
+# FR-305 조건 완화 순서: 이동 제약 → 개봉연도 → 장르 → 구·군
 RELAX_ORDER: tuple[str, ...] = ("travel", "years", "genres", "districts")
 
 SCOPE_NOTICE = (
@@ -46,7 +46,7 @@ Status = Literal["ok", "not_found", "choose", "out_of_scope", "ai_unavailable", 
 
 
 class QueryInputError(ValueError):
-    """빈 질의·200자 초과(FR-401). API는 400으로 돌려준다."""
+    """빈 질의·200자 초과(FR-301). API는 400으로 돌려준다."""
 
 
 # ── 지식베이스 쪽이 채우는 값(포트) ────────────────────────
@@ -72,7 +72,7 @@ class TravelFilter:
 
 @dataclass(frozen=True)
 class Filters:
-    """확정된 검색 조건 = 검색 템플릿 매개변수(FR-404). 필터 패널(FR-410)도 같은 형식."""
+    """확정된 검색 조건 = 검색 템플릿 매개변수(FR-304). 필터 패널(FR-310)도 같은 형식."""
 
     works: tuple[Ref, ...] = ()
     persons: tuple[Ref, ...] = ()
@@ -106,7 +106,7 @@ class Option:
 
 @dataclass(frozen=True)
 class Choice:
-    """같은 이름의 후보가 여럿(FR-403 4a). key는 Filters 항목(works·persons·anchor)."""
+    """같은 이름의 후보가 여럿(FR-303 4a). key는 Filters 항목(works·persons·anchor)."""
 
     key: Literal["works", "persons", "anchor"]
     name: str
@@ -117,11 +117,11 @@ class Choice:
 class Resolution:
     filters: Filters
     choices: tuple[Choice, ...] = ()  # 고르기 전까지 검색하지 않는다
-    unknown: tuple[str, ...] = ()  # 사전에 없어 뺀 이름(FR-403 4b)
+    unknown: tuple[str, ...] = ()  # 사전에 없어 뺀 이름(FR-303 4b)
 
 
 class EntityResolver(Protocol):
-    """사전 대조(FR-403, COMP-12 dict_entry·임베딩). AI 조건을 표준 값으로 바꾼다."""
+    """사전 대조(FR-303, COMP-12 dict_entry·임베딩). AI 조건을 표준 값으로 바꾼다."""
 
     async def resolve(self, conditions: QueryConditions) -> Resolution: ...
 
@@ -154,7 +154,7 @@ class SearchPage:
 
 
 class QuerySearcher(Protocol):
-    """검색 템플릿 T1~T4(FR-404, COMP-12). 값은 바인딩 매개변수로만 넣는다."""
+    """검색 템플릿 T1~T4(FR-304, COMP-12). 값은 바인딩 매개변수로만 넣는다."""
 
     async def search(
         self, filters: Filters, *, base_point: tuple[float, float] | None, limit: int
@@ -164,7 +164,7 @@ class QuerySearcher(Protocol):
 # ── 결과 ──────────────────────────────────────────────────
 @dataclass(frozen=True)
 class Chip:
-    """해석 조건 칩(FR-412). key로 지운다."""
+    """해석 조건 칩(FR-312). key로 지운다."""
 
     key: str
     label: str
@@ -178,13 +178,13 @@ class QueryResult:
     masked: bool = False  # FR-702 '개인정보로 보이는 내용을 가렸습니다'
     chips: tuple[Chip, ...] = ()
     unknown: tuple[str, ...] = ()
-    relaxed: tuple[str, ...] = ()  # 푼 조건(FR-405, 결과 위에 표시)
+    relaxed: tuple[str, ...] = ()  # 푼 조건(FR-305, 결과 위에 표시)
     total: int = 0
     hits: tuple[QueryHit, ...] = ()
     summary: tuple[str, ...] = ()
     ai_generated: bool = False  # FR-707
     choices: tuple[Choice, ...] = ()
-    filter_panel: Filters | None = None  # 필터 패널을 열 때 미리 채울 값(FR-411)
+    filter_panel: Filters | None = None  # 필터 패널을 열 때 미리 채울 값(FR-311)
     retry_after_s: int | None = None
 
 
@@ -230,7 +230,7 @@ def chips(f: Filters) -> tuple[Chip, ...]:
 
 
 def evidence_for(hits: Sequence[QueryHit], total: int, f: Filters) -> Evidence:
-    """요약 근거 묶음: 검색 조건 한 줄 + 결과 수 + 상위 10건(시스템 값만, FR-407)."""
+    """요약 근거 묶음: 검색 조건 한 줄 + 결과 수 + 상위 10건(시스템 값만, FR-307)."""
     facts: list[str] = []
     names: set[str] = set()
     if c := chips(f):
@@ -336,7 +336,7 @@ class QueryService:
             )
         return await self._search_and_summarize(session, pending, notices, base_point, masked)
 
-    # ── 고르기(FR-403 4a) ─────────────────────────────────
+    # ── 고르기(FR-303 4a) ─────────────────────────────────
     async def choose(
         self,
         session_id: str,
@@ -365,7 +365,7 @@ class QueryService:
             )
         return await self._search_and_summarize(session, pending, (), base_point)
 
-    # ── 칩 지우기(FR-412, 5a) ──────────────────────────────
+    # ── 칩 지우기(FR-312, 5a) ──────────────────────────────
     async def remove_chip(
         self,
         session_id: str,
@@ -401,7 +401,7 @@ class QueryService:
         query = query or MaskedText(" / ".join(c.label for c in chips(filters)) or "촬영지")
         page = await self._searcher.search(filters, base_point=base_point, limit=MAX_RESULTS)
         relaxed: list[str] = []
-        for key in RELAX_ORDER:  # FR-405
+        for key in RELAX_ORDER:  # FR-305
             if page.total > 0:
                 break
             if not filters.has(key):

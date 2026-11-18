@@ -14,20 +14,34 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  color: #fff;
+  background: var(--ink);
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  letter-spacing: 0.02em;
+  color: #fff;
   text-decoration: none;
+}
+
+/* 브랜드 옆 작은 전구 하나: 극장 간판 */
+.brand::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  vertical-align: 0.2em;
+  background: var(--marquee);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--marquee);
 }
 
 .header-link {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: #c9d6e3;
 }
 
 .app-main {
@@ -60,6 +74,7 @@
 }
 
 .tab {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,8 +85,20 @@
 }
 
 .tab.active {
-  color: var(--accent);
-  font-weight: 700;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 지금 탭: 위쪽 노란 막대 */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 3px;
+  background: var(--marquee);
+  border-radius: 0 0 3px 3px;
 }
 
 .page-desc {
