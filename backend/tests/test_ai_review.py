@@ -9,8 +9,10 @@ from typing import get_args
 import pytest
 from pydantic import ValidationError
 
-from app.batch.ai_review import judge_matches, suggest_location_tags
+from app.batch import kmdb
+from app.batch.ai_review import judge_matches, match_input, run_ai_review, suggest_location_tags
 from app.core.place_tags import PLACE_TYPES, PlaceType
+from app.data import review_queue
 from app.data.ai_gateway import DefaultPromptBuilder, ProviderChain
 from app.data.ai_gateway.tasks import (
     TASKS,
@@ -189,7 +191,9 @@ def test_match_judgement_records_chosen_candidate() -> None:
     )
     assert item.proposal == {
         "verdict": "match",
-        "candidate": {"docid": "K01", "title": "친구", "year": 2001},
+        "kmdb_id": "K01",  # 규칙 항목(#42)과 같은 키
+        "title": "친구",
+        "year": 2001,
         "reason": "제목·연도·부산 근거 일치",
         "provider": "ollama",
         "prompt_version": "v1",
@@ -204,7 +208,7 @@ def test_not_listed_has_no_candidate() -> None:
 
     (item,), _ = judge(ollama)
 
-    assert (item.proposal["verdict"], item.proposal["candidate"]) == ("not_listed", None)
+    assert (item.proposal["verdict"], item.proposal["kmdb_id"]) == ("not_listed", None)
 
 
 def test_candidate_number_out_of_range_is_dropped() -> None:
@@ -231,3 +235,78 @@ def test_case_without_candidates_is_not_sent() -> None:
 
     assert items == [] and ollama.calls == []
     assert stats.requested == 0
+
+
+# ── KMDb 후보 → 판정 입력(#44 연결) ─────────────────────────
+def test_match_input_uses_rule_scores_and_busan_evidence() -> None:
+    cands = [
+        kmdb.Candidate("K02", "친구", rel_date="19850101", type="극영화", director="다른 감독"),
+        kmdb.Candidate(
+            "K01",
+            "친구",
+            rel_date="20010331",
+            type="극영화",
+            director="곽경택",
+            f_location="부산 범일동",
+        ),
+        kmdb.Candidate("K03", "친구들", prod_year="2001", use="TV용"),
+    ]
+
+    case = match_input(31, "친구", 2001, cands, place_keys=set(), places=("범일동 철길",), limit=2)
+
+    assert [c.docid for c in case.candidates] == ["K01", "K03"]  # 규칙 점수 순, 상위 2개
+    first = case.candidates[0]
+    assert (first.year, first.kind, first.director, first.busan_evidence) == (
+        2001,
+        "극영화",
+        "곽경택",
+        True,
+    )
+    assert case.candidates[1].kind == "TV용"  # 유형이 없으면 용도
+    assert case.places == ("범일동 철길",)
+
+
+def test_match_input_drops_old_candidates_when_year_unknown() -> None:
+    cands = [kmdb.Candidate("K9", "친구", rel_date="19850101"), kmdb.Candidate("K1", "친구")]
+
+    case = match_input(31, "JTBC 친구", None, cands, place_keys=set())
+
+    assert [c.docid for c in case.candidates] == ["K1"]  # decide()와 같이 1998년 전은 뺀다
+    assert case.title == "JTBC 친구"  # 판정 입력에는 원래 이름(머리말 포함)을 보여 준다
+
+
+# ── 반영 뒤 AI 제안 단계 ─────────────────────────────────────
+def test_run_ai_review_skips_pending_targets(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: dict[str, object] = {}
+
+    async def drop_stale(conn):
+        return 2
+
+    async def pending(conn, kind, proposer="ai"):
+        return {7} if kind == "tag" else {31}
+
+    async def untagged(conn):
+        return [BEACH, SHOP]  # 7은 이미 미검수 제안이 있다
+
+    async def add(conn, rows):
+        calls["rows"] = list(rows)
+        return len(calls["rows"])
+
+    monkeypatch.setattr(review_queue, "drop_stale_ai_matches", drop_stale)
+    monkeypatch.setattr(review_queue, "pending_targets", pending)
+    monkeypatch.setattr(review_queue, "untagged_locations", untagged)
+    monkeypatch.setattr(review_queue, "add_proposals", add)
+    ollama = FakeProvider(
+        "ollama",
+        [
+            {"tags": [], "reason": "이름만으로 업종을 알 수 없음"},
+            {"verdict": "unsure", "candidate": None, "reason": "근거 부족"},
+        ],
+    )
+    other = MatchInput(work_id=40, title="광고", year=None, candidates=CASE.candidates)
+
+    report = asyncio.run(run_ai_review(object(), chain(ollama), match_cases=[CASE, other]))
+
+    assert [(r.kind, r.target_id) for r in calls["rows"]] == [("tag", 8), ("match", 40)]
+    assert (report.inserted, report.stale_removed) == (2, 2)
+    assert (report.tags.requested, report.matches.requested) == (1, 1)
