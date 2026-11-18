@@ -10,23 +10,39 @@ AI Gateway(suggest_tags·judge_match)로 제안을 받아 검수 큐 항목(Revi
 검수 항목 proposal(JSONB) 형식
   tag   : {"tags": [...], "reason": "...", "provider": "ollama", "prompt_version": "v1"}
           실패 시 {"tags": [], "reason": null, "error": "AI_UNAVAILABLE"}
-  match : {"verdict": "match|not_listed|unsure", "candidate": {"docid", "title", "year"} | null,
-           "reason": "...", "provider": "...", "prompt_version": "v1"}
+  match : {"verdict": "match|not_listed|unsure", "kmdb_id": "K12345" | null,
+           "title": "...", "year": 2001, "reason": "...", "provider": "...", "prompt_version": "v1"}
+          kmdb_id는 규칙 항목(#42 staging)과 같은 키다. 승인 처리(FR-609)가 같은 방식으로 읽는다.
+          AI 항목은 동기화 반영의 결정을 덮지 않는다(staging.review_decisions는 규칙 항목만 읽음).
+
+run_ai_review()는 동기화 배치가 반영(publish)한 뒤 부르는 한 단계다.
 """
 
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+from app.batch import kmdb
+from app.data import review_queue
 from app.data.ai_gateway import TASKS, AIUnavailable, LLMClient
-from app.data.ai_gateway.tasks import MatchInput, MatchJudgement, TagInput, TagSuggestion
+from app.data.ai_gateway.tasks import (
+    MatchCandidate,
+    MatchInput,
+    MatchJudgement,
+    TagInput,
+    TagSuggestion,
+)
+
+if TYPE_CHECKING:
+    import asyncpg
 
 # 한 건의 마감: 공급자 1회 10초(TASKS) × 로컬·Gemini에 스키마 재요청 여유.
 # 배치라 사용자가 기다리지 않는다.
 ITEM_DEADLINE_S = 25.0
+MATCH_CANDIDATES = 5  # AI에 보여 줄 KMDb 후보 수(점수 순)
 
 
 @dataclass(frozen=True)
@@ -106,17 +122,18 @@ async def judge_matches(
             stats.errors[e.error_code] += 1
             continue
         data: MatchJudgement = result.data
-        candidate: dict[str, Any] | None = None
+        chosen: MatchCandidate | None = None
         if data.candidate is not None:
             if data.candidate > len(case.candidates):  # 없는 후보 번호는 쓰지 않는다
                 stats.invalid += 1
                 continue
             chosen = case.candidates[data.candidate - 1]
-            candidate = {"docid": chosen.docid, "title": chosen.title, "year": chosen.year}
         stats.providers[result.provider] += 1
         body = {
             "verdict": data.verdict,
-            "candidate": candidate,
+            "kmdb_id": chosen.docid if chosen else None,
+            "title": chosen.title if chosen else None,
+            "year": chosen.year if chosen else None,
             "reason": data.reason,
             "provider": result.provider,
             "prompt_version": version,
@@ -124,3 +141,83 @@ async def judge_matches(
         proposals.append(ReviewProposal("match", "work", case.work_id, body))
         stats.proposed += 1
     return proposals, stats
+
+
+def match_input(
+    work_id: int,
+    title: str,
+    rel_year: int | None,
+    candidates: Sequence[kmdb.Candidate],
+    *,
+    place_keys: set[str],
+    places: Sequence[str] = (),
+    limit: int = MATCH_CANDIDATES,
+) -> MatchInput:
+    """KMDb 매칭(#44)이 받은 후보로 judge_match 입력을 만든다.
+
+    규칙과 같은 점수(kmdb.score, 방송사 머리말 뗀 제목)로 상위 limit개를 고르고,
+    부산 촬영 근거도 규칙 C와 같은 판단(kmdb._busan_evidence)을 쓴다.
+    """
+    bare, _media = kmdb.split_media(title)
+    cands = list(candidates)
+    if rel_year is None:  # decide()와 같이 개봉연도를 모르면 1998년 전 후보는 뺀다
+        cands = [
+            c
+            for c in cands
+            if (kmdb.cand_year(c) or kmdb.MIN_YEAR_UNKNOWN) >= kmdb.MIN_YEAR_UNKNOWN
+        ]
+    ranked = sorted(cands, key=lambda c: -kmdb.score(bare, rel_year, c))[:limit]
+    return MatchInput(
+        work_id=work_id,
+        title=title,
+        year=rel_year,
+        places=tuple(places),
+        candidates=tuple(
+            MatchCandidate(
+                docid=c.docid,
+                title=c.title,
+                year=kmdb.cand_year(c),
+                kind=c.type or c.use,
+                director=c.director,
+                busan_evidence=kmdb._busan_evidence(c, place_keys),  # noqa: SLF001 규칙 C와 같은 판단
+            )
+            for c in ranked
+        ),
+    )
+
+
+@dataclass
+class AiReviewReport:
+    """동기화 리포트에 붙일 AI 제안 건수."""
+
+    tags: SuggestStats
+    matches: SuggestStats
+    inserted: int  # 검수 큐에 새로 들어간 항목
+    stale_removed: int  # 규칙 검수가 사라진 작품의 미검수 AI 매칭 판정(정리)
+
+
+async def run_ai_review(
+    conn: asyncpg.Connection,
+    client: LLMClient,
+    *,
+    match_cases: Iterable[MatchInput] = (),
+    tag_limit: int | None = None,
+) -> AiReviewReport:
+    """반영 뒤 한 번: 태그 없는 촬영지에 태그 제안, 검수 대기 작품에 매칭 판정 제안.
+
+    이미 미검수 AI 제안이 있는 대상은 다시 묻지 않는다(호출 절약). 태그는 규칙(FR-607)이
+    붙이지 못해 비어 있는 촬영지가 대상이다. tag_limit으로 한 번에 묻는 수를 줄일 수 있다.
+    """
+    stale = await review_queue.drop_stale_ai_matches(conn)
+    tag_done = await review_queue.pending_targets(conn, "tag")
+    match_done = await review_queue.pending_targets(conn, "match")
+    places = [
+        p for p in await review_queue.untagged_locations(conn) if p.location_id not in tag_done
+    ]
+    if tag_limit is not None:
+        places = places[:tag_limit]
+    tag_items, tag_stats = await suggest_location_tags(client, places)
+    cases = [c for c in match_cases if c.work_id not in match_done]
+    match_items, match_stats = await judge_matches(client, cases)
+    inserted = await review_queue.add_proposals(conn, [*tag_items, *match_items])
+    return AiReviewReport(tag_stats, match_stats, inserted, stale)

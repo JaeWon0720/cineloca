@@ -83,3 +83,35 @@ def test_pending_targets() -> None:
         assert await review_queue.pending_targets(conn, "match") == {31}
 
     run(body)
+
+
+def test_drop_stale_ai_matches_keeps_ones_with_rule_item() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        rule = ReviewProposal("match", "work", 31, {"kmdb_id": "K01"}, proposer="rule")
+        lonely = ReviewProposal("match", "work", 32, {"verdict": "unsure", "kmdb_id": None})
+        await review_queue.add_proposals(conn, [rule, MATCH, lonely])
+
+        assert await review_queue.drop_stale_ai_matches(conn) == 1  # 32번은 규칙 항목이 없음
+        assert await review_queue.pending_targets(conn, "match") == {31}
+
+    run(body)
+
+
+def test_untagged_locations() -> None:
+    async def body(conn: asyncpg.Connection) -> None:
+        await conn.execute("TRUNCATE location RESTART IDENTITY CASCADE")
+        await conn.execute(
+            "INSERT INTO location (name, name_norm, address, gu, tags) VALUES"
+            " ('송정해수욕장', '송정해수욕장', '부산 해운대구', '해운대구', '{}'),"
+            " ('자갈치시장', '자갈치시장', NULL, '중구', '{시장}')"
+        )
+
+        (place,) = await review_queue.untagged_locations(conn)
+
+        assert (place.name, place.address, place.gu) == (
+            "송정해수욕장",
+            "부산 해운대구",
+            "해운대구",
+        )
+
+    run(body)
