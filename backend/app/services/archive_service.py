@@ -100,8 +100,8 @@ class ArchiveService:
             **_summary(row.work),
             "cast": row.cast,
             "synopsis": _text(kmdb.get("plot")),
-            # 포스터·스틸은 팀 결정으로 보여 주지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(#12).
-            # 예고편 주소는 아직 배치가 저장하지 않는다(TBD-01)
+            # 포스터·스틸은 저장도 표시도 하지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(#12, #58).
+            # 예고편 링크는 저장해도 되지만(TBD-01 닫힘) 아직 배치가 받지 않는다
             "trailer_url": None,
             "kmdb_url": _text(kmdb.get("link")),
             "locations": [
