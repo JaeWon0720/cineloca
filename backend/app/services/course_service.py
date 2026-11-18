@@ -1,5 +1,7 @@
 """코스 업무 로직 (COMP-05 CourseService, FR-401~405·413, BR-12·13, API-009~011).
 
+- 추천 코스(list_recommended·get_course): 승인된 코스만, 관리자가 정한 순서 그대로 계산한다.
+  체류 시간은 코스에 적힌 값(기본 20분). 시간·거리는 지금 데이터로 다시 계산해 목록·상세가 같다.
 - 나만의 코스(plan_custom): 출발지(현재 위치·역·촬영지) + 좌표 있는 촬영지 2~10곳.
   방문 순서를 최적화하거나(FR-404) 받은 순서대로(FR-405) 이동·체류·총 소요 시간을 계산한다.
 - 현재 위치 좌표는 경로 계산에만 쓰고 응답·로그·저장 어디에도 남기지 않는다(BR-10).
@@ -9,18 +11,22 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
 from app.core.places import DISTRICT_CENTERS
+from app.data import courses as course_repo
 from app.data import db
 from app.data import locations as location_repo
 from app.data import stations as station_repo
 from app.data.stations import Network, StationPoint
 from app.services.map_service import Connect, cert_info
 from app.services.route_planner import Leg, Point, RoutePlanner, TravelTimeEstimator
+
+logger = logging.getLogger(__name__)
 
 STAY_MIN = 20  # BR-13
 MIN_STOPS, MAX_STOPS = 2, 10  # FR-403
@@ -69,6 +75,19 @@ def reset_network_cache() -> None:
 
 def _station(s: StationPoint | None) -> dict[str, Any] | None:
     return {"id": s.id, "name": s.name, "line": s.line} if s else None
+
+
+def _station_start(s: StationPoint) -> tuple[Point, dict[str, Any]]:
+    info = {"type": "station", "label": f"{s.name}역({s.line})", "lat": s.lat, "lon": s.lon}
+    return Point(s.lat, s.lon), info
+
+
+def _location_start(t: location_repo.CertTarget) -> dict[str, Any]:
+    return {"type": "location", "label": t.name, "lat": t.lat, "lon": t.lon}
+
+
+def _course_head(row: course_repo.CourseRow) -> dict[str, Any]:
+    return {"id": row.id, "title": row.title, "theme": row.theme, "theme_ref": row.theme_ref}
 
 
 def _leg(leg: Leg, from_order: int, to_order: int) -> dict[str, Any]:
@@ -126,37 +145,108 @@ class CourseService:
             raise StationNotFound
         network = await self._network()
 
-        start_info: dict[str, Any]
-        origin: Point | None
         if start.type == "current":
-            origin = Point(start.lat, start.lon)  # type: ignore[arg-type]
+            origin: Point | None = Point(start.lat, start.lon)  # type: ignore[arg-type]
             start_info = {"type": "current", "label": "현재 위치", "lat": None, "lon": None}
         elif start.type == "station":
             assert station is not None
-            origin = Point(station.lat, station.lon)
-            start_info = {
-                "type": "station",
-                "label": f"{station.name}역({station.line})",
-                "lat": station.lat,
-                "lon": station.lon,
-            }
+            origin, start_info = _station_start(station)
         else:
-            origin = None  # 첫 장소에서 출발
-            first = targets[ids[0]]
-            start_info = {
-                "type": "location",
-                "label": first.name,
-                "lat": first.lat,
-                "lon": first.lon,
-            }
+            origin, start_info = None, _location_start(targets[ids[0]])  # 첫 장소에서 출발
+        result = self._compute(start_info, origin, ids, targets, network, fixed_order)
+        return {**result, "optimized": not fixed_order}
 
+    async def list_recommended(self, theme: str | None = None) -> dict[str, Any]:
+        """API-009. 승인된 추천 코스, 테마별. 시간·거리는 상세와 같은 계산(받은 순서 그대로)."""
+        async with self._connect() as conn:
+            rows = await course_repo.approved_courses(conn, theme)
+            ids = {i for r in rows for i, _ in r.stops} | {
+                r.start_location_id for r in rows if r.start_location_id
+            }
+            targets = await location_repo.cert_targets(conn, list(ids))
+            stations = {
+                sid: await station_repo.get_station(conn, sid)
+                for sid in {r.start_station_id for r in rows if r.start_station_id}
+            }
+        network = await self._network()
+        items = []
+        for row in rows:
+            plan = self._recommended(row, targets, stations, network)
+            if plan is None:
+                logger.warning("추천 코스 %d: 좌표 없는 장소가 있어 목록에서 뺌", row.id)
+                continue
+            items.append(
+                {
+                    **_course_head(row),
+                    "stop_count": len(plan["stops"]),
+                    "total_min": plan["total_min"],
+                    "total_distance_m": plan["total_distance_m"],
+                }
+            )
+        return {"items": items}
+
+    async def get_course(self, course_id: int) -> dict[str, Any] | None:
+        """API-010. 없거나 승인 전이면 None."""
+        async with self._connect() as conn:
+            row = await course_repo.approved_course(conn, course_id)
+            if row is None:
+                return None
+            ids = [i for i, _ in row.stops] + (
+                [row.start_location_id] if row.start_location_id else []
+            )
+            targets = await location_repo.cert_targets(conn, ids)
+            stations = (
+                {row.start_station_id: await station_repo.get_station(conn, row.start_station_id)}
+                if row.start_station_id
+                else {}
+            )
+        plan = self._recommended(row, targets, stations, await self._network())
+        if plan is None:
+            raise LocationNotLocated([i for i, _ in row.stops])
+        return {**_course_head(row), **plan}
+
+    def _recommended(
+        self,
+        row: course_repo.CourseRow,
+        targets: dict[int, location_repo.CertTarget],
+        stations: dict[str, StationPoint | None],
+        network: Network,
+    ) -> dict[str, Any] | None:
+        """추천 코스는 관리자가 정한 순서 그대로 계산한다. 계산할 수 없으면 None."""
+        ids = [i for i, _ in row.stops]
+        if not ids or any(
+            i not in targets or targets[i].lat is None or targets[i].lon is None for i in ids
+        ):
+            return None
+        origin: Point | None = None
+        start_info = _location_start(targets[ids[0]])
+        station = stations.get(row.start_station_id) if row.start_station_id else None
+        start_loc = targets.get(row.start_location_id) if row.start_location_id else None
+        if station:
+            origin, start_info = _station_start(station)
+        elif start_loc and start_loc.id not in ids and start_loc.lat is not None:
+            origin = Point(start_loc.lat, start_loc.lon)  # type: ignore[arg-type]
+            start_info = _location_start(start_loc)
+        stays = dict(row.stops)
+        result = self._compute(start_info, origin, ids, targets, network, True, stays)
+        return {**result, "optimized": False}
+
+    def _compute(
+        self,
+        start_info: dict[str, Any],
+        origin: Point | None,
+        ids: list[int],
+        targets: dict[int, location_repo.CertTarget],
+        network: Network,
+        fixed_order: bool,
+        stays: dict[int, int] | None = None,
+    ) -> dict[str, Any]:
         points = [Point(targets[i].lat, targets[i].lon) for i in ids]  # type: ignore[arg-type]
         estimator = TravelTimeEstimator(network)
         route = RoutePlanner(estimator).plan(origin, points, fixed_order)
-        result = self._result(
-            start_info, [ids[i] for i in route.order], targets, route.legs, origin
-        )
-        return {**result, "optimized": not fixed_order, "subway_data": estimator.has_subway}
+        visit = [ids[i] for i in route.order]
+        result = self._result(start_info, visit, targets, route.legs, origin, stays or {})
+        return {**result, "subway_data": estimator.has_subway}
 
     def _result(
         self,
@@ -165,6 +255,7 @@ class CourseService:
         targets: dict[int, location_repo.CertTarget],
         legs: list[Leg],
         origin: Point | None,
+        stays: dict[int, int],
     ) -> dict[str, Any]:
         stops = []
         for n, i in enumerate(visit, start=1):
@@ -177,7 +268,7 @@ class CourseService:
                     "gu": t.gu if t.gu in DISTRICT_CENTERS else None,  # BR-15 밖 값은 비움
                     "lat": t.lat,
                     "lon": t.lon,
-                    "stay_min": STAY_MIN,
+                    "stay_min": stays.get(i, STAY_MIN),
                     "cert": cert_info(True, t.caution, t.cert_excluded, t.cert_radius_m),
                 }
             )
@@ -187,7 +278,7 @@ class CourseService:
             _leg(leg, a, b) for leg, a, b in zip(legs, orders[:-1], orders[1:], strict=True)
         ]
         travel = sum(item["minutes"] for item in leg_items)
-        stay = STAY_MIN * len(stops)
+        stay = sum(item["stay_min"] for item in stops)
         return {
             "start": start_info,
             "stops": stops,

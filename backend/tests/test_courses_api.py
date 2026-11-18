@@ -162,3 +162,22 @@ def test_errors(client: TestClient, start: dict, ids: list[int], status: int, co
 
     assert res.status_code == status and res.json()["error"]["code"] == code
     assert str(SECRET) not in res.text
+
+
+class FakeRecommended:
+    async def list_recommended(self, theme: str | None = None) -> dict:
+        return {"items": []}
+
+    async def get_course(self, course_id: int) -> dict | None:
+        return None
+
+
+def test_recommended_api_errors() -> None:
+    app = create_app(Settings(database_url=None))
+    app.dependency_overrides[get_course_service] = FakeRecommended
+    client = TestClient(app)
+
+    assert client.get("/api/courses").json() == {"items": []}
+    assert client.get("/api/courses?theme=movie").status_code == 422
+    missing = client.get("/api/courses/5")
+    assert missing.status_code == 404 and missing.json()["error"]["code"] == "COURSE_NOT_FOUND"

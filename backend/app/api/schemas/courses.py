@@ -89,3 +89,28 @@ class CoursePlan(BaseModel):
     subway_data: bool = Field(
         description="역간 소요시간이 있으면 true. 없으면 도보로만 계산(UC-15)"
     )
+
+
+# ── 추천 코스(API-009·010, FR-401·402) ──────────────────────
+Theme = Literal["work", "person", "district"]  # 작품·배우·지역
+
+
+class CourseSummary(BaseModel):
+    id: int
+    title: str
+    theme: Theme
+    theme_ref: str | None = Field(default=None, description="테마 대상 ID 또는 구·군 이름")
+    stop_count: int = Field(ge=1)
+    total_min: int = Field(ge=0, description="예상 총 소요 시간(이동 + 체류)")
+    total_distance_m: int = Field(ge=0, description="총 이동 거리(구간 직선거리 합)")
+
+
+class CourseList(BaseModel):
+    items: list[CourseSummary]
+
+
+class CourseDetail(CoursePlan):
+    id: int
+    title: str
+    theme: Theme
+    theme_ref: str | None = None
