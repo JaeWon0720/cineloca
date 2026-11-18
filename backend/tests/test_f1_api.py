@@ -32,8 +32,6 @@ DETAIL = {
     **SUMMARY,
     "cast": ["설경구", "하지원"],
     "synopsis": "가짜 줄거리",
-    "poster_url": None,
-    "still_urls": [],
     "trailer_url": None,
     "kmdb_url": None,
     "locations": [
