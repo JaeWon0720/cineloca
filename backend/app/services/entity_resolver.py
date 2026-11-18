@@ -1,4 +1,4 @@
-"""F4 사전 대조 (COMP-06·12 DictionaryResolver, FR-403, UC-05 4·4a·4b).
+"""F3 사전 대조 (COMP-06·12 DictionaryResolver, FR-303, UC-05 4·4a·4b).
 
 AI가 뽑은 조건(QueryConditions)의 이름을 지식베이스 표준 값(Ref)으로 바꾼다.
 - 작품·인물·역: dict_entry에서 정확 일치 → 트라이그램 0.35 이상 상위 3개(app.data.dictionary).

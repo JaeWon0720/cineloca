@@ -1,9 +1,9 @@
 """이름 정규화 (FR-602). work.title_norm·location.name_norm을 만드는 규칙이다.
 
-배치(병합)와 조회(F1 작품 검색, F4 EntityResolver)가 같은 함수를 써야 같은 이름이 같은 키가 된다.
+배치(병합)와 조회(F1 작품 검색, F3 EntityResolver)가 같은 함수를 써야 같은 이름이 같은 키가 된다.
 PoC p2_analyze.py의 규칙을 그대로 옮겼다.
 
-방송사·OTT 머리말('JTBC ', '넷플릭스 ')을 떼는 규칙도 KMDb 매칭(배치)과 F4 사전이 같이 쓴다.
+방송사·OTT 머리말('JTBC ', '넷플릭스 ')을 떼는 규칙도 KMDb 매칭(배치)과 F3 사전이 같이 쓴다.
 """
 
 import re

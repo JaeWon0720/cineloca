@@ -1,4 +1,4 @@
-"""고유명사 사전 (COMP-12 dict_entry, FR-403). F4 사전 대조가 쓴다.
+"""고유명사 사전 (COMP-12 dict_entry, FR-303). F3 사전 대조가 쓴다.
 
 - rebuild(): 지식베이스(작품·인물·역)와 구·군 목록에서 dict_entry를 다시 맞춘다.
   동기화 반영(staging.publish)과 같은 트랜잭션에서 부른다. 바뀌지 않은 행은 그대로 두어

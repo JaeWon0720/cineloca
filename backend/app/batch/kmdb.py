@@ -33,7 +33,7 @@ import httpx
 from rapidfuzz import fuzz, process
 
 from app.batch.merge import norm, year_of
-from app.core.names import TV_PREFIXES, split_media  # 머리말 규칙은 조회(F4 사전)와 같이 쓴다
+from app.core.names import TV_PREFIXES, split_media  # 머리말 규칙은 조회(F3 사전)와 같이 쓴다
 
 AUTO, REVIEW = 0.9, 0.6
 TIE_GAP = 0.05
