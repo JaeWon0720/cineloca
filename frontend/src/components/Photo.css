@@ -1,0 +1,20 @@
+.photo {
+  flex: none;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+/* 기본 그림: 필름 한 칸(위아래 구멍 줄) */
+.photo-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  font-size: 0.875rem;
+  color: #c9d6e3;
+  background:
+    radial-gradient(circle, #e9eef4 0 3px, transparent 3.5px) 0 4px / 18px 14px repeat-x,
+    radial-gradient(circle, #e9eef4 0 3px, transparent 3.5px) 0 calc(100% - 4px) / 18px 14px repeat-x,
+    linear-gradient(#2a4563, #2a4563) center / 100% calc(100% - 44px) no-repeat,
+    #1a3350;
+}

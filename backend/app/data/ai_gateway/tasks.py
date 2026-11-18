@@ -5,8 +5,10 @@ extract_query는 착수 PoC p5(프롬프트 v2, 필드 일치율 qwen3:8b 93.4%�
 스키마를 바탕으로, 장르만 검색 필터의 장르 묶음 12개로 바꿨다(프롬프트 v3).
 묶음에 없는 장르를 다른 묶음에 넣지 않게 규칙을 더했다(프롬프트 v4, #35 재평가는 PoC 보고서).
 C1 제안(suggest_tags·judge_match)은 FR-608에서 확정했다(프롬프트 v1).
-나머지 작업의 스키마는 SDD 표를 옮긴 초안이며 스프린트 2에서 담당 기능과 함께 확정한다.
-structure_preference(F3 취향 구조화)는 Preference 형식이 아직 정해지지 않아 등록하지 않았다.
+structure_facility·facility_reasons(F4 코스 주변 시설, FR-415·417, CR-01)는 v1이다.
+CR-01(11/9 수정본)로 AI 맞춤 코스(취향 구조화)와 코스 소개 생성이 빠져
+course_intro는 등록하지 않는다.
+기능 번호는 수정본 기준: F3 = AI 대화형 탐색(FR-301~312), F4 = 코스 + 주변 시설 추천.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.core.facilities import FacilityKind, FoodCategory, LodgingCategory
 from app.core.genres import GENRE_GROUPS, GenreGroup
 from app.core.place_tags import PlaceType
 
@@ -45,7 +48,7 @@ DISTRICTS = (
 District = Literal[DISTRICTS]  # type: ignore[valid-type]
 
 
-# ── extract_query (F4 조건 추출, FR-402) ─────────────────────
+# ── extract_query (F3 조건 추출, FR-302) ─────────────────────
 class Anchor(BaseModel):
     type: Literal["station", "place", "current"]
     name: str | None = None
@@ -69,7 +72,7 @@ class QueryConditions(BaseModel):
     result_type: Literal["location", "work"]
 
 
-# ── 근거 기반 문장 생성 (F4 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
+# ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
 class GroundedSentence(BaseModel):
     text: str = Field(min_length=1)
     entities: list[str]  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
@@ -79,10 +82,30 @@ class GroundedText(BaseModel):
     sentences: list[GroundedSentence] = Field(min_length=1)
 
 
-# ── F3 코스 소개 — 초안 ──────────────────────────────────────
-class CourseIntro(BaseModel):
-    reasons: list[str]
-    intro: str = Field(min_length=1)
+# ── F4 코스 주변 시설 (FR-415·417, CR-01) ───────────────────
+class FacilityConditions(BaseModel):
+    """원하는 조건(FR-415). 말하지 않은 항목은 비운다.
+
+    kinds가 비면 음식·숙박 모두, 분류가 비면 그 종류의 모든 분류를 뜻한다.
+    keywords는 시설 이름에 들어 있으면 좋은 말(예: '국밥', '오션뷰')로 점수에만 쓴다.
+    """
+
+    kinds: list[FacilityKind] = Field(default_factory=list)
+    food: list[FoodCategory] = Field(default_factory=list)
+    lodging: list[LodgingCategory] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list, max_length=5)
+
+
+class FacilityReason(BaseModel):
+    number: int = Field(ge=1)  # 입력 목록의 번호
+    text: str = Field(min_length=1, max_length=150)
+    entities: list[str]  # 문장에 쓴 시설명·장소명(COMP-09 대조용)
+
+
+class FacilityReasons(BaseModel):
+    """추천 이유(FR-417). 시설마다 한 문장. 대조에서 지워지면 템플릿 문장으로 바꾼다."""
+
+    reasons: list[FacilityReason]
 
 
 # ── C1 배치 제안(검수 큐로만 감, FR-608·BR-04) ──────────────
@@ -165,7 +188,7 @@ TASKS: dict[str, TaskSpec] = {
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
-            "summarize_results",  # F4 결과 요약(FR-407)
+            "summarize_results",  # F3 결과 요약(FR-307)
             GroundedText,
             temperature=0.2,
             prompt_version="v1",
@@ -179,7 +202,20 @@ TASKS: dict[str, TaskSpec] = {
             prompt_version="v1",
             cache_ttl_s=_DAY_S,
         ),
-        TaskSpec("course_intro", CourseIntro, temperature=0.3, cache_ttl_s=_DAY_S),
+        TaskSpec(
+            "structure_facility",  # F4 주변 시설 조건(FR-415)
+            FacilityConditions,
+            prompt_version="v1",
+            user_text_fields=("text",),
+            cache_ttl_s=_DAY_S,
+        ),
+        TaskSpec(
+            "facility_reasons",  # F4 시설 추천 이유(FR-417)
+            FacilityReasons,
+            temperature=0.2,
+            prompt_version="v1",
+            cache_ttl_s=_DAY_S,
+        ),
         TaskSpec("suggest_tags", TagSuggestion, prompt_version="v1"),  # FR-608
         TaskSpec("judge_match", MatchJudgement, prompt_version="v1"),  # FR-608
     )
