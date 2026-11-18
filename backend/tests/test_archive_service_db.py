@@ -113,7 +113,7 @@ def test_detail_matched_work() -> None:
         assert d["cast"] == ["이 배우", "박배우", "최배우", "정배우", "강배우"]  # 최대 5명(FR-103)
         assert d["synopsis"] == "가짜 줄거리"
         assert d["kmdb_url"] == "https://example.org/k1"
-        assert d["poster_url"] is None and d["still_urls"] == [] and d["trailer_url"] is None
+        assert "poster_url" not in d and "still_urls" not in d and d["trailer_url"] is None
         locs = d["locations"]
         assert [x["name"] for x in locs] == ["부두", "시장", "골목"]  # 좌표 있는 곳 먼저
         assert locs[2] == {
