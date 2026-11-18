@@ -2,7 +2,7 @@
 
 - 이름은 F2 스키마(WorkBrief, kmdb_matched, sources)와 R3 화면(#45)의 타입을 따랐다.
 - 관람등급은 상세에 넣지 않고 API-003으로 따로 준다(KOBIS가 느려도 상세 화면을 막지 않게).
-- 영화 이미지는 주소만 전달하고 파일은 저장하지 않는다(BR-01).
+- 포스터·스틸은 팀 결정으로 보여 주지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(BR-01, #12).
 """
 
 from typing import Literal
@@ -52,10 +52,10 @@ class WorkDetail(WorkSummary):
 
     cast: list[str] = Field(max_length=5, description="주요 출연진 최대 5명(FR-103)")
     synopsis: str | None = Field(default=None, description="KMDb 원문 줄거리")
-    poster_url: str | None = Field(default=None, description="KMDb 포스터 주소(FR-104)")
-    still_urls: list[str] = Field(default_factory=list, description="KMDb 스틸 주소(FR-104)")
     trailer_url: str | None = Field(default=None, description="KMDb 예고편 링크(FR-105)")
-    kmdb_url: str | None = Field(default=None, description="KMDb 작품 페이지")
+    kmdb_url: str | None = Field(
+        default=None, description="KMDb 원문 링크. 포스터·스틸은 여기서 본다(FR-104)"
+    )
     locations: list[WorkLocation]
     related: list[WorkBrief] = Field(max_length=5, description="비슷한 작품 최대 5편(FR-802)")
     sources: list[SourceCard]
