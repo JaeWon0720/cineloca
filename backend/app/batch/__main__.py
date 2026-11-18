@@ -36,6 +36,7 @@ import httpx
 
 from app.batch import job, kmdb
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
+from app.data import db
 from app.data.ai_gateway.factory import AISettings, build_llm_client
 from app.data.ai_gateway.store import PgUsageCounter
 from app.support.privacy import install_privacy_log_filter
@@ -137,6 +138,8 @@ async def main(
             status = await conn.fetchval("SELECT status FROM sync_run WHERE id = $1", run_id)
         finally:
             await conn.close()
+            if ai_review:
+                await db.close_pool()  # AI 호출 수 집계(PgUsageCounter)가 연 풀을 닫는다(#92 리뷰)
     result = {
         "run_id": run_id,
         "status": status,
