@@ -1,7 +1,7 @@
-"""F1 작품 아카이브 스키마: API-001 목록, API-002 상세 (FR-101~106·802).
+"""F1 작품 아카이브 스키마: API-001 목록, API-002 상세, API-003 관람등급 (FR-101~107·802).
 
 - 이름은 F2 스키마(WorkBrief, kmdb_matched, sources)와 R3 화면(#45)의 타입을 따랐다.
-- 관람등급은 상세에 넣지 않고 API-003(다음 PR)으로 따로 준다(KOBIS가 느려도 상세 화면을 막지 않게).
+- 관람등급은 상세에 넣지 않고 API-003으로 따로 준다(KOBIS가 느려도 상세 화면을 막지 않게).
 - 영화 이미지는 주소만 전달하고 파일은 저장하지 않는다(BR-01).
 """
 
@@ -58,4 +58,11 @@ class WorkDetail(WorkSummary):
     kmdb_url: str | None = Field(default=None, description="KMDb 작품 페이지")
     locations: list[WorkLocation]
     related: list[WorkBrief] = Field(max_length=5, description="비슷한 작품 최대 5편(FR-802)")
+    sources: list[SourceCard]
+
+
+class WorkRating(BaseModel):
+    """API-003 응답. 등급을 알 수 없으면 rating=null, sources는 빈 목록(ERR-006)."""
+
+    rating: str | None = Field(default=None, examples=["15세이상관람가"])
     sources: list[SourceCard]
