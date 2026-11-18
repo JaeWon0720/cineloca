@@ -181,3 +181,42 @@ def test_work_without_locations_is_not_sent() -> None:
 
     assert (result.status, result.reason) == ("degraded", "NO_EVIDENCE")
     assert gemini.calls == []
+
+
+def test_ai_calls_are_counted_for_request_log() -> None:  # NFR-005
+    from app.support import request_context
+
+    svc, _ = service(GOOD)
+    ctx, token = request_context.begin("rid")
+    try:
+        introduce(svc)
+    finally:
+        request_context.end(token)
+
+    assert ctx.ai_calls == {"gemini": 1}
+
+
+# ── 작품 조회 → 근거 값(API-004) ─────────────────────────────
+def test_work_facts_from_detail_row() -> None:
+    from app.data.works import WorkDetailRow, WorkLocationRow, WorkRow
+    from app.services.work_intro import work_facts
+
+    row = WorkDetailRow(
+        work=WorkRow(31, "친구", 2001, ["범죄"], "곽경택", 2, True, "DATA-01"),
+        cast=["유오성", "장동건"],
+        kmdb={"plot": "  1976년 부산.  ", "link": "https://www.kmdb.or.kr/x"},
+        locations=[
+            WorkLocationRow(1, "범일동 철길", "동구", 35.1, 129.0),
+            WorkLocationRow(2, "어느 골목", "부산", None, None),  # 구·군 이름이 아님
+        ],
+        source_ids={"DATA-01"},
+    )
+
+    facts = work_facts(row)
+
+    assert (facts.title, facts.kmdb_matched, facts.release_year) == ("친구", True, 2001)
+    assert facts.cast == ("유오성", "장동건") and facts.genres == ("범죄",)
+    assert facts.synopsis == "1976년 부산."
+    assert facts.locations == (LocationFact("범일동 철길", "동구"), LocationFact("어느 골목"))
+    no_kmdb = WorkDetailRow(row.work, [], None, [], set())
+    assert work_facts(no_kmdb).synopsis is None

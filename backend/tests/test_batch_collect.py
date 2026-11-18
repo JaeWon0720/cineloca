@@ -88,3 +88,34 @@ def test_http_error_message_has_no_url() -> None:
     with pytest.raises(CollectError) as e:
         asyncio.run(get_json(client(handler), "https://x/api?serviceKey=SECRET", {}, waits=()))
     assert str(e.value) == "HTTP 401"
+
+
+def test_station_legs_use_data09_path_and_json() -> None:
+    seen: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["path"], seen["act"] = req.url.path, req.url.params["act"]
+        return httpx.Response(200, json=page([{"startSc": "100", "endSc": "101"}], 1))
+
+    rows = asyncio.run(collect.fetch_station_legs(client(handler), "KEY"))
+    assert seen == {"path": "/B551542/distance/getDistance", "act": "json"} and len(rows) == 1
+
+
+def test_unregistered_key_403_body_gives_code_without_key() -> None:
+    """활용신청을 안 한 키는 403 본문으로 코드 30이 온다(DATA-09에서 실제로 받은 모양)."""
+    err = {
+        "OpenAPI_ServiceResponse": {
+            "cmmMsgHeader": {
+                "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+                "returnAuthMsg": "등록되지 않은 서비스키",
+                "returnReasonCode": "30",
+            }
+        }
+    }
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json=err)
+
+    with pytest.raises(CollectError) as e:
+        asyncio.run(get_json(client(handler), "https://x.test/a?serviceKey=SECRET", {}, waits=[]))
+    assert "API 오류 30" in str(e.value) and "SECRET" not in str(e.value)

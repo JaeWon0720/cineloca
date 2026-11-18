@@ -1,8 +1,9 @@
-"""작품 조회 (COMP-12 WorkRepository, F1 작품 FR-101~106·802, API-001·002).
+"""작품 조회 (COMP-12 WorkRepository, F1 작품 FR-101~107·802, API-001~003).
 
 - 모든 값은 바인딩 매개변수로 넘기고, 정렬은 허용 목록(_ORDER)에서만 고른다(ADR-010).
 - 검색어는 정규화한 작품명(title_norm)과 감독·배우 이름에서 찾는다(FR-102).
 - KMDb 저장본(work.kmdb)은 배치가 넣은 그대로 돌려준다. 꺼내 쓰는 일은 업무 계층이 한다.
+- 관람등급은 배치가 KMDb에서 받아 work.kmdb에 넣은 값만 읽는다(FR-107, ADR-007 KMDb 단독).
 """
 
 from __future__ import annotations
@@ -159,3 +160,9 @@ async def get(conn: asyncpg.Connection, work_id: int) -> WorkDetailRow | None:
 async def similar(conn: asyncpg.Connection, work_id: int, n: int = 5) -> list[WorkBriefRow]:
     rows = await conn.fetch(_SIMILAR, work_id, n)
     return [WorkBriefRow(r["id"], r["title"], r["release_year"]) for r in rows]
+
+
+async def kmdb_rating(conn: asyncpg.Connection, work_id: int) -> tuple[bool, str | None]:
+    """(작품이 있는지, KMDb 관람등급). 등급은 배치가 저장한 work.kmdb의 rating이다."""
+    r = await conn.fetchrow("SELECT kmdb->>'rating' AS rating FROM work WHERE id = $1", work_id)
+    return (False, None) if r is None else (True, r["rating"])

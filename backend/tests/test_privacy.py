@@ -389,6 +389,8 @@ def test_log_filter_strips_params_in_message_and_stack_trace() -> None:
         ("예시아파트 3동 304호 근처", "예시아파트 [개인정보] 근처"),
         ("1001 호 앞에서", "[개인정보] 앞에서"),
         ("12번지 골목", "[개인정보] 골목"),
+        ("101-1001호 살아요", "[개인정보] 살아요"),  # 동-호를 하이픈으로(#91 리뷰)
+        ("예시아파트 3 - 304 호 앞", "예시아파트 [개인정보] 앞"),
     ],
 )
 def test_masks_unit_level_address(text: str, masked: str) -> None:
@@ -405,6 +407,8 @@ def test_masks_unit_level_address(text: str, masked: str) -> None:
         "광안해변로 219 근처 촬영지",  # 도로명 번호만은 공공장소 주소일 수 있어 둠
         "우1동 해운대 1호 태풍",  # 행정동, 두 자리 이하 호
         "부산타워 2층 카페",
+        "삼락동 123-45 근처",  # 지번 번호만(번지·호 없음)
+        "1-2호선 환승",
     ],
 )
 def test_keeps_search_place_words(text: str) -> None:
