@@ -13,6 +13,8 @@ from typing import Any, Literal, Protocol
 
 import asyncpg
 
+from app.data.ai_gateway.tasks import TagInput
+
 # 같은 대상에 같은 제안자의 미검수 항목이 이미 있으면 넣지 않는다(동기화를 다시 돌려도 중복 없음).
 _INSERT = """
 INSERT INTO review_item (kind, target_type, target_id, proposal, proposer, score)
@@ -72,3 +74,28 @@ async def pending_targets(
         proposer,
     )
     return {r["target_id"] for r in records}
+
+
+# 규칙 검수 항목(#42)이 없어진 작품의 미검수 AI 매칭 판정은 지운다(처리된 기록은 남김)
+_DROP_STALE_AI_MATCHES = """
+DELETE FROM review_item a
+WHERE a.kind = 'match' AND a.target_type = 'work' AND a.proposer = 'ai' AND a.status = 'pending'
+  AND NOT EXISTS (
+    SELECT 1 FROM review_item r
+    WHERE r.kind = 'match' AND r.target_type = 'work' AND r.target_id = a.target_id
+      AND r.proposer = 'rule' AND r.status = 'pending'
+  )
+"""
+
+
+async def drop_stale_ai_matches(conn: asyncpg.Connection) -> int:
+    status = await conn.execute(_DROP_STALE_AI_MATCHES)
+    return int(status.rsplit(" ", 1)[-1])  # "DELETE 3" → 3
+
+
+async def untagged_locations(conn: asyncpg.Connection) -> list[TagInput]:
+    """승인된 태그가 하나도 없는 촬영지(FR-608 AI 태그 제안 대상)."""
+    rows = await conn.fetch(
+        "SELECT id, name, address, gu FROM location WHERE cardinality(tags) = 0 ORDER BY id"
+    )
+    return [TagInput(r["id"], r["name"], r["address"], r["gu"]) for r in rows]
