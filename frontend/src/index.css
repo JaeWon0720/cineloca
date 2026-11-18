@@ -1,17 +1,25 @@
-/* 공통 기본 스타일 */
+/* 공통 기본 스타일과 색·글꼴 토큰
+   색: 밤 항구(남색)를 바탕 글자색으로, 극장 간판 전구(노랑)를 선택·표시 강조색으로 쓴다. */
 :root {
-  --text: #1f2328;
-  --text-muted: #59636e;
+  --ink: #10263f; /* 밤 항구: 제목·본문·헤더 */
+  --text: #10263f;
+  --text-muted: #5a6b7d;
   --bg: #ffffff;
-  --surface: #f6f8fa;
-  --border: #d1d9e0;
-  --accent: #0b6bcb;
+  --surface: #eef2f6; /* 바다 안개: 칸 배경 */
+  --border: #d3dce5;
+  --accent: #1f5f8b; /* 바다: 링크·주 버튼 */
+  --marquee: #f4b400; /* 극장 간판 전구: 선택·지도 핀 */
+  --marquee-soft: #fff4d6;
+  --danger: #b42318;
+  --focus: #f4b400;
   --header-h: 52px;
   --nav-h: 60px;
+  --font-display: 'Black Han Sans', 'Malgun Gothic', sans-serif;
+  --font-body: 'IBM Plex Sans KR', system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 
-  font-family: system-ui, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
   color-scheme: light;
@@ -30,9 +38,33 @@ body {
 
 h1 {
   margin: 0 0 8px;
-  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+h2,
+h3 {
+  line-height: 1.3;
 }
 
 p {
   margin: 0;
+}
+
+/* 키보드 이동이 보이도록 (접근성) */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
