@@ -10,6 +10,7 @@ import pytest
 from pyproj import Transformer
 
 from app.batch.geocode import (
+    Geocoder,
     Hints,
     JusoGeocoder,
     KakaoKeywordGeocoder,
@@ -18,10 +19,12 @@ from app.batch.geocode import (
     dong_key,
     hints,
     in_busan,
+    keyword_geocoder,
     precise,
     trim_tail,
     utmk_to_wgs84,
 )
+from app.core.config import get_settings
 
 HIT = {
     "siNm": "부산광역시",
@@ -179,3 +182,49 @@ def test_kakao_query_and_key_header() -> None:
     g = asyncio.run(KakaoKeywordGeocoder(http, "K").geocode("청사포", "부산 해운대구 중동"))
     assert seen == {"q": "해운대구 중동 청사포", "auth": "KakaoAK K"}
     assert g is not None and g.via == "keyword"
+
+
+def no_call(req: httpx.Request) -> httpx.Response:
+    raise AssertionError(f"부르면 안 됨: {req.url}")
+
+
+def test_kakao_keyword_setting_default_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    for raw, want in ((None, False), ("false", False), ("true", True), ("1", True)):
+        if raw is None:
+            monkeypatch.delenv("GEOCODE_KAKAO_KEYWORD", raising=False)
+        else:
+            monkeypatch.setenv("GEOCODE_KAKAO_KEYWORD", raw)
+        get_settings.cache_clear()
+        assert get_settings().geocode_kakao_keyword is want
+    get_settings.cache_clear()
+
+
+def test_keyword_path_off_unless_enabled_and_key() -> None:
+    http = httpx.AsyncClient(transport=httpx.MockTransport(no_call))
+    assert keyword_geocoder(http, False, "K") is None
+    assert keyword_geocoder(http, True, None) is None
+    assert isinstance(keyword_geocoder(http, True, "K"), KakaoKeywordGeocoder)
+
+
+def test_locate_off_leaves_imprecise_unlocated() -> None:
+    """기본(꺼짐): 주소 없거나 동까지만 있으면 어떤 API도 부르지 않고 '위치 미확인'."""
+    g = Geocoder(juso(no_call), keyword_geocoder(httpx.AsyncClient(), False, "K"))
+    assert asyncio.run(g.locate("청사포 철길", "부산 해운대구 중동")) is None
+    assert asyncio.run(g.locate("오륙도", None)) is None
+
+
+def test_locate_on_uses_keyword_only_for_imprecise() -> None:
+    def kakao(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"documents": [doc("청사포", "부산 해운대구 중동 1")]})
+
+    def juso_api(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("addrLinkApi.do"):
+            return httpx.Response(200, json=ok([HIT]))
+        return httpx.Response(200, json=ok([COORD]))
+
+    kw = keyword_geocoder(httpx.AsyncClient(transport=httpx.MockTransport(kakao)), True, "K")
+    g = Geocoder(juso(juso_api), kw)
+    near = asyncio.run(g.locate("청사포", "부산 해운대구 중동"))
+    assert near is not None and near.via == "keyword"
+    exact = asyncio.run(g.locate("영화의전당", "부산 해운대구 센텀5로 55"))
+    assert exact is not None and exact.via == "address"

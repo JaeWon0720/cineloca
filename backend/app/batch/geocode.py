@@ -3,10 +3,12 @@
 1) 번지·건물번호까지 있는 주소(정확한 주소)는 행정안전부 도로명주소 검색 API
    → 좌표제공 API(UTM-K EPSG:5179) → WGS84. 검색이 안 되면 번지 뒤 설명을 잘라 한 번 더.
 2) 주소가 없거나 동까지만 있는 주소는 주소 API를 쓰지 않는다(#25: 엉뚱한 건물 좌표가 나옴).
-   대신 카카오 로컬 키워드 검색(장소명 + 구·동)으로 찾고,
+   기본은 '위치 미확인'(좌표 없음)으로 둔다. 카카오 키워드 검색 좌표는 약관 확인 전까지
+   저장하지 않으므로(ADR-006 유지) 설정 GEOCODE_KAKAO_KEYWORD=true일 때만 아래 경로를 쓴다.
+   카카오 로컬 키워드 검색(장소명 + 구·동)으로 찾고,
    - 결과의 구·동이 원본(주소 또는 장소명 괄호의 동)과 다르면 버리고,
    - 이름이 같은 결과가 서로 멀리 떨어져 여럿이면(동명 장소) 버린다.
-   카카오 응답은 저장하지 않고 좌표만 쓴다(BR-01). SDD ADR-006과 다른 점은 #25 결정에 따른다.
+   카카오 응답은 저장하지 않고 좌표만 쓴다(BR-01).
 부산 범위 밖 좌표는 버린다. E0007(과다 요청)은 잠깐 쉬고 다시 부른다.
 """
 
@@ -224,3 +226,30 @@ def choose(docs: list[dict], name: str, h: Hints) -> tuple[float, float] | None:
     if any(distance_m(*pts[0], *p) > SAME_PLACE_M for p in pts[1:]):
         return None  # 동명 장소가 여러 곳: 어느 것인지 모름
     return round(pts[0][0], 6), round(pts[0][1], 6)
+
+
+def keyword_geocoder(
+    http: httpx.AsyncClient, enabled: bool, rest_key: str | None
+) -> KakaoKeywordGeocoder | None:
+    """키워드 검색 경로. 설정이 꺼져 있거나(기본, ADR-006) 키가 없으면 None."""
+    if not enabled or not rest_key:
+        return None
+    return KakaoKeywordGeocoder(http, rest_key)
+
+
+class Geocoder:
+    """촬영지 하나의 좌표 경로를 고른다(FR-605, #25).
+
+    정확한 주소는 주소 API. 주소가 없거나 동까지만 있으면 키워드 검색 경로가 켜졌을 때만
+    카카오로 찾고, 꺼져 있으면 None('위치 미확인')을 돌려준다.
+    """
+
+    def __init__(self, juso: JusoGeocoder, keyword: KakaoKeywordGeocoder | None = None):
+        self.juso, self.keyword = juso, keyword
+
+    async def locate(self, name: str, address: str | None) -> GeoResult | None:
+        if precise(address):
+            return await self.juso.geocode(address)
+        if self.keyword is None:
+            return None
+        return await self.keyword.geocode(name, address)
