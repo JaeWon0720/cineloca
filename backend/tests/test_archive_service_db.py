@@ -1,4 +1,4 @@
-"""ArchiveService·WorkRepository DB 테스트 (FR-101~106·802, API-001·002).
+"""ArchiveService·WorkRepository DB 테스트 (FR-101~107·802, API-001~003).
 
 스키마(db/init)를 적재한 '테스트 전용' DB가 있을 때만 돈다. 한 트랜잭션 안에서 표를 비우고
 시험 데이터를 넣은 뒤 끝나면 되돌리므로 기존 데이터는 바뀌지 않는다.
@@ -28,7 +28,7 @@ INSERT INTO work (id, title, title_norm, release_year, genres, kmdb_id, kmdb, ma
                   source_id) VALUES
  (1, '부산 항구', '부산항구', 2018, '{범죄,액션}', 'K1',
   '{"plot": "가짜 줄거리", "keywords": ["항구"], "link": "https://example.org/k1",
-    "source_id": "DATA-04"}',
+    "rating": "15세관람가", "source_id": "DATA-04"}',
   'matched', 'DATA-01'),
  (2, '옛날 드라마', '옛날드라마', 2001, '{}', NULL, NULL, 'unmatched', 'DATA-02'),
  (3, '웃긴 영화', '웃긴영화', 2010, '{코메디}', 'K3', NULL, 'matched', 'DATA-01'),
@@ -138,5 +138,17 @@ def test_detail_unmatched_and_missing() -> None:
         assert d["cast"] == [] and d["director"] is None and len(d["locations"]) == 2
         assert [s["id"] for s in d["sources"]] == ["DATA-02"]  # KMDb 출처 없음(FR-604)
         assert await svc.get_work(999) is None
+
+    run(body)
+
+
+def test_rating_reads_stored_kmdb_value() -> None:
+    async def body(svc: ArchiveService) -> None:
+        ok = await svc.get_rating(1)
+        assert ok is not None and ok["rating"] == "15세관람가"
+        assert [s["id"] for s in ok["sources"]] == ["DATA-04"]  # 등급 출처도 KMDb(ADR-007)
+        assert await svc.get_rating(2) == {"rating": None, "sources": []}  # KMDb 미연결
+        assert await svc.get_rating(3) == {"rating": None, "sources": []}  # 저장본 없음
+        assert await svc.get_rating(999) is None
 
     run(body)

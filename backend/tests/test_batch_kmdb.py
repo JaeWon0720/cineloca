@@ -57,8 +57,14 @@ def test_rule_c_used_when_year_unknown() -> None:
 
 
 def test_stored_kmdb_has_no_image_fields() -> None:
-    v = kmdb.stored_kmdb(C("친구", plot="p", keywords="k", link="l"))
-    assert v == {"plot": "p", "keywords": "k", "link": "l", "source_id": "DATA-04"}
+    v = kmdb.stored_kmdb(C("친구", plot="p", keywords="k", link="l", rating="15세관람가"))
+    assert v == {
+        "plot": "p",
+        "keywords": "k",
+        "link": "l",
+        "rating": "15세관람가",  # 관람등급도 KMDb 텍스트라 저장한다(FR-107, ADR-007)
+        "source_id": "DATA-04",
+    }
 
 
 # ---- v2 매칭 보완 (2026-11-13) ----
@@ -159,11 +165,12 @@ def test_csv_loader_reads_columns_by_position(tmp_path) -> None:
         "2020",
         "20200101",
     )
-    assert (c.runtime, c.director, c.keywords, c.plot) == (
+    assert (c.runtime, c.director, c.keywords, c.plot, c.rating) == (
         100,
         "홍길동",
         "부산,바다",
         "부산에서 벌어지는 이야기",
+        "15세",  # 18번 칸 '대표영화관람등급'
     )
     assert c.link == "https://www.kmdb.or.kr/db/kor/detail/movie/K/00001"
 

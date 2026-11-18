@@ -1,10 +1,12 @@
-"""F1 작품 아카이브 업무 로직 (COMP-03 ArchiveService, FR-101~106·802, API-001·002).
+"""F1 작품 아카이브 업무 로직 (COMP-03 ArchiveService, FR-101~107·802, API-001~003).
 
 - 목록: 검색어를 배치와 같은 규칙(norm)으로 정규화해 작품명·감독·배우에서 찾는다(FR-101·102).
 - 상세: DB에 있는 값만 돌려준다. KMDb 저장본(work.kmdb)에 없는 항목은 null·빈 목록이다(FR-103~106).
-- 출처 카드(FR-704): 작품·촬영 기록의 출처, KMDb 연결 작품이면 KMDb.
+- 관람등급: 배치가 KMDb에서 받아 저장한 값(work.kmdb.rating)을 돌려준다. KMDb가 STORE라 실시간
+  조회는 하지 않는다. 없으면 rating=null(FR-107, ADR-007 'KMDb 단독, KOBIS 제외').
+- 출처 카드(FR-704): 작품·촬영 기록의 출처, KMDb 연결 작품이면 KMDb, 등급도 KMDb.
 - 결과는 API 응답 형식의 dict로 돌려준다(라우터가 응답 모델로 검증한다).
-관람등급(API-003)은 다음 PR에서 더한다. AI 작품 소개(API-004)는 work_intro.py가 맡는다.
+AI 작품 소개(API-004)는 work_intro.py가 맡는다.
 """
 
 from __future__ import annotations
@@ -98,8 +100,8 @@ class ArchiveService:
             **_summary(row.work),
             "cast": row.cast,
             "synopsis": _text(kmdb.get("plot")),
-            # 포스터·스틸은 팀 결정으로 보여 주지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(#12).
-            # 예고편 주소는 아직 배치가 저장하지 않는다(TBD-01)
+            # 포스터·스틸은 저장도 표시도 하지 않고 KMDb 원문 링크(kmdb_url)로 안내한다(#12, #58).
+            # 예고편 링크는 저장해도 되지만(TBD-01 닫힘) 아직 배치가 받지 않는다
             "trailer_url": None,
             "kmdb_url": _text(kmdb.get("link")),
             "locations": [
@@ -118,3 +120,13 @@ class ArchiveService:
             ],
             "sources": cards,
         }
+
+    async def get_rating(self, work_id: int) -> dict[str, Any] | None:
+        """API-003. 없는 id면 None. 등급이 있으면 KMDb 출처 카드를 붙인다."""
+        async with self._connect() as conn:
+            found, rating = await repo.kmdb_rating(conn, work_id)
+            if not found:
+                return None
+            if (rating := _text(rating)) is None:
+                return {"rating": None, "sources": []}
+            return {"rating": rating, "sources": await _cards(conn, [KMDB_SOURCE])}

@@ -21,6 +21,10 @@ v2 보완(2026-11-13, 자동 연결 표본에서 찾은 오류 유형 기준):
 후보는 KMDb 오픈API(KMDB_SERVICE_KEY)로 받는다.
 키가 없을 때는 KMDb 오픈자료 '영화기본정보' CSV(KMDB_CSV_PATH)로 대신한다.
 CSV에는 촬영 장소가 없어 규칙 C는 줄거리·키워드로만 판단한다.
+
+관람등급(FR-107, ADR-007 KMDb 단독)은 CSV의 '대표영화관람등급' 칸을 work.kmdb에 함께 저장한다.
+2026-11-13에 받은 CSV는 이 칸이 10만 행 모두 'null'이라 지금은 등급이 비어 있다. 오픈API 응답의
+등급 필드는 실제 응답 사본을 tests/fixtures/real/에 넣은 뒤 읽는다(AGENTS.md: 필드를 추측하지 않음).
 """
 
 import csv
@@ -60,6 +64,7 @@ class Candidate:
     runtime: int | None = None  # 분
     director: str | None = None
     country: str | None = None
+    rating: str | None = None  # 관람등급(예: 15세관람가)
 
 
 class CandidateSource(Protocol):
@@ -201,7 +206,13 @@ def demote_duplicates(results: dict[str, MatchResult]) -> dict[str, MatchResult]
 
 def stored_kmdb(c: Candidate) -> dict:
     """work.kmdb에 넣는 값(DATA-04 STORE일 때만). 이미지 주소·파일은 넣지 않는다."""
-    return {"plot": c.plot, "keywords": c.keywords, "link": c.link, "source_id": "DATA-04"}
+    return {
+        "plot": c.plot,
+        "keywords": c.keywords,
+        "link": c.link,
+        "rating": c.rating,
+        "source_id": "DATA-04",
+    }
 
 
 def _int(s) -> int | None:
@@ -263,9 +274,9 @@ class KmdbCsv:
 
     has_location = False
     # 0 ID종류 1 번호 2 영화명 3 영문제명 4 원제명 5 유형 6 용도 8 제작국가 9 제작년도
-    # 11 감독 19 개봉일 20 상영시간 21 키워드 22 줄거리
+    # 11 감독 18 관람등급 19 개봉일 20 상영시간 21 키워드 22 줄거리
     I_KIND, I_NO, I_TITLE, I_EN, I_ORG, I_TYPE, I_USE = 0, 1, 2, 3, 4, 5, 6
-    I_NAT, I_YEAR, I_DIR, I_REL, I_RUN, I_KW, I_PLOT = 8, 9, 11, 19, 20, 21, 22
+    I_NAT, I_YEAR, I_DIR, I_RATING, I_REL, I_RUN, I_KW, I_PLOT = 8, 9, 11, 18, 19, 20, 21, 22
 
     def __init__(self, rows: list[Candidate]):
         self.rows = rows
@@ -299,6 +310,7 @@ class KmdbCsv:
                         runtime=_int(v[cls.I_RUN]),
                         director=v[cls.I_DIR],
                         country=v[cls.I_NAT],
+                        rating=v[cls.I_RATING],
                         title_etc="^".join(x for x in (v[cls.I_EN], v[cls.I_ORG]) if x) or None,
                         link=DETAIL_URL.format(kind=r[cls.I_KIND], no=r[cls.I_NO]),
                     )
