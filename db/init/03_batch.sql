@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS stg.location (
     gu                 TEXT,
     lat                DOUBLE PRECISION,
     lon                DOUBLE PRECISION,
-    geo_via            TEXT,           -- address | name | cache | none
+    geo_via            TEXT,           -- address(주소 API) | keyword(카카오 키워드 검색, #25) | none
     nearest_station_id VARCHAR(10),
     station_walk_min   NUMERIC(6, 2)
 );
