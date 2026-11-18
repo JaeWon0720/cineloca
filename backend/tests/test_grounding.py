@@ -189,7 +189,7 @@ def test_normalize() -> None:
     assert normalize("ＡＢＣ") == "abc"
 
 
-# ── 결과 요약 프롬프트 (FR-407) ────────────────────────────
+# ── 결과 요약 프롬프트 (FR-307) ────────────────────────────
 def test_summary_prompt_uses_only_top_10_facts() -> None:
     many = Evidence(facts=tuple(f"촬영지{i} (중구)" for i in range(15)))
 

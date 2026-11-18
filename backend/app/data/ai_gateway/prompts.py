@@ -4,7 +4,7 @@
 extract_query는 착수 PoC p5의 프롬프트 v2에서 장르 규칙만 장르 묶음 12개로 바꾸고(v3),
 묶음에 없는 장르를 빼는 규칙을 더한 v4이다(#35 재평가).
 suggest_tags·judge_match(C1, FR-608)는 v1이다. 결과는 검수 큐로만 가고 사람이 확정한다(BR-04).
-summarize_results(F4 요약, FR-407)·work_intro(F1 소개, FR-109)는 v1이다.
+summarize_results(F3 요약, FR-307)·work_intro(F1 소개, FR-109)는 v1이다.
 structure_facility·facility_reasons(F4 코스 주변 시설, FR-415·417)도 v1이다.
 근거 묶음만 넣고, 출력은 COMP-09가 문장마다 대조한다.
 나머지 작업은 스프린트 2에서 작성한다.
@@ -69,7 +69,7 @@ _JUDGE_MATCH_SYSTEM = """너는 부산 촬영지 데이터의 작품을 영화 �
 JSON 키: verdict, candidate, reason"""
 
 
-SUMMARY_MAX_FACTS = 10  # FR-407: 검색 결과 상위 10건만 근거로
+SUMMARY_MAX_FACTS = 10  # FR-307: 검색 결과 상위 10건만 근거로
 
 _SUMMARIZE_RESULTS_SYSTEM = """너는 부산 영화·드라마 촬영지 검색 결과를 요약하는 도우미다. 주어진 검색 결과(근거)만 보고 질문에 맞춰 요약을 JSON으로 낸다.
 규칙:
@@ -141,7 +141,7 @@ _STRUCTURE_FACILITY_SYSTEM = """너는 부산 촬영지 코스의 주변 시설(
 - kinds: 원하는 종류. food(밥·카페) / lodging(숙박). 한쪽만 말했으면 그쪽만, 둘 다 아니면 빈 목록.
   '숙소는 필요 없어요'처럼 한쪽을 빼라고 하면 다른 쪽만 넣는다.
 - food: 다음 이름만: {food}. 식사·맛집·국밥 등 → 밥, 커피·디저트 등 → 카페.
-- lodging: 다음 이름만: {lodging}. 게하 → 게스트하우스, 캠핑장·글램핑 → 캠핑.
+- lodging: 다음 이름만: {lodging}. 게하 → 게스트하우스·호스텔, 민박 → 펜션·민박, 레지던스 → 콘도·레지던스, 캠핑장·글램핑 → 캠핑.
 - keywords: 시설 이름에 들어 있으면 좋은 짧은 말(음식 이름, '오션뷰' 등). 많아야 5개. 없으면 빈 목록.
 JSON 키: kinds, food, lodging, keywords"""
 
@@ -188,7 +188,7 @@ class DefaultPromptBuilder:
             system = _SUMMARIZE_RESULTS_SYSTEM
             user = _summary_user(inputs["query"].text, inputs["evidence"])  # 마스킹된 질문
         else:
-            raise NotImplementedError(f"{spec.name} 프롬프트는 스프린트 2에서 작성합니다")
+            raise NotImplementedError(f"{spec.name} 프롬프트가 없습니다")
         return Prompt(
             task=spec.name,
             system=system,

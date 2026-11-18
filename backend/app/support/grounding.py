@@ -1,12 +1,12 @@
 """근거 대조 검증기 (COMP-09, BR-05, AI-REQ-01·06·07, FR-110·111·311·407).
 
-AI 문장(F4 요약, F1 작품 소개, F3 코스 소개)은 시스템이 만든 근거 묶음만 보고 만들고,
+AI 문장(F3 요약, F1 작품 소개, F4 시설 추천 이유)은 시스템이 만든 근거 묶음만 보고 만들고,
 보여 주기 전에 문장마다 다음을 대조해 하나라도 어긋나면 그 문장을 지운다.
   1. 결말·반전 표현(app/core/spoilers.py)        → spoiler
   2. 모델이 적은 인명·작품명·장소명(entities)이 근거 이름에도 근거 한 줄 안에도 없음 → entity
   3. 문장에 나온 지식베이스 고유명사(사전)가 근거에 없음     → entity  (사전이 있을 때)
   4. 문장 속 숫자(연도·분·거리·개수)가 근거에 없음          → number
-남은 문장이 몇 개면 보여 줄지(F1은 2개 이상, F4는 1개 이상)는 부르는 서비스가 정한다.
+남은 문장이 몇 개면 보여 줄지(F1은 2개 이상, F3은 1개 이상)는 부르는 서비스가 정한다.
 
     evidence = Evidence(facts=("광안대교 (수영구) — 작품: 친구(2001), 도보 10분",),
                         names=frozenset({"광안대교", "수영구", "친구"}))
@@ -104,7 +104,7 @@ class Evidence:
 
 
 def gate(evidence: Evidence | None) -> bool:
-    """근거 게이트: 근거가 하나도 없으면 False(생성하지 않는다, AI-REQ-01·FR-407)."""
+    """근거 게이트: 근거가 하나도 없으면 False(생성하지 않는다, AI-REQ-01·FR-307)."""
     return evidence is not None and any(f.strip() for f in evidence.facts)
 
 
@@ -125,7 +125,7 @@ class Verified:
         return len(self.dropped)
 
     def enough(self, min_sentences: int) -> bool:
-        """F1은 2(미만이면 원문 강등, FR-110), F4는 1(0이면 요약 없이 결과만)."""
+        """F1은 2(미만이면 원문 강등, FR-110), F3은 1(0이면 요약 없이 결과만)."""
         return len(self.sentences) >= min_sentences
 
 

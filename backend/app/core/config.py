@@ -14,6 +14,9 @@ class Settings:
     # 카카오 약관 확인 전까지 좌표를 저장하지 않으므로 기본은 끈다(ADR-006).
     geocode_kakao_keyword: bool = False
     stamp_signing_key: str | None = None  # 스탬프·배지 서명 키(ADR-009). 비우면 F5만 503
+    tour_api_key: str | None = (
+        None  # 공공데이터포털 키(TourAPI 주변 시설, FR-414). 비우면 시설 검색만 실패
+    )
 
 
 def _flag(name: str) -> bool:
@@ -28,4 +31,5 @@ def get_settings() -> Settings:
         log_level=(os.getenv("LOG_LEVEL") or "INFO").upper(),
         geocode_kakao_keyword=_flag("GEOCODE_KAKAO_KEYWORD"),
         stamp_signing_key=os.getenv("STAMP_SIGNING_KEY") or None,
+        tour_api_key=os.getenv("DATA_GO_KR_SERVICE_KEY") or None,
     )

@@ -5,6 +5,7 @@
     · 구조화 실패 → 직접 고르기(FR-418). 고른 값으로 같은 선정 계산을 쓴다.
   2 후보 선정(FR-416): 구간 중간 지점의 음식점·카페, 마지막 촬영지의 숙박(후보는 FR-414가 TourAPI로
     1km 안에서 가져옴)을 조건 일치·거리 가중합으로 점수 → 구간마다 최대 3곳.
+    분류는 거르지 않고 점수로만 반영한다(맞는 곳이 늘 먼저, 모자라면 가까운 곳으로 채우고 안내).
     후보에 없는 곳은 추천하지 않는다. AI는 조건만 정하고 장소를 고르지 않는다.
   3 추천 이유(facility_reasons, FR-417): 시설 정보 근거로 한 문장씩 → 근거 대조(COMP-09)
     → 지워지거나 AI가 실패하면 템플릿 문장(FR-418).
@@ -18,9 +19,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.core.facilities import (
-    FOOD_CATEGORIES,
     KIND_LABELS,
-    LODGING_CATEGORIES,
     PER_SEGMENT,
     SEARCH_RADIUS_M,
     UNVERIFIABLE_PHRASES,
@@ -36,7 +35,10 @@ MAX_TEXT_CHARS = 200
 STRUCTURE_DEADLINE_S = 10.0
 REASONS_DEADLINE_S = 8.0
 AI_DOWN_NOTICE = "AI가 지금 조건을 정리하지 못해 직접 고를 수 있게 열어 두었어요"
-EMPTY_NOTICE = "조건에 맞는 시설을 1km 안에서 찾지 못했어요"
+# FR-418, SDD 오류 표: 조회 실패와 0건을 구분해 알린다. 어느 쪽이든 코스는 그대로 쓴다.
+FAILED_NOTICE = "시설 정보를 불러오지 못했어요"
+EMPTY_NOTICE = "근처 1km 안에 시설이 없어요"
+NO_CATEGORY_NOTICE = "고른 분류의 시설이 1km 안에 없어 가까운 곳을 보여 드려요"
 
 Kind = Literal["food", "lodging"]
 
@@ -51,7 +53,7 @@ class FacilityCandidate:
     id: str  # TourAPI contentid
     name: str
     kind: Kind
-    category: str  # app/core/facilities.py의 분류 이름
+    category: str | None  # app/core/facilities.py의 분류 이름. 모르면 None(FR-414)
     lat: float
     lon: float
     distance_m: int  # 기준점(구간 중간 지점·마지막 촬영지)에서
@@ -67,6 +69,7 @@ class FacilitySegment:
     anchor: str  # 화면·근거에 쓰는 기준 설명. 예: '자갈치시장~범일동 철길 사이'
     stop_names: tuple[str, ...]  # 기준이 된 촬영지 이름(근거 대조 허용 이름)
     candidates: tuple[FacilityCandidate, ...]
+    failed: bool = False  # 후보 검색(FR-414)이 실패한 구간. 0건(빈 candidates)과 구분
 
 
 # ── 결과 ───────────────────────────────────────────────────
@@ -86,7 +89,7 @@ class SegmentPicks:
     kind: Kind
     anchor: str
     picks: tuple[FacilityPick, ...]
-    notice: str | None = None  # 후보가 없을 때 안내
+    notice: str | None = None  # 후보가 없거나 고른 분류가 없을 때 안내
 
 
 @dataclass(frozen=True)
@@ -157,9 +160,8 @@ async def structure_conditions(
 
 
 # ── 2 후보 선정(FR-416) ─────────────────────────────────────
-def _allowed(c: FacilityConditions, kind: Kind) -> tuple[str, ...]:
-    asked = c.food if kind == "food" else c.lodging
-    return tuple(asked) or (FOOD_CATEGORIES if kind == "food" else LODGING_CATEGORIES)
+def _asked(c: FacilityConditions, kind: Kind) -> list[str]:
+    return list(c.food if kind == "food" else c.lodging)
 
 
 def _norm(s: str) -> str:
@@ -188,32 +190,36 @@ class FacilityPicker:
         for seg in segments:
             if cond.kinds and seg.kind not in cond.kinds:
                 continue  # 그 종류는 원하지 않음
-            allowed = _allowed(cond, seg.kind)
+            if seg.failed:
+                out.append(SegmentPicks(seg.key, seg.kind, seg.anchor, (), FAILED_NOTICE))
+                continue
             scored = [
                 self._score(f, cond, seg.kind)
                 for f in seg.candidates
-                if f.kind == seg.kind
-                and f.category in allowed
-                and 0 <= f.distance_m <= self._radius
-                and f.id not in used
+                if f.kind == seg.kind and 0 <= f.distance_m <= self._radius and f.id not in used
             ]
             scored.sort(key=lambda p: (-p.score, p.facility.distance_m, p.facility.id))
             picks = tuple(scored[: self._per])
             used.update(p.facility.id for p in picks)
-            out.append(
-                SegmentPicks(seg.key, seg.kind, seg.anchor, picks, None if picks else EMPTY_NOTICE)
-            )
+            asked = _asked(cond, seg.kind)
+            notice = None
+            if not picks:
+                notice = EMPTY_NOTICE
+            elif asked and not any(p.facility.category in asked for p in picks):
+                notice = NO_CATEGORY_NOTICE
+            out.append(SegmentPicks(seg.key, seg.kind, seg.anchor, picks, notice))
         return out
 
     def _score(self, f: FacilityCandidate, cond: FacilityConditions, kind: Kind) -> FacilityPick:
-        asked_categories = cond.food if kind == "food" else cond.lodging
+        asked_categories = _asked(cond, kind)
         facets = 0
         hits = 0
         matched: list[str] = []
-        if asked_categories:  # 분류를 골랐으면(이미 걸렀으므로 늘 맞음)
+        if asked_categories:  # 분류를 골랐으면 맞는지 본다(모르는 분류 None은 안 맞음)
             facets += 1
-            hits += 1
-            matched.append(f"분류: {f.category}")
+            if f.category in asked_categories:
+                hits += 1
+                matched.append(f"분류: {f.category}")
         if cond.keywords:
             facets += 1
             found = [k for k in cond.keywords if _norm(k) and _norm(k) in _norm(f.name)]
@@ -231,13 +237,15 @@ class FacilityPicker:
 # ── 3 추천 이유(FR-417·418) ─────────────────────────────────
 def fact_line(n: int, seg: SegmentPicks, p: FacilityPick) -> str:
     f = p.facility
-    line = f"{n}. {f.name} ({KIND_LABELS[f.kind]}·{f.category}) — {seg.anchor}에서 {f.distance_m}m"
+    label = KIND_LABELS[f.kind] + (f"·{f.category}" if f.category else "")
+    line = f"{n}. {f.name} ({label}) — {seg.anchor}에서 {f.distance_m}m"
     if p.matched:
         line += " — 맞은 조건: " + ", ".join(p.matched)
     return line
 
 
 _NOUN = {"밥": "식당"}  # 템플릿 문장에서 분류 이름 대신 쓸 말
+_UNKNOWN_NOUN = {"food": "음식점", "lodging": "숙소"}  # 분류를 모를 때(None)
 
 
 def _copula(word: str) -> str:
@@ -250,7 +258,7 @@ def _copula(word: str) -> str:
 def template_reason(seg: SegmentPicks, p: FacilityPick) -> str:
     """AI 이유가 없을 때(FR-418): 시스템 값만으로 만든 문장."""
     f = p.facility
-    noun = _NOUN.get(f.category, f.category)
+    noun = _NOUN.get(f.category, f.category) if f.category else _UNKNOWN_NOUN[f.kind]
     extra = f" ({', '.join(p.matched)})" if p.matched else ""
     return f"{seg.anchor}에서 {f.distance_m}m 거리에 있는 {noun}{_copula(noun)}{extra}."
 

@@ -1,0 +1,163 @@
+/* F1 작품 목록(UI-03)·작품 상세(UI-04) 화면 스타일 */
+.page-works {
+  max-width: 1080px;
+}
+
+.works-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.works-controls .search {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 720px) {
+  .works-controls {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .works-controls .search {
+    grid-column: auto;
+  }
+}
+
+/* ---------- 포스터 격자 */
+.work-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 720px) {
+  .work-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .work-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.work-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 포스터 자리: 포스터를 받기 전까지 제목을 극장 간판처럼 세운다 */
+.poster {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  aspect-ratio: 2 / 3;
+  padding: 14px;
+  overflow: hidden;
+  background: var(--ink);
+  border-radius: var(--radius);
+}
+
+.poster::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgb(244 180 0 / 0.5);
+  border-radius: 6px;
+}
+
+.poster span {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.15;
+  color: var(--marquee);
+  word-break: keep-all;
+}
+
+.work-card:hover .poster {
+  outline: 3px solid var(--marquee);
+  outline-offset: -3px;
+}
+
+.work-info-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9375rem;
+  word-break: keep-all;
+}
+
+.work-info-line .meta {
+  font-size: 0.8125rem;
+}
+
+.loc-count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---------- 작품 상세 */
+.work-hero h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.work-facts {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.poster-img {
+  flex: none;
+  width: 120px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.poster-img.photo-empty {
+  height: auto;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.facts dt {
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.card.place {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scene {
+  font-size: 0.875rem;
+}

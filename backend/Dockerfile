@@ -20,5 +20,5 @@ USER appuser
 
 EXPOSE 8000
 
-# 워커 1개: F4 대화 맥락을 서버 메모리에 두기 때문 (ADR-013)
+# 워커 1개: F3 대화 맥락을 서버 메모리에 두기 때문 (ADR-013)
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
