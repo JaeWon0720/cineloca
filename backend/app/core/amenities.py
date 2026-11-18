@@ -1,30 +1,28 @@
 """주변 시설 분류 (FR-415 허용 값, SDD 2.3, CHANGES 11/9).
 
-TourAPI 신분류(lclsSystm) 코드를 서비스 분류로 바꾼다. 조건 구조화(FR-415)의 허용 값과 같다.
+TourAPI 신분류(lclsSystm) 코드를 서비스 분류로 바꾼다. 분류 이름은 app/core/facilities.py에서
+가져와 조건 구조화(FR-415)의 허용 값과 늘 같다.
 - 음식(contentTypeId 39): 밥 = FD01·FD02·FD03(제과 FD030100 제외), 카페 = FD05 + 제과 FD030100.
   주점 FD04는 부산 데이터에 없어 받지 않는다.
 - 숙박(contentTypeId 32): AC01~AC06.
 """
 
-from typing import Literal
+from app.core.facilities import FOOD_CATEGORIES, LODGING_CATEGORIES, FacilityKind
 
-FacilityType = Literal["food", "lodging"]
-FoodCategory = Literal["밥", "카페"]
-LodgingCategory = Literal[
-    "호텔", "콘도·레지던스", "펜션·민박", "모텔", "캠핑", "게스트하우스·호스텔"
-]
+FacilityType = FacilityKind  # 분류 이름 목록은 app/core/facilities.py 하나만 쓴다(#88)
 
 CONTENT_TYPE: dict[FacilityType, int] = {"food": 39, "lodging": 32}
 
-FOOD_CATEGORIES: tuple[str, ...] = ("밥", "카페")
-LODGING_CATEGORIES: tuple[str, ...] = (
-    "호텔",
-    "콘도·레지던스",
-    "펜션·민박",
-    "모텔",
-    "캠핑",
-    "게스트하우스·호스텔",
-)
+__all__ = [
+    "CONTENT_TYPE",
+    "EXCLUDED_PREFIXES",
+    "FOOD_CATEGORIES",
+    "LODGING_CATEGORIES",
+    "FacilityType",
+    "category_of",
+    "is_excluded",
+]
+
 _LODGING_BY_PREFIX = dict(
     zip(("AC01", "AC02", "AC03", "AC04", "AC05", "AC06"), LODGING_CATEGORIES, strict=True)
 )
