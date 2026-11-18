@@ -1,4 +1,4 @@
-"""F4 AI 대화형 탐색 파이프라인 테스트 (COMP-06, UC-05·06, FR-401~412, AI-REQ-15).
+"""F3 AI 대화형 탐색 파이프라인 테스트 (COMP-06, UC-05·06, FR-301~412, AI-REQ-15).
 
 AI는 가짜 공급자, 사전 대조·검색 템플릿은 가짜 포트로 시험한다.
 """
@@ -146,7 +146,7 @@ def test_ask_extracts_searches_and_summarizes() -> None:
     r = run(svc.ask("친구 촬영지 알려줘"))
 
     assert r.status == "ok"
-    assert [c.label for c in r.chips] == ["작품: 친구"]  # FR-412
+    assert [c.label for c in r.chips] == ["작품: 친구"]  # FR-312
     assert (r.total, [h.name for h in r.hits]) == (2, ["자갈치시장", "범일동 철길"])
     assert r.summary == (
         "친구 촬영지는 자갈치시장과 범일동 철길입니다.",
@@ -185,14 +185,14 @@ def test_masked_query_only_goes_to_ai_and_log() -> None:
 
 
 @pytest.mark.parametrize("text", ["", "   ", "가" * 201])
-def test_input_validation(text: str) -> None:  # FR-401
+def test_input_validation(text: str) -> None:  # FR-301
     svc, gemini, _, _ = make()
     with pytest.raises(QueryInputError):
         run(svc.ask(text))
     assert gemini.calls == []
 
 
-def test_out_of_scope_is_not_searched() -> None:  # FR-409
+def test_out_of_scope_is_not_searched() -> None:  # FR-309
     svc, _, resolver, searcher = make(cond(out_of_scope=True))
 
     r = run(svc.ask("오늘 날씨 어때"))
@@ -202,7 +202,7 @@ def test_out_of_scope_is_not_searched() -> None:  # FR-409
 
 
 # ── 강등 ──────────────────────────────────────────────────
-def test_extract_failure_opens_filter_panel_with_previous_conditions() -> None:  # FR-411
+def test_extract_failure_opens_filter_panel_with_previous_conditions() -> None:  # FR-311
     svc, _, _, searcher = make(cond(districts=["중구"]), SUMMARY, ProviderError("timeout"))
     first = run(svc.ask("중구 촬영지"))
 
@@ -223,7 +223,7 @@ def test_summary_failure_shows_results_without_summary() -> None:  # 8a
     assert r.summary == () and not r.ai_generated
 
 
-def test_zero_results_relax_in_order_then_not_found() -> None:  # FR-405
+def test_zero_results_relax_in_order_then_not_found() -> None:  # FR-305
     searcher = FakeSearcher(empty_while=("works",))  # 작품은 완화하지 않으므로 끝까지 0건
     svc, gemini, _, _ = make(
         cond(
@@ -269,7 +269,7 @@ def test_relaxation_stops_at_first_hit() -> None:
 
 
 # ── 사전 대조·고르기·칩 ────────────────────────────────────
-def test_unknown_name_is_dropped_and_reported() -> None:  # FR-403 4b
+def test_unknown_name_is_dropped_and_reported() -> None:  # FR-303 4b
     svc, *_ = make(cond(work_titles=["없는작품"], districts=["중구"]), SUMMARY)
 
     r = run(svc.ask("없는작품 중구"))
@@ -278,7 +278,7 @@ def test_unknown_name_is_dropped_and_reported() -> None:  # FR-403 4b
     assert [c.key for c in r.chips] == ["districts"]
 
 
-def test_ambiguous_name_asks_then_searches_after_choice() -> None:  # FR-403 4a
+def test_ambiguous_name_asks_then_searches_after_choice() -> None:  # FR-303 4a
     svc, gemini, _, searcher = make(
         cond(anchor={"type": "station", "name": "서면"}, travel={"mode": "walk", "max_min": 10}),
         SUMMARY,
@@ -296,7 +296,7 @@ def test_ambiguous_name_asks_then_searches_after_choice() -> None:  # FR-403 4a
     assert "서면역 도보 10분" not in gemini.calls[-1].user  # 요약 질문은 해석 조건으로(원문 미보관)
 
 
-def test_remove_chip_searches_again_without_ai_extract() -> None:  # FR-412
+def test_remove_chip_searches_again_without_ai_extract() -> None:  # FR-312
     svc, gemini, _, searcher = make(
         cond(work_titles=["친구"], districts=["중구"]), SUMMARY, SUMMARY
     )
@@ -336,7 +336,7 @@ def test_current_location_point_goes_only_to_search() -> None:
 
 
 # ── 후속 질의·세션 ────────────────────────────────────────
-def test_follow_up_keeps_previous_conditions() -> None:  # FR-408
+def test_follow_up_keeps_previous_conditions() -> None:  # FR-308
     svc, _, resolver, _ = make(
         cond(persons=["마동석"]), SUMMARY, cond(districts=["해운대구"]), SUMMARY
     )

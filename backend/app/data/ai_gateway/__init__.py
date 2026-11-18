@@ -13,7 +13,7 @@
 DB를 쓰는 곳(API·배치)은 호출 수·Gemini 일일 한도와 응답 캐시를 붙인다:
     build_llm_client(settings, usage=PgUsageCounter(), cache=PgAICache())
 
-남은 것(스프린트 2): 작업별 프롬프트(F1·F3·F4 요약), config/ai.yaml 로딩(지금은 환경변수).
+남은 것(스프린트 2): 작업별 프롬프트(F1 소개·F3 요약·F4 시설), config/ai.yaml 로딩(지금은 환경변수).
 """
 
 from app.data.ai_gateway.cache import ResponseCache, cache_key
