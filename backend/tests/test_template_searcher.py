@@ -1,4 +1,4 @@
-"""TemplateSearcher 단위 테스트 (FR-404, ADR-010). DB 없이 템플릿 선택과 매개변수 바인딩만 본다."""
+"""TemplateSearcher 단위 테스트 (FR-304, ADR-010). DB 없이 템플릿 선택과 매개변수 바인딩만 본다."""
 
 import asyncio
 import logging

@@ -1,4 +1,4 @@
-"""검색 템플릿 T1~T4 DB 테스트 (FR-404, ADR-010·011). 스키마(db/init)를 적재한 '테스트 전용'
+"""검색 템플릿 T1~T4 DB 테스트 (FR-304, ADR-010·011). 스키마(db/init)를 적재한 '테스트 전용'
 DB가 있을 때만 돈다. 한 트랜잭션 안에서 표를 비우고 시험 데이터를 넣은 뒤 되돌린다.
     CINELOCA_TEST_DATABASE_URL=postgresql://... python -m pytest tests/test_search_templates_db.py
 """

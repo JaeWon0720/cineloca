@@ -1,4 +1,4 @@
-"""F4 검색 템플릿 실행 (COMP-06·12 TemplateSearcher, FR-404·406, ADR-010).
+"""F3 검색 템플릿 실행 (COMP-06·12 TemplateSearcher, FR-304·306, ADR-010).
 
 확정된 조건(Filters)으로 템플릿 하나를 고르고 매개변수를 채운다. SQL은 app.data.search_templates에
 정해 둔 것만 쓴다(AI-REQ-05).
@@ -75,7 +75,7 @@ def walk_minutes(dist_m: float) -> float:
 
 
 def plan(filters: Filters, *, has_base_point: bool) -> Plan:
-    """조건 → 템플릿(FR-404 표). DB 없이 정해진다."""
+    """조건 → 템플릿(FR-304 표). DB 없이 정해진다."""
     anchor, travel = filters.anchor, filters.travel
     minutes = travel.max_min if travel and travel.max_min else None
     if anchor is None:

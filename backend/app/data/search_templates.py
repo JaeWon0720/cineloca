@@ -1,4 +1,4 @@
-"""검색 템플릿 T1~T4 (COMP-12 SearchTemplates, FR-404, ADR-010).
+"""검색 템플릿 T1~T4 (COMP-12 SearchTemplates, FR-304, ADR-010).
 
 조건에 맞는 템플릿 하나를 업무 계층(TemplateSearcher)이 고르고, 여기서는 정해 둔 SQL에 값만 넣는다.
 - 질의문은 모듈을 읽을 때 한 번 만들어 둔 상수다. 값은 모두 바인딩 매개변수($n)로 넘기고,
@@ -24,7 +24,7 @@ from typing import Literal
 
 import asyncpg
 
-MAX_LIMIT = 20  # FR-406
+MAX_LIMIT = 20  # FR-306
 
 
 @dataclass(frozen=True)
