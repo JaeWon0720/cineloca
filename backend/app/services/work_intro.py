@@ -53,7 +53,7 @@ class EvidencePolicy(Protocol):
     def build(self, work: WorkFacts) -> Evidence: ...
 
 
-def _base(work: WorkFacts) -> tuple[list[str], set[str]]:
+def _base(work: WorkFacts, *, with_scene: bool) -> tuple[list[str], set[str]]:
     facts: list[str] = []
     names: set[str] = {work.title}
     head = f"작품: {work.title}"
@@ -76,7 +76,7 @@ def _base(work: WorkFacts) -> tuple[list[str], set[str]]:
         if loc.gu:
             line += f" ({loc.gu})"
             names.add(loc.gu)
-        if loc.scene:
+        if with_scene and loc.scene:  # 장면 설명은 줄거리를 담을 수 있어 '일부' 단계에만
             line += f" — {loc.scene}"
         facts.append(line)
         names.add(loc.name)
@@ -84,22 +84,25 @@ def _base(work: WorkFacts) -> tuple[list[str], set[str]]:
 
 
 class NoSpoilerEvidence:
-    """'없음' 단계(기본값): 줄거리를 빼고 작품 정보와 촬영지만."""
+    """'없음' 단계(기본값): 줄거리·장면 설명을 빼고 작품 정보와 촬영지 이름만."""
 
     level: SpoilerLevel = "none"
 
     def build(self, work: WorkFacts) -> Evidence:
-        facts, names = _base(work)
+        facts, names = _base(work, with_scene=False)
         return Evidence(tuple(facts), frozenset(names))
 
 
 class PartialSpoilerEvidence:
-    """'일부' 단계: 줄거리(KMDb 원문)를 더한다. 결말·반전 문장은 검증기가 지운다."""
+    """'일부' 단계: 줄거리(KMDb 원문)와 촬영지 장면 설명을 더한다.
+
+    결말·반전 문장은 검증기가 지운다.
+    """
 
     level: SpoilerLevel = "partial"
 
     def build(self, work: WorkFacts) -> Evidence:
-        facts, names = _base(work)
+        facts, names = _base(work, with_scene=True)
         if work.synopsis and work.synopsis.strip():
             facts.append(f"줄거리: {work.synopsis.strip()}")
         return Evidence(tuple(facts), frozenset(names))
@@ -153,9 +156,8 @@ class WorkIntroService:
             return IntroResult("not_eligible", policy.level)
         fallback = Fallback(work.synopsis, work.locations)
         evidence = policy.build(work)
-        if (
-            not gate(evidence) or not work.locations
-        ):  # 부산 촬영지 관점 소개라 촬영지가 없으면 근거 부족
+        # 부산 촬영지 관점 소개라 촬영지가 없으면 근거 부족
+        if not gate(evidence) or not work.locations:
             return IntroResult("degraded", policy.level, fallback=fallback, reason="NO_EVIDENCE")
         try:
             result = await self._client.generate(

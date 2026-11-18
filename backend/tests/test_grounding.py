@@ -125,6 +125,24 @@ def test_partial_name_and_particles_are_supported() -> None:
     assert result.dropped_count == 0
 
 
+def test_names_inside_one_fact_line_pass_but_not_across_lines() -> None:
+    evidence = Evidence(
+        facts=("작품: 친구 (2001)", "부산 촬영지: 자갈치시장 (중구)", "줄거리: 준석과 동수")
+    )
+
+    result = GroundingVerifier().verify(
+        [
+            S("준석과 동수가 나옵니다.", ["준석", "동수"]),  # 줄거리 줄 안에 있음 → 통과
+            S("가짜 이름입니다.", ["2001부산"]),  # 두 줄 경계를 넘는 문자열 → 삭제
+            S("가짜 이름입니다.", ["중구줄거리"]),  # 둘째 줄 끝 + 셋째 줄 앞 → 삭제
+        ],
+        evidence,
+    )
+
+    assert result.sentences == ("준석과 동수가 나옵니다.",)
+    assert [d.detail for d in result.dropped] == ["2001부산", "중구줄거리"]
+
+
 def test_lexicon_catches_names_missing_from_entities() -> None:
     lexicon = NameLexicon(
         ["감천문화마을", "광안대교", "친구"]

@@ -3,7 +3,7 @@
 AI 문장(F4 요약, F1 작품 소개, F3 코스 소개)은 시스템이 만든 근거 묶음만 보고 만들고,
 보여 주기 전에 문장마다 다음을 대조해 하나라도 어긋나면 그 문장을 지운다.
   1. 결말·반전 표현(app/core/spoilers.py)        → spoiler
-  2. 모델이 적은 인명·작품명·장소명(entities)이 근거 이름에도 근거 줄에도 없음 → entity
+  2. 모델이 적은 인명·작품명·장소명(entities)이 근거 이름에도 근거 한 줄 안에도 없음 → entity
   3. 문장에 나온 지식베이스 고유명사(사전)가 근거에 없음     → entity  (사전이 있을 때)
   4. 문장 속 숫자(연도·분·거리·개수)가 근거에 없음          → number
 남은 문장이 몇 개면 보여 줄지(F1은 2개 이상, F4는 1개 이상)는 부르는 서비스가 정한다.
@@ -150,8 +150,9 @@ class GroundingVerifier:
     ) -> Verified:
         names = {normalize(n) for n in evidence.names} | self._always
         names.discard("")
-        # 이름 목록에 없어도 근거 줄에 그대로 적혀 있으면 근거가 있다(줄거리 속 인물 이름 등)
-        names.add(normalize(" ".join(evidence.facts)))
+        # 이름 목록에 없어도 근거 줄 '한 줄 안'에 그대로 있으면 근거가 있다(줄거리 속 인물 이름 등).
+        # 줄을 이어 붙이면 줄 경계를 넘는 가짜 이름('2001부산')도 통과하므로 줄마다 따로 넣는다.
+        names |= {normalize(f) for f in evidence.facts}
         numbers = evidence.allowed_numbers()
         kept: list[str] = []
         dropped: list[Dropped] = []
