@@ -1,623 +1,617 @@
 {
- "works": [
-  {
-   "id": 6,
-   "title": "1987",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "드라마"
-   ],
-   "director": "장준환",
-   "location_count": 5,
-   "kmdb_matched": true
+  "works": [
+    {
+      "id": 6,
+      "title": "1987",
+      "release_year": 2017,
+      "genres": [
+        "드라마"
+      ],
+      "director": "장준환",
+      "location_count": 5,
+      "kmdb_matched": true
+    },
+    {
+      "id": 7,
+      "title": "강철비",
+      "release_year": 2017,
+      "genres": [
+        "액션",
+        "드라마"
+      ],
+      "director": "양우석",
+      "location_count": 1,
+      "kmdb_matched": false
+    },
+    {
+      "id": 3,
+      "title": "공작",
+      "release_year": 2018,
+      "genres": [
+        "드라마",
+        "첩보"
+      ],
+      "director": "윤종빈",
+      "location_count": 4,
+      "kmdb_matched": false
+    },
+    {
+      "id": 4,
+      "title": "군도: 민란의 시대",
+      "release_year": 2014,
+      "genres": [
+        "액션",
+        "사극"
+      ],
+      "director": "윤종빈",
+      "location_count": 1,
+      "kmdb_matched": false
+    },
+    {
+      "id": 2,
+      "title": "대외비",
+      "release_year": 2023,
+      "genres": [
+        "범죄",
+        "드라마"
+      ],
+      "director": "이원태",
+      "location_count": 5,
+      "kmdb_matched": false
+    },
+    {
+      "id": 1,
+      "title": "리바운드",
+      "release_year": 2023,
+      "genres": [
+        "드라마",
+        "스포츠"
+      ],
+      "director": "장항준",
+      "location_count": 9,
+      "kmdb_matched": false
+    },
+    {
+      "id": 5,
+      "title": "신과함께-죄와 벌",
+      "release_year": 2017,
+      "genres": [
+        "판타지",
+        "드라마"
+      ],
+      "director": "김용화",
+      "location_count": 1,
+      "kmdb_matched": false
+    }
+  ],
+  "workDetails": {
+    "6": {
+      "id": 6,
+      "title": "1987",
+      "release_year": 2017,
+      "genres": [
+        "드라마"
+      ],
+      "director": "장준환",
+      "location_count": 5,
+      "kmdb_matched": true,
+      "cast": [
+        "김윤석",
+        "하정우",
+        "유해진",
+        "김태리"
+      ],
+      "synopsis": "(목업 예시 문장) 1987년 서울을 배경으로, 한 대학생의 죽음을 둘러싼 사건을 여러 인물의 시선으로 따라가는 이야기예요.",
+      "locations": [
+        {
+          "id": 20,
+          "name": "해운정사",
+          "gu": "해운대구",
+          "located": true,
+          "lat": 35.164,
+          "lon": 129.169
+        },
+        {
+          "id": 21,
+          "name": "옛 한국은행 부산본부",
+          "gu": "중구",
+          "located": false,
+          "lat": null,
+          "lon": null
+        },
+        {
+          "id": 19,
+          "name": "옛 해사고등학교",
+          "gu": "영도구",
+          "located": true,
+          "lat": 35.0755,
+          "lon": 129.076
+        },
+        {
+          "id": 22,
+          "name": "동래별장",
+          "gu": "동래구",
+          "located": true,
+          "lat": 35.2185,
+          "lon": 129.083
+        },
+        {
+          "id": 23,
+          "name": "정란각",
+          "gu": "동구",
+          "located": true,
+          "lat": 35.1255,
+          "lon": 129.045
+        }
+      ],
+      "sources": [
+        {
+          "id": "KMDB",
+          "provider": "한국영상자료원",
+          "name": "KMDb 한국영화데이터베이스(공공누리 제1유형)",
+          "base_date": null,
+          "url": "https://www.kmdb.or.kr"
+        },
+        {
+          "id": "SRC-FN-20180103",
+          "provider": "파이낸셜뉴스",
+          "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+          "base_date": "2018-01-03",
+          "url": "https://www.fnnews.com/news/201801030900423529"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": "https://www.kmdb.or.kr/db/kor/detail/movie/K/16659",
+      "related": [
+        {
+          "id": 7,
+          "title": "강철비",
+          "release_year": 2017
+        },
+        {
+          "id": 3,
+          "title": "공작",
+          "release_year": 2018
+        }
+      ]
+    },
+    "7": {
+      "id": 7,
+      "title": "강철비",
+      "release_year": 2017,
+      "genres": [
+        "액션",
+        "드라마"
+      ],
+      "director": "양우석",
+      "location_count": 1,
+      "kmdb_matched": false,
+      "cast": [
+        "정우성",
+        "곽도원"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 17,
+          "name": "부산영화촬영스튜디오",
+          "gu": "해운대구",
+          "located": true,
+          "lat": 35.1585,
+          "lon": 129.1445
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-FN-20180103",
+          "provider": "파이낸셜뉴스",
+          "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+          "base_date": "2018-01-03",
+          "url": "https://www.fnnews.com/news/201801030900423529"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    },
+    "3": {
+      "id": 3,
+      "title": "공작",
+      "release_year": 2018,
+      "genres": [
+        "드라마",
+        "첩보"
+      ],
+      "director": "윤종빈",
+      "location_count": 4,
+      "kmdb_matched": false,
+      "cast": [
+        "황정민",
+        "이성민",
+        "조진웅",
+        "주지훈"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 14,
+          "name": "부산항국제여객터미널",
+          "gu": "동구",
+          "located": true,
+          "lat": 35.1175,
+          "lon": 129.0495
+        },
+        {
+          "id": 15,
+          "name": "부산환경공단 본부",
+          "gu": null,
+          "located": false,
+          "lat": null,
+          "lon": null
+        },
+        {
+          "id": 16,
+          "name": "부산항대교",
+          "gu": "남구",
+          "located": true,
+          "lat": 35.089,
+          "lon": 129.07
+        },
+        {
+          "id": 17,
+          "name": "부산영화촬영스튜디오",
+          "gu": "해운대구",
+          "located": true,
+          "lat": 35.1585,
+          "lon": 129.1445
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-CINE21-111092",
+          "provider": "씨네21",
+          "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
+          "base_date": "2026-10-26",
+          "url": "https://cine21.com/news/view/?mag_id=111092"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    },
+    "4": {
+      "id": 4,
+      "title": "군도: 민란의 시대",
+      "release_year": 2014,
+      "genres": [
+        "액션",
+        "사극"
+      ],
+      "director": "윤종빈",
+      "location_count": 1,
+      "kmdb_matched": false,
+      "cast": [
+        "하정우",
+        "강동원"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 18,
+          "name": "아홉산숲",
+          "gu": "기장군",
+          "located": true,
+          "lat": 35.2958,
+          "lon": 129.151
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-CINE21-111087",
+          "provider": "씨네21",
+          "name": "부산영상위원회 아카이브 총서 <부산의 장면들> #3 연재(군도: 민란의 시대 / 아홉산숲)",
+          "base_date": "2026-10-26",
+          "url": "https://cine21.com/news/view/?mag_id=111087"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    },
+    "2": {
+      "id": 2,
+      "title": "대외비",
+      "release_year": 2023,
+      "genres": [
+        "범죄",
+        "드라마"
+      ],
+      "director": "이원태",
+      "location_count": 5,
+      "kmdb_matched": false,
+      "cast": [
+        "조진웅",
+        "이성민",
+        "김무열"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 10,
+          "name": "반여1동 주택가",
+          "gu": "해운대구",
+          "located": false,
+          "lat": null,
+          "lon": null
+        },
+        {
+          "id": 11,
+          "name": "코모도호텔",
+          "gu": "중구",
+          "located": true,
+          "lat": 35.1103,
+          "lon": 129.0385
+        },
+        {
+          "id": 7,
+          "name": "영주시민아파트",
+          "gu": "중구",
+          "located": true,
+          "lat": 35.114,
+          "lon": 129.034
+        },
+        {
+          "id": 12,
+          "name": "봉래나루로",
+          "gu": "영도구",
+          "located": true,
+          "lat": 35.0915,
+          "lon": 129.042
+        },
+        {
+          "id": 13,
+          "name": "가덕도 대항동 도로",
+          "gu": "강서구",
+          "located": true,
+          "lat": 35.004,
+          "lon": 128.828
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-METRO-20230313",
+          "provider": "메트로신문",
+          "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
+          "base_date": "2023-03-13",
+          "url": "https://www.metroseoul.co.kr/article/20230313500231"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    },
+    "1": {
+      "id": 1,
+      "title": "리바운드",
+      "release_year": 2023,
+      "genres": [
+        "드라마",
+        "스포츠"
+      ],
+      "director": "장항준",
+      "location_count": 9,
+      "kmdb_matched": false,
+      "cast": [
+        "안재홍",
+        "이신영",
+        "정진운"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 1,
+          "name": "부산중앙고등학교",
+          "gu": "남구",
+          "located": false,
+          "lat": null,
+          "lon": null
+        },
+        {
+          "id": 2,
+          "name": "비석문화마을",
+          "gu": "서구",
+          "located": true,
+          "lat": 35.099,
+          "lon": 129.0145
+        },
+        {
+          "id": 3,
+          "name": "구 동부산대학교",
+          "gu": "해운대구",
+          "located": true,
+          "lat": 35.2263,
+          "lon": 129.153
+        },
+        {
+          "id": 4,
+          "name": "영도대교",
+          "gu": "영도구",
+          "located": true,
+          "lat": 35.0948,
+          "lon": 129.0368
+        },
+        {
+          "id": 5,
+          "name": "온천천",
+          "gu": "동래구",
+          "located": true,
+          "lat": 35.2,
+          "lon": 129.083
+        },
+        {
+          "id": 6,
+          "name": "충무동 새벽시장",
+          "gu": "서구",
+          "located": true,
+          "lat": 35.094,
+          "lon": 129.023
+        },
+        {
+          "id": 7,
+          "name": "영주시민아파트",
+          "gu": "중구",
+          "located": true,
+          "lat": 35.114,
+          "lon": 129.034
+        },
+        {
+          "id": 8,
+          "name": "대연 문화공원",
+          "gu": "남구",
+          "located": false,
+          "lat": null,
+          "lon": null
+        },
+        {
+          "id": 9,
+          "name": "수영만 요트경기장",
+          "gu": "해운대구",
+          "located": true,
+          "lat": 35.164,
+          "lon": 129.135
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-METRO-20230406",
+          "provider": "메트로신문",
+          "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
+          "base_date": "2023-04-06",
+          "url": "https://www.metroseoul.co.kr/article/20230406500189"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    },
+    "5": {
+      "id": 5,
+      "title": "신과함께-죄와 벌",
+      "release_year": 2017,
+      "genres": [
+        "판타지",
+        "드라마"
+      ],
+      "director": "김용화",
+      "location_count": 1,
+      "kmdb_matched": false,
+      "cast": [
+        "하정우",
+        "차태현",
+        "주지훈"
+      ],
+      "synopsis": null,
+      "locations": [
+        {
+          "id": 19,
+          "name": "옛 해사고등학교",
+          "gu": "영도구",
+          "located": true,
+          "lat": 35.0755,
+          "lon": 129.076
+        }
+      ],
+      "sources": [
+        {
+          "id": "SRC-FN-20180103",
+          "provider": "파이낸셜뉴스",
+          "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
+          "base_date": "2018-01-03",
+          "url": "https://www.fnnews.com/news/201801030900423529"
+        },
+        {
+          "id": "SRC-TEAM-WORK",
+          "provider": "15팀(하자제발)",
+          "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
+          "base_date": "2026-10-30",
+          "url": ""
+        }
+      ],
+      "trailer_url": null,
+      "kmdb_url": null,
+      "related": []
+    }
   },
-  {
-   "id": 7,
-   "title": "강철비",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "액션",
-    "드라마"
-   ],
-   "director": "양우석",
-   "location_count": 1,
-   "kmdb_matched": false
+  "ratings": {
+    "6": "15세이상관람가",
+    "7": null,
+    "3": null,
+    "4": null,
+    "2": null,
+    "1": null,
+    "5": null
   },
-  {
-   "id": 3,
-   "title": "공작",
-   "release_year": 2018,
-   "kind": "영화",
-   "genres": [
-    "드라마",
-    "첩보"
-   ],
-   "director": "윤종빈",
-   "location_count": 4,
-   "kmdb_matched": false
-  },
-  {
-   "id": 4,
-   "title": "군도: 민란의 시대",
-   "release_year": 2014,
-   "kind": "영화",
-   "genres": [
-    "액션",
-    "사극"
-   ],
-   "director": "윤종빈",
-   "location_count": 1,
-   "kmdb_matched": false
-  },
-  {
-   "id": 2,
-   "title": "대외비",
-   "release_year": 2023,
-   "kind": "영화",
-   "genres": [
-    "범죄",
-    "드라마"
-   ],
-   "director": "이원태",
-   "location_count": 5,
-   "kmdb_matched": false
-  },
-  {
-   "id": 1,
-   "title": "리바운드",
-   "release_year": 2023,
-   "kind": "영화",
-   "genres": [
-    "드라마",
-    "스포츠"
-   ],
-   "director": "장항준",
-   "location_count": 9,
-   "kmdb_matched": false
-  },
-  {
-   "id": 5,
-   "title": "신과함께-죄와 벌",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "판타지",
-    "드라마"
-   ],
-   "director": "김용화",
-   "location_count": 1,
-   "kmdb_matched": false
+  "intro": {
+    "6": {
+      "none": {
+        "sentences": [
+          "「1987」은 2017년에 개봉한 장준환 감독의 영화예요.",
+          "부산에서는 해운대구 해운정사를 비롯해 5곳에서 촬영했어요.",
+          "촬영지 가운데 위치가 확인된 곳은 지도에서 바로 찾아 길찾기까지 할 수 있어요."
+        ],
+        "dropped": 0
+      },
+      "partial": {
+        "sentences": [
+          "「1987」은 2017년에 개봉한 장준환 감독의 영화예요.",
+          "부산의 옛 건물과 거리가 1980년대 서울의 장면을 대신했어요.",
+          "해운대구 해운정사에서는 인물들이 몸을 숨기는 장면 일부를 찍었어요.",
+          "촬영지 가운데 위치가 확인된 곳은 지도에서 바로 찾아볼 수 있어요."
+        ],
+        "dropped": 1
+      }
+    }
   }
- ],
- "workDetails": {
-  "6": {
-   "id": 6,
-   "title": "1987",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "드라마"
-   ],
-   "director": "장준환",
-   "location_count": 5,
-   "kmdb_matched": true,
-   "cast": [
-    "김윤석",
-    "하정우",
-    "유해진",
-    "김태리"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 20,
-     "name": "해운정사",
-     "gu": "해운대구",
-     "located": true,
-     "lat": 35.164,
-     "lon": 129.169,
-     "scene": "첫 추격 장면"
-    },
-    {
-     "id": 21,
-     "name": "옛 한국은행 부산본부",
-     "gu": "중구",
-     "located": false,
-     "lat": null,
-     "lon": null,
-     "scene": "외부(극중 대공분실)"
-    },
-    {
-     "id": 19,
-     "name": "옛 해사고등학교",
-     "gu": "영도구",
-     "located": true,
-     "lat": 35.0755,
-     "lon": 129.076,
-     "scene": "해기관 1층(극중 신문사)"
-    },
-    {
-     "id": 22,
-     "name": "동래별장",
-     "gu": "동래구",
-     "located": true,
-     "lat": 35.2185,
-     "lon": 129.083,
-     "scene": null
-    },
-    {
-     "id": 23,
-     "name": "정란각",
-     "gu": "동구",
-     "located": true,
-     "lat": 35.1255,
-     "lon": 129.045,
-     "scene": null
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-FN-20180103",
-     "provider": "파이낸셜뉴스",
-     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
-     "base_date": "2018-01-03",
-     "url": "https://www.fnnews.com/news/201801030900423529"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": "https://www.kmdb.or.kr/db/kor/detail/movie/K/16659"
-  },
-  "7": {
-   "id": 7,
-   "title": "강철비",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "액션",
-    "드라마"
-   ],
-   "director": "양우석",
-   "location_count": 1,
-   "kmdb_matched": false,
-   "cast": [
-    "정우성",
-    "곽도원"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 17,
-     "name": "부산영화촬영스튜디오",
-     "gu": "해운대구",
-     "located": true,
-     "lat": 35.1585,
-     "lon": 129.1445,
-     "scene": "세트 촬영(약 96일)"
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-FN-20180103",
-     "provider": "파이낸셜뉴스",
-     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
-     "base_date": "2018-01-03",
-     "url": "https://www.fnnews.com/news/201801030900423529"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  },
-  "3": {
-   "id": 3,
-   "title": "공작",
-   "release_year": 2018,
-   "kind": "영화",
-   "genres": [
-    "드라마",
-    "첩보"
-   ],
-   "director": "윤종빈",
-   "location_count": 4,
-   "kmdb_matched": false,
-   "cast": [
-    "황정민",
-    "이성민",
-    "조진웅",
-    "주지훈"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 14,
-     "name": "부산항국제여객터미널",
-     "gu": "동구",
-     "located": true,
-     "lat": 35.1175,
-     "lon": 129.0495,
-     "scene": "입국장에서 나오는 인물을 카메라가 따라가는 장면"
-    },
-    {
-     "id": 15,
-     "name": "부산환경공단 본부",
-     "gu": null,
-     "located": false,
-     "lat": null,
-     "lon": null,
-     "scene": "원자로 시설 인서트 컷"
-    },
-    {
-     "id": 16,
-     "name": "부산항대교",
-     "gu": "남구",
-     "located": true,
-     "lat": 35.089,
-     "lon": 129.07,
-     "scene": "뉴스 장면 속 트레일러 주행(드론 촬영)"
-    },
-    {
-     "id": 17,
-     "name": "부산영화촬영스튜디오",
-     "gu": "해운대구",
-     "located": true,
-     "lat": 35.1585,
-     "lon": 129.1445,
-     "scene": "스카이라운지 식당·호텔방 세트 촬영"
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-CINE21-111092",
-     "provider": "씨네21",
-     "name": "부산의 장면들 #3 '부산, 감독: 윤종빈' <공작> 부산항국제여객터미널부터 부산항대교까지",
-     "base_date": "2026-10-26",
-     "url": "https://cine21.com/news/view/?mag_id=111092"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  },
-  "4": {
-   "id": 4,
-   "title": "군도: 민란의 시대",
-   "release_year": 2014,
-   "kind": "영화",
-   "genres": [
-    "액션",
-    "사극"
-   ],
-   "director": "윤종빈",
-   "location_count": 1,
-   "kmdb_matched": false,
-   "cast": [
-    "하정우",
-    "강동원"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 18,
-     "name": "아홉산숲",
-     "gu": "기장군",
-     "located": true,
-     "lat": 35.2958,
-     "lon": 129.151,
-     "scene": null
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-CINE21-111087",
-     "provider": "씨네21",
-     "name": "부산영상위원회 아카이브 총서 <부산의 장면들> #3 연재(군도: 민란의 시대 / 아홉산숲)",
-     "base_date": "2026-10-26",
-     "url": "https://cine21.com/news/view/?mag_id=111087"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  },
-  "2": {
-   "id": 2,
-   "title": "대외비",
-   "release_year": 2023,
-   "kind": "영화",
-   "genres": [
-    "범죄",
-    "드라마"
-   ],
-   "director": "이원태",
-   "location_count": 5,
-   "kmdb_matched": false,
-   "cast": [
-    "조진웅",
-    "이성민",
-    "김무열"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 10,
-     "name": "반여1동 주택가",
-     "gu": "해운대구",
-     "located": false,
-     "lat": null,
-     "lon": null,
-     "scene": null
-    },
-    {
-     "id": 11,
-     "name": "코모도호텔",
-     "gu": "중구",
-     "located": true,
-     "lat": 35.1103,
-     "lon": 129.0385,
-     "scene": null
-    },
-    {
-     "id": 7,
-     "name": "영주시민아파트",
-     "gu": "중구",
-     "located": true,
-     "lat": 35.114,
-     "lon": 129.034,
-     "scene": null
-    },
-    {
-     "id": 12,
-     "name": "봉래나루로",
-     "gu": "영도구",
-     "located": true,
-     "lat": 35.0915,
-     "lon": 129.042,
-     "scene": null
-    },
-    {
-     "id": 13,
-     "name": "가덕도 대항동 도로",
-     "gu": "강서구",
-     "located": true,
-     "lat": 35.004,
-     "lon": 128.828,
-     "scene": null
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-METRO-20230313",
-     "provider": "메트로신문",
-     "name": "부산영상위, 부산서 영화 촬영 시 최대 4000만원 지원",
-     "base_date": "2023-03-13",
-     "url": "https://www.metroseoul.co.kr/article/20230313500231"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  },
-  "1": {
-   "id": 1,
-   "title": "리바운드",
-   "release_year": 2023,
-   "kind": "영화",
-   "genres": [
-    "드라마",
-    "스포츠"
-   ],
-   "director": "장항준",
-   "location_count": 9,
-   "kmdb_matched": false,
-   "cast": [
-    "안재홍",
-    "이신영",
-    "정진운"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 1,
-     "name": "부산중앙고등학교",
-     "gu": "남구",
-     "located": false,
-     "lat": null,
-     "lon": null,
-     "scene": "주요 촬영지(학교 장면)"
-    },
-    {
-     "id": 2,
-     "name": "비석문화마을",
-     "gu": "서구",
-     "located": true,
-     "lat": 35.099,
-     "lon": 129.0145,
-     "scene": null
-    },
-    {
-     "id": 3,
-     "name": "구 동부산대학교",
-     "gu": "해운대구",
-     "located": true,
-     "lat": 35.2263,
-     "lon": 129.153,
-     "scene": null
-    },
-    {
-     "id": 4,
-     "name": "영도대교",
-     "gu": "영도구",
-     "located": true,
-     "lat": 35.0948,
-     "lon": 129.0368,
-     "scene": null
-    },
-    {
-     "id": 5,
-     "name": "온천천",
-     "gu": "동래구",
-     "located": true,
-     "lat": 35.2,
-     "lon": 129.083,
-     "scene": null
-    },
-    {
-     "id": 6,
-     "name": "충무동 새벽시장",
-     "gu": "서구",
-     "located": true,
-     "lat": 35.094,
-     "lon": 129.023,
-     "scene": "포장마차 거리로 꾸며 촬영"
-    },
-    {
-     "id": 7,
-     "name": "영주시민아파트",
-     "gu": "중구",
-     "located": true,
-     "lat": 35.114,
-     "lon": 129.034,
-     "scene": null
-    },
-    {
-     "id": 8,
-     "name": "대연 문화공원",
-     "gu": "남구",
-     "located": false,
-     "lat": null,
-     "lon": null,
-     "scene": null
-    },
-    {
-     "id": 9,
-     "name": "수영만 요트경기장",
-     "gu": "해운대구",
-     "located": true,
-     "lat": 35.164,
-     "lon": 129.135,
-     "scene": "농구 코트를 설치해 길거리 농구 장면 촬영"
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-METRO-20230406",
-     "provider": "메트로신문",
-     "name": "부산영상위원회, 지원 영화 '리바운드' 관객 3만명 동원 흥행 성공",
-     "base_date": "2023-04-06",
-     "url": "https://www.metroseoul.co.kr/article/20230406500189"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  },
-  "5": {
-   "id": 5,
-   "title": "신과함께-죄와 벌",
-   "release_year": 2017,
-   "kind": "영화",
-   "genres": [
-    "판타지",
-    "드라마"
-   ],
-   "director": "김용화",
-   "location_count": 1,
-   "kmdb_matched": false,
-   "cast": [
-    "하정우",
-    "차태현",
-    "주지훈"
-   ],
-   "synopsis": null,
-   "rating": null,
-   "poster_url": null,
-   "locations": [
-    {
-     "id": 19,
-     "name": "옛 해사고등학교",
-     "gu": "영도구",
-     "located": true,
-     "lat": 35.0755,
-     "lon": 129.076,
-     "scene": "토네이도 장면"
-    }
-   ],
-   "sources": [
-    {
-     "id": "SRC-FN-20180103",
-     "provider": "파이낸셜뉴스",
-     "name": "\"부산서 찍은 영화는 흥행\"...올해도 공식 이어간다",
-     "base_date": "2018-01-03",
-     "url": "https://www.fnnews.com/news/201801030900423529"
-    },
-    {
-     "id": "SRC-TEAM-WORK",
-     "provider": "15팀(하자제발)",
-     "name": "작품 기본 정보 수동 입력(KMDb 연동 전, 검증 필요)",
-     "base_date": "2026-10-30",
-     "url": ""
-    }
-   ],
-   "still_urls": [],
-   "trailer_url": null,
-   "kmdb_url": null
-  }
- }
 }

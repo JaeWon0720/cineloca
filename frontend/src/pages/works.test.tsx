@@ -54,15 +54,30 @@ describe('작품 상세 (UI-04)', () => {
     expect(screen.queryByText(/장항준/)).toBeNull()
   })
 
-  it('KMDb 작품은 감독·출연(최대 5명)·등급을 보이고, 값이 없으면 정보 없음으로 쓴다 (FR-103·107)', async () => {
+  it('KMDb 작품은 감독·출연(최대 5명)·관람등급(API-003)을 보인다 (FR-103·107)', async () => {
     renderAt('/works/6')
     expect(await screen.findByRole('heading', { level: 1, name: '1987' })).toBeTruthy()
     expect(screen.getByText('장준환')).toBeTruthy()
-    expect(screen.getByText('관람등급').nextElementSibling?.textContent).toBe('정보 없음')
+    await waitFor(() => expect(screen.getByText('관람등급').nextElementSibling?.textContent).toBe('15세이상관람가'))
     const cast = screen.getByText('출연').nextElementSibling?.textContent ?? ''
     expect(cast.split(', ').length).toBeLessThanOrEqual(5)
-    expect(screen.getByRole('img', { name: '1987 포스터' })).toBeTruthy() // 포스터가 없으면 기본 그림
     expect(screen.queryByRole('link', { name: '예고편 보기' })).toBeNull() // 예고편이 없으면 영역을 숨긴다
+  })
+
+  it('포스터·스틸은 보여 주지 않고 KMDb 원문 링크와 출처를 단다 (#58)', async () => {
+    const { container } = renderAt('/works/6')
+    expect(await screen.findByRole('heading', { level: 1, name: '1987' })).toBeTruthy()
+    expect(screen.queryByRole('img', { name: /포스터|스틸/ })).toBeNull()
+    expect(container.querySelector('img[src*="kmdb"]')).toBeNull()
+    const link = screen.getByRole('link', { name: /KMDb 원문 보기/ }) as HTMLAnchorElement
+    expect(link.href).toContain('kmdb.or.kr')
+    expect(screen.getAllByText(/KMDb\(공공누리 제1유형\)/).length).toBeGreaterThan(0)
+  })
+
+  it('관람등급이 없으면 정보 없음으로 쓴다 (FR-107)', async () => {
+    renderAt('/works/7')
+    expect(await screen.findByRole('heading', { level: 1, name: '강철비' })).toBeTruthy()
+    expect(screen.queryByText('관람등급')).toBeNull() // KMDb 미연결 작품은 작품명과 촬영지만
   })
 
   it('없는 작품은 오류를 보여 준다', async () => {

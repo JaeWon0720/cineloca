@@ -117,25 +117,6 @@
   font-size: 2rem;
 }
 
-.work-facts {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.poster-img {
-  flex: none;
-  width: 120px;
-  height: auto;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  border-radius: var(--radius);
-}
-
-.poster-img.photo-empty {
-  height: auto;
-}
-
 .facts {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -158,6 +139,38 @@
   gap: 2px;
 }
 
-.scene {
-  font-size: 0.875rem;
+
+.kmdb-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* UI-04 AI 작품 소개 */
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.intro-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.intro .sub,
+.intro p {
+  margin: 0;
+}
+
+.intro-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

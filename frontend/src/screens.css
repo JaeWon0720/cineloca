@@ -450,3 +450,108 @@ th:last-child {
     place-items: center;
   }
 }
+
+/* 'AI 생성' 표시 (FR-707) */
+.ai-badge {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--marquee);
+  border-radius: 4px;
+}
+
+/* 여러 화면이 함께 쓰는 칩·토글·글자 수 */
+.count {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.count.over {
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.chip-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+  background: var(--marquee-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip-btn:hover {
+  border-color: var(--marquee);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 12px;
+  font-size: 0.875rem;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 999px;
+}
+
+.chips button {
+  width: 28px;
+  height: 28px;
+  font: inherit;
+  color: #fff;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.chips button:hover {
+  background: rgb(255 255 255 / 0.15);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle.on {
+  font-weight: 600;
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.toggle:has(input:focus-visible) {
+  outline: 3px solid var(--marquee);
+  outline-offset: 2px;
+}
