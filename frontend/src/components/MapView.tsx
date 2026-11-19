@@ -156,6 +156,7 @@ function LeafletMap({ center, markers, path, radiusM, me, onSelect, height = 320
         .on('click', () => onSelect?.(mk.id))
       pts.push([mk.lat, mk.lon])
     }
+    m.invalidateSize() // 화면 폭에 따라 지도 높이가 CSS로 바뀌므로, 맞추기 전에 크기를 다시 잰다
     if (pts.length > 1 && !radiusM) m.fitBounds(L.latLngBounds(pts), { padding: [28, 28], maxZoom: 15 })
     else m.setView(center, radiusM && radiusM > 1000 ? 13 : 14)
   }, [center, markers, path, radiusM, me, onSelect])

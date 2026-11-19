@@ -1,0 +1,109 @@
+/* UI-05 AI 탐색 */
+.ask-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ask-form textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--text);
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ask-form textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.ask-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.asked {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ask-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.summary p {
+  margin: 0;
+}
+
+.choose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--marquee);
+  border-radius: var(--radius);
+}
+
+.choose p {
+  margin: 0;
+}
+
+.card.hit {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card.hit.active {
+  border-color: var(--ink);
+  box-shadow: inset 4px 0 0 var(--marquee);
+}
+
+.card.hit a {
+  color: inherit;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.filter-panel fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter-panel legend {
+  padding: 0 0 6px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}

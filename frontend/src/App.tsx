@@ -5,6 +5,7 @@ import './screens.css'
 import { UserLayout } from './layouts/UserLayout.tsx'
 import AdminPage from './pages/AdminPage.tsx'
 import AskPage from './pages/AskPage.tsx'
+import CourseDetailPage from './pages/CourseDetailPage.tsx'
 import CoursesPage from './pages/CoursesPage.tsx'
 import LocationDetailPage from './pages/LocationDetailPage.tsx'
 import MapPage from './pages/MapPage.tsx'
@@ -25,6 +26,8 @@ export default function App() {
         <Route path="works/:id" element={<WorkDetailPage />} />
         <Route path="ask" element={<AskPage />} />
         <Route path="courses" element={<CoursesPage />} />
+        <Route path="courses/saved/:key" element={<CourseDetailPage />} />
+        <Route path="courses/:id" element={<CourseDetailPage />} />
         <Route path="me" element={<MyRecordPage />} />
         <Route path="sources" element={<SourcesPage />} />
         <Route path="*" element={<NotFoundPage />} />

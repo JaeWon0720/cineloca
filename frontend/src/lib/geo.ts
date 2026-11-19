@@ -33,3 +33,5 @@ export function haversineM(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`)
 export const stationLabel = (s: string) => (s.endsWith('역') ? s : `${s}역`)
+/** 분을 '1시간 20분'처럼 읽기 쉽게 */
+export const fmtMin = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`)
