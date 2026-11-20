@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App.tsx'
-import { ApiError } from '../api/client.ts'
+import { api, ApiError } from '../api/client.ts'
 import { NOTICE_VERSION } from '../api/notice.ts'
 import { aiErrorMessage, queryErrorMessage } from '../lib/ai.ts'
 import { stampMessage } from '../lib/stamp.ts'
@@ -176,6 +176,29 @@ describe('코스 (UI-06·07, FR-401~406)', () => {
     expect(screen.getByText(/^출발 · /)).toBeTruthy()
     expect(screen.getAllByText(/^머무는 시간 30분$/).length).toBe(3)
     expect(screen.getAllByText(/걸어서 \d+분|도시철도 \d+분/).length).toBeGreaterThan(0)
+  })
+
+  it('저장한 추천 코스는 API-010으로 다시 받아 체류 시간을 지킨다', async () => {
+    const get = vi.spyOn(api, 'get')
+    const post = vi.spyOn(api, 'post')
+    const r = savedCourses.save({ title: '원도심 영화 골목 걷기', start: { type: 'location', id: '4' }, start_label: '영도대교', location_ids: [4, 6, 2], fixed_order: true, course_id: 1 })
+    renderAt(`/courses/saved/${r.ok ? r.key : ''}`)
+    expect(await screen.findByRole('heading', { level: 1, name: '원도심 영화 골목 걷기' })).toBeTruthy()
+    expect(screen.getAllByText(/^머무는 시간 30분$/).length).toBe(3)
+    expect(get.mock.calls.some(([path]) => path === '/courses/1')).toBe(true)
+    expect(post.mock.calls.some(([path]) => path === '/courses/plan')).toBe(false)
+    get.mockRestore()
+    post.mockRestore()
+  })
+
+  it('저장한 추천 코스가 없어졌으면(404) 저장한 순서로 다시 계산한다', async () => {
+    const post = vi.spyOn(api, 'post')
+    const r = savedCourses.save({ title: '없어진 코스', start: { type: 'location', id: '4' }, start_label: '영도대교', location_ids: [4, 6], fixed_order: true, course_id: 99 })
+    renderAt(`/courses/saved/${r.ok ? r.key : ''}`)
+    expect(await screen.findByRole('heading', { level: 1, name: '없어진 코스' })).toBeTruthy()
+    expect(screen.getAllByText(/^머무는 시간 \d+분$/).length).toBe(2)
+    expect(post.mock.calls.some(([path]) => path === '/courses/plan')).toBe(true)
+    post.mockRestore()
   })
 
   it('나만의 코스는 촬영지 2곳부터 만들 수 있다 (FR-403 경계)', async () => {

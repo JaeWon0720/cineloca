@@ -1,8 +1,9 @@
-// UI-07 코스 상세: 추천 코스(/courses/:id, API-010)와 저장한 코스(/courses/saved/:key, API-011로 다시 계산).
+// UI-07 코스 상세: 추천 코스(/courses/:id, API-010)와 저장한 코스(/courses/saved/:key).
 // 저장한 코스는 순서·출발지만 브라우저에 있고, 열 때마다 지금 데이터로 다시 계산한다(추천 코스와 같은 원칙, 정정표 11/18).
+// 저장한 추천 코스는 API-010으로 다시 받아 장소별 체류 시간을 지키고, 그 코스가 없어졌으면(404) API-011로 계산한다.
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { api } from '../api/client.ts'
+import { api, ApiError } from '../api/client.ts'
 import { THEME_LABEL, type CourseDetail, type CoursePlan, type StartIn } from '../api/courses.ts'
 import { CourseView } from '../components/CourseView.tsx'
 import { BackLink, ErrorBox, Loading } from '../components/common.tsx'
@@ -25,6 +26,14 @@ export default function CourseDetailPage() {
       if (key) {
         const c = savedCourses.get(key)
         if (!c) throw new Error('저장한 코스를 찾지 못했어요. 브라우저 데이터를 지웠다면 다시 만들어 주세요.')
+        if (c.course_id != null) {
+          try {
+            const d = await api.get<CourseDetail>(`/courses/${c.course_id}`)
+            return { plan: d, title: c.title, start: { type: 'location' as const, id: String(d.stops[0]?.id ?? '') }, courseId: d.id, theme: THEME_LABEL[d.theme] }
+          } catch (e) {
+            if (!(e instanceof ApiError && e.status === 404)) throw e
+          }
+        }
         let start = c.start
         if (start.type === 'current') {
           const p = await getPosition()

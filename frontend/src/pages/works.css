@@ -53,7 +53,7 @@
   text-decoration: none;
 }
 
-/* 포스터 자리: 포스터를 받기 전까지 제목을 극장 간판처럼 세운다 */
+/* 포스터 자리: 포스터·스틸은 보여 주지 않으므로(#58) 제목을 극장 간판처럼 세운다 */
 .poster {
   position: relative;
   display: flex;
