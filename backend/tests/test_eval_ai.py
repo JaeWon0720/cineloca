@@ -117,10 +117,22 @@ def test_c1_sample_has_50_rows_without_plot():
     assert all(r["check"] in ("", "정답", "오답", "모름") for r in rows)
 
 
-def test_r3_set_is_marked_examples():
+def test_f1_set_has_30_works_two_levels():
+    # R3 F1 AI 작품 소개 평가셋: 작품 30편 × 스포일러 2단계(계획서 18.3)
     items = load_jsonl(EVAL_DIR / "f1_works.jsonl")
-    assert len(items) == 3
-    assert all(x.get("example") is True for x in items)
+    assert len(items) == 30
+    assert len({x["id"] for x in items}) == 30
+    assert len({x["work_id"] for x in items}) == 30
+    assert not any(x.get("example") for x in items)
+    for x in items:
+        assert x["levels"] == ["none", "partial"], x["id"]
+        assert x["kmdb_id"], x["id"]  # AI 소개는 KMDb 연결 작품만(FR-108)
+        for level in x["levels"]:
+            score = x["scores"][level]
+            assert set(score) == {"A", "B", "agreed"}, x["id"]
+            assert set(score["A"]) == {"fact_errors", "spoiler_violation"}, x["id"]
+        # KMDb 줄거리는 넣지 않는다
+        assert not any("plot" in k or "줄거리" in k for k in x), x["id"]
 
 
 def test_no_removed_course_preference_set():

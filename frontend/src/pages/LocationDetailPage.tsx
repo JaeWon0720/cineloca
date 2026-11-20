@@ -1,8 +1,11 @@
-// UI-02 촬영지 상세 (F2, UC-04): 주소·가까운 역·촬영 작품·주의 안내·길찾기 (FR-207~210)
+// UI-02 촬영지 상세 (F2, UC-04): 주소·가까운 역·촬영 작품·주의 안내·길찾기 (FR-207~210), 방문 인증 (F5, FR-501~506)
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../api/client.ts'
-import type { Caution, CertExcludedReason, LocationDetail } from '../api/locations.ts'
+import type { Caution, LocationDetail } from '../api/locations.ts'
+import type { VerifyResponse } from '../api/stamps.ts'
+import { StampButton } from '../components/StampButton.tsx'
+import { tokens } from '../lib/wallet.ts'
 import { Photo } from '../components/Photo.tsx'
 import MapView from '../components/MapView.tsx'
 import { BackLink, ErrorBox, Loading, Sources } from '../components/common.tsx'
@@ -16,18 +19,13 @@ const CAUTION: Record<Caution, string> = {
   school: '학교예요. 외부에서만 관람해 주세요.',
 }
 
-const EXCLUDED: Record<CertExcludedReason, string> = {
-  no_coordinates: '위치를 확인하지 못한 곳이라 방문 인증 대상이 아니에요.',
-  private: '사유지·영업 시설이라 방문 인증 대상이 아니에요.',
-  residential: '주거지라 방문 인증 대상이 아니에요.',
-  school: '학교라 방문 인증 대상이 아니에요.',
-  excluded: '방문 인증 대상이 아닌 곳이에요.',
-}
 
 export default function LocationDetailPage() {
   const { id = '' } = useParams()
   const [d, setD] = useState<LocationDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [doneId, setDoneId] = useState<string | null>(null) // 인증한 촬영지(다른 촬영지로 옮기면 자연히 false)
+  const done = doneId === id
 
   useEffect(() => {
     let alive = true
@@ -35,6 +33,13 @@ export default function LocationDetailPage() {
       .get<LocationDetail>(`/locations/${id}`)
       .then((x) => alive && setD(x))
       .catch((e: Error) => alive && setError(e.message))
+    // 이미 인증했는지는 브라우저에 있는 토큰을 서버가 확인해 알려 준다(API-017)
+    const held = tokens.all()
+    if (held.length)
+      api
+        .post<VerifyResponse>('/stamps/verify', { tokens: held })
+        .then((v) => alive && v.valid.some((x) => String(x.location.id) === id) && setDoneId(id))
+        .catch(() => null)
     return () => {
       alive = false
     }
@@ -99,11 +104,7 @@ export default function LocationDetailPage() {
           카카오맵 길찾기
         </a>
       )}
-      <p className="cert-note">
-        {d.cert.eligible
-          ? `방문 인증 대상이에요(반경 ${d.cert.radius_m}m 안). 인증 기능은 준비 중입니다.`
-          : EXCLUDED[d.cert.excluded_reason ?? 'excluded']}
-      </p>
+      <StampButton locationId={d.id} cert={d.cert} done={done} onStamped={() => setDoneId(id)} />
 
       <h2 className="sub">이곳에서 찍은 작품 {d.works.length}편</h2>
       <ul className="list">

@@ -1,8 +1,8 @@
 // ApiClient (COMP-01): 모든 요청에 X-Session-Id(탭마다 무작위)를 붙이고,
 // AI 요청에는 사용자가 확인한 이용 안내 버전(X-Notice-Version, FR-701)을 붙인다.
 //
-// 백엔드 API가 아직 없어서 기본값은 목업 모드다. 프론트만 띄워도 모든 화면이 동작한다.
-// 백엔드가 준비되면 .env에 VITE_API_MOCK=false 를 넣는다(그러면 /api 로 실제 요청).
+// 기본값은 목업 모드다. 프론트만 띄워도 모든 화면이 동작한다.
+// 실제 백엔드에 붙일 때는 루트 .env에 VITE_API_MOCK=false 를 넣는다(그러면 /api 로 실제 요청).
 import { store } from '../lib/storage.ts'
 
 export { NOTICE_VERSION } from './notice.ts'
@@ -57,8 +57,8 @@ async function send(req: ApiRequest): Promise<ApiResponse> {
   return { status: res.status, data: await res.json().catch(() => ({})) }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'X-Session-Id': sessionId() }
+async function request<T>(method: string, path: string, body?: unknown, extra?: Record<string, string>): Promise<T> {
+  const headers: Record<string, string> = { 'X-Session-Id': sessionId(), ...extra }
   const notice = store.get<string>('notice')
   if (notice) headers['X-Notice-Version'] = notice
   let res: ApiResponse
@@ -76,8 +76,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return res.data as T
 }
 
+/** 제한 시간 안에 끝나지 않으면 null을 돌려준다(FR-107: 관람등급은 3초 안에 안 오면 등급 없이 보여 준다). */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))])
+}
+
 export const api = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body: unknown) => request<T>('POST', path, body),
-  del: <T>(path: string) => request<T>('DELETE', path),
+  get: <T>(path: string, headers?: Record<string, string>) => request<T>('GET', path, undefined, headers),
+  post: <T>(path: string, body: unknown, headers?: Record<string, string>) => request<T>('POST', path, body, headers),
+  del: <T>(path: string, headers?: Record<string, string>) => request<T>('DELETE', path, undefined, headers),
 }
