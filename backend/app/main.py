@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from app import __version__
 from app.api.errors import install_error_handlers
 from app.api.request_log import DailyJsonlWriter, RequestLogMiddleware
-from app.api.routers import amenities, courses, health, locations, meta, stamps, works
+from app.api.routers import amenities, courses, health, locations, meta, query, stamps, works
 from app.core.config import Settings, get_settings
 from app.data import db
 from app.support.privacy import install_privacy_log_filter
@@ -55,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(works.router, prefix="/api")
     app.include_router(amenities.router, prefix="/api")
     app.include_router(courses.router, prefix="/api")
+    app.include_router(query.router, prefix="/api")
     return app
 
 
