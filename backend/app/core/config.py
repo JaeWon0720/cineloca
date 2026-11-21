@@ -17,6 +17,7 @@ class Settings:
     tour_api_key: str | None = (
         None  # 공공데이터포털 키(TourAPI 주변 시설, FR-414). 비우면 시설 검색만 실패
     )
+    admin_password_hash: str | None = None  # 관리자 비밀번호 해시(FR-615). 비우면 관리 API만 503
 
 
 def _flag(name: str) -> bool:
@@ -32,4 +33,5 @@ def get_settings() -> Settings:
         geocode_kakao_keyword=_flag("GEOCODE_KAKAO_KEYWORD"),
         stamp_signing_key=os.getenv("STAMP_SIGNING_KEY") or None,
         tour_api_key=os.getenv("DATA_GO_KR_SERVICE_KEY") or None,
+        admin_password_hash=(os.getenv("ADMIN_PASSWORD_HASH") or "").strip() or None,
     )
