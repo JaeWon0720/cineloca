@@ -12,6 +12,7 @@ import asyncpg
 import pytest
 
 from app.services.query_service import AnchorFilter, Filters, Ref, SearchPage, TravelFilter
+from app.services.source_cards import source_cards
 from app.services.template_searcher import TemplateSearcher
 
 DSN = os.environ.get("CINELOCA_TEST_DATABASE_URL")
@@ -209,5 +210,25 @@ def test_t4_works_by_location_count() -> None:
         assert page.rows[1].source_ids == ("DATA-01", "DATA-02")
         page = await s.search_works(Filters(districts=("수영구",), persons=(MA,)), limit=1)
         assert (page.total, [w.title for w in page.rows]) == (1, ["범죄도시"])
+
+    run(body)
+
+
+def test_hit_source_ids_turn_into_source_cards() -> None:
+    """F3 응답 sources(FR-704): 결과의 출처 ID를 출처 대장의 제공기관·데이터명·링크로 바꾼다."""
+
+    async def body(s: TemplateSearcher) -> None:
+        page = await find(s, works=(Ref("3", "해운대"),))
+        used = {sid for h in page.hits for sid in h.source_ids}
+        assert {"DATA-01", "DATA-02"} <= used
+        cards = await source_cards(used, connect=s._connect)
+        assert [c["id"] for c in cards] == ["DATA-01", "DATA-02"]  # 대장에 없는 ID는 빠진다
+        assert cards[1] == {
+            "id": "DATA-02",
+            "provider": "시험",
+            "name": "씨네맵",
+            "base_date": None,
+            "url": "https://example.org/2",
+        }
 
     run(body)
