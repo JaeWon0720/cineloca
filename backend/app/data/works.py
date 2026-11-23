@@ -15,9 +15,11 @@ import asyncpg
 
 MAX_CAST = 5  # FR-103: 주요 출연진 최대 5명
 
+# 한글 이름순은 코드값 순서(COLLATE "C")로 정렬한다. 한글 음절 코드값은 가나다순과 같고,
+# DB 기본 정렬 규칙(docker 이미지의 en_US.utf8)에 따라 순서가 바뀌지 않게 한다.
 _ORDER = {
-    "title": "w.title_norm, w.id",
-    "year": "w.release_year DESC NULLS LAST, w.title_norm, w.id",
+    "title": 'w.title_norm COLLATE "C", w.id',
+    "year": 'w.release_year DESC NULLS LAST, w.title_norm COLLATE "C", w.id',
     "locations": "location_count DESC, w.release_year DESC NULLS LAST, w.id",
 }
 _COLS = """
@@ -144,7 +146,7 @@ async def get(conn: asyncpg.Connection, work_id: int) -> WorkDetailRow | None:
     shots = await conn.fetch(
         "SELECT l.id, l.name, l.gu, l.lat, l.lon, array_agg(s.source_id) AS source_ids"
         " FROM shooting s JOIN location l ON l.id = s.location_id WHERE s.work_id = $1"
-        " GROUP BY l.id ORDER BY (l.lat IS NULL), l.name_norm, l.id",
+        ' GROUP BY l.id ORDER BY (l.lat IS NULL), l.name_norm COLLATE "C", l.id',
         work_id,
     )
     kmdb = r["kmdb"]
