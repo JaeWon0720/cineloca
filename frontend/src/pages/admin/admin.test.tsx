@@ -262,4 +262,3 @@ describe('UI-11 촬영지 속성 편집 (API-023, FR-610, BR-06·07)', () => {
     expect(await screen.findByRole('heading', { level: 2, name: /온천천/ })).toBeTruthy()
   })
 })
-
