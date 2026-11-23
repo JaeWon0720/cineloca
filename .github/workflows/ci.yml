@@ -37,6 +37,79 @@ jobs:
       - name: 테스트 (pytest)
         run: python -m pytest
 
+  backend-db:
+    name: backend DB 테스트
+    # PostgreSQL(pgvector)에 db/init 스키마를 올리고, 평소엔 건너뛰던 DB 테스트까지 모두 돌린다(#115, NFR-016)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: cineloca
+          POSTGRES_PASSWORD: ci-only-password     # CI 테스트 DB용 임시 값(실제 비밀값 아님)
+          POSTGRES_DB: cineloca_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cineloca -d cineloca_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      CINELOCA_TEST_DATABASE_URL: postgresql://cineloca:ci-only-password@localhost:5432/cineloca_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: 패키지 설치
+        run: pip install -r requirements-dev.txt
+      - name: 스키마 적재 (db/init)
+        run: |
+          for f in ../db/init/*.sql; do
+            psql "$CINELOCA_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+      - name: 테스트 (DB 포함)
+        run: |
+          set -o pipefail
+          python -m pytest -rs | tee pytest.log
+          # DB가 없어서 건너뛴 테스트가 있으면 실패로 본다
+          if grep -q "CINELOCA_TEST_DATABASE_URL 없음" pytest.log; then
+            echo "DB 테스트가 건너뛰어졌습니다"; exit 1
+          fi
+
+  contract:
+    name: 화면↔API 계약 대조
+    # 화면 목업 응답(화면 타입 기준)을 백엔드 응답 스키마에 대 본다(#115). 어긋나면 담당자에게 이슈로
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: 패키지 설치
+        run: |
+          (cd frontend && npm ci)
+          (cd backend && pip install -r requirements-dev.txt)
+      - name: 화면 목업 응답 모으기
+        working-directory: frontend
+        run: CONTRACT_OUT="$GITHUB_WORKSPACE/contract-mocks.json" npx vitest run src/contract
+      - name: 백엔드 스키마와 대조
+        working-directory: backend
+        run: CONTRACT_MOCKS="$GITHUB_WORKSPACE/contract-mocks.json" python -m pytest tests/test_contract_mocks.py -v
+
   frontend:
     name: frontend
     runs-on: ubuntu-latest
