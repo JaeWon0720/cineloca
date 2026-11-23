@@ -1,6 +1,7 @@
-// F3 AI 대화형 탐색 API 타입 (API-013~015, FR-301~312) — 초안.
-// 백엔드 브랜치 feature/65-f4-query-api의 app/api/schemas/query.py를 옮겼다. main에 들어오면 다시 맞춘다.
+// F3 AI 대화형 탐색 API 타입 (API-013~015, FR-301~312).
+// 백엔드 app/api/schemas/query.py(#105)와 같게 둔다.
 import type { BasePoint } from './locations.ts'
+import type { SourceCard } from './types.ts'
 
 export const QUERY_MAX = 200 // FR-301: 200자 이내
 
@@ -53,6 +54,8 @@ export type SearchResponse = {
   total: number
   hits: Hit[] // 20건까지(FR-306)
   filter_panel: Filters | null
+  /** hits에 쓰인 출처 카드. 결과마다 source_ids로 골라 붙인다(FR-704) */
+  sources: SourceCard[]
 }
 
 /** API-013 응답 */

@@ -1,6 +1,6 @@
 // UI-09 데이터 출처·이용 안내 (UC-13, FR-705)
 import { useEffect, useState } from 'react'
-import { api } from '../api/client.ts'
+import { api, ApiError } from '../api/client.ts'
 import type { SourcesInfo } from '../api/types.ts'
 import { ErrorBox } from '../components/common.tsx'
 import { useNotice } from '../lib/notice.ts'
@@ -16,7 +16,10 @@ export default function SourcesPage() {
     api
       .get<SourcesInfo>('/sources')
       .then(setD)
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) =>
+        // API-019(#111)가 서버에 아직 없으면 404가 온다
+        setError(e instanceof ApiError && e.status === 404 ? '데이터 출처 정보가 아직 서버에 준비되지 않았어요. 각 결과의 출처 카드에서 제공기관과 원문 링크를 볼 수 있어요.' : e.message),
+      )
   }, [])
 
   return (

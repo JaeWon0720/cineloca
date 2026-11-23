@@ -108,6 +108,19 @@ describe('AI 탐색 (UI-05, FR-301~312)', () => {
     expect(screen.getByRole('heading', { name: /촬영지 \d+곳/ })).toBeTruthy()
   })
 
+  it('결과마다 그 촬영지의 출처 카드를 붙인다 (FR-704)', async () => {
+    renderAt('/ask')
+    fireEvent.change(await screen.findByRole('textbox', { name: '질문' }), { target: { value: '해운대에서 찍은 영화 알려 줘' } })
+    fireEvent.click(screen.getByRole('button', { name: '묻기' }))
+    const list = await screen.findByRole('list', { name: '검색 결과' }).catch(() => screen.getAllByRole('list').find((l) => l.querySelector('.hit'))!)
+    const cards = within(list).getAllByRole('article')
+    expect(cards.length).toBeGreaterThan(0)
+    for (const c of cards) {
+      expect(within(c).getByText(/^출처 \d+건$/)).toBeTruthy()
+      expect(within(c).getAllByRole('link').some((a) => a.getAttribute('target') === '_blank')).toBe(true)
+    }
+  })
+
   it('칩을 지우면 그 조건을 뺀 결과를 다시 보여 준다 (FR-312)', async () => {
     renderAt('/ask')
     fireEvent.change(await screen.findByRole('textbox', { name: '질문' }), { target: { value: '해운대에서 찍은 영화' } })
