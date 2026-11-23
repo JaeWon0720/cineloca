@@ -13,12 +13,12 @@
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 import pytest
-from fastapi.routing import APIRoute
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.main import app
 
@@ -32,11 +32,39 @@ def _cases() -> list[dict[str, Any]]:
     return json.loads(Path(FILE).read_text(encoding="utf-8"))
 
 
-def _route(method: str, path: str) -> APIRoute:
+def _models() -> dict[str, type[BaseModel]]:
+    """OpenAPI 스키마 이름 → pydantic 모델. 앱을 불러오면 모든 응답 모델이 정의돼 있다."""
+    found: dict[str, type[BaseModel]] = {}
+    todo = list(BaseModel.__subclasses__())
+    while todo:
+        cls = todo.pop()
+        found.setdefault(cls.__name__, cls)
+        todo += cls.__subclasses__()
+    return found
+
+
+def _response_model(method: str, path: str) -> type[BaseModel] | None:
+    """OpenAPI 문서에서 이 요청의 성공 응답 모델을 찾는다.
+
+    FastAPI 버전마다 app.routes 구조가 달라서(0.16x는 라우터를 감싼다) 라우트 대신
+    버전과 상관없는 OpenAPI 문서를 기준으로 찾는다.
+    """
     full = "/api" + path.split("?")[0]
-    for r in app.routes:
-        if isinstance(r, APIRoute) and method in r.methods and r.path_regex.match(full):
-            return r
+    for tmpl, ops in app.openapi()["paths"].items():
+        if not re.fullmatch(re.sub(r"\{[^}]+\}", "[^/]+", tmpl), full):
+            continue
+        op = ops.get(method.lower())
+        if op is None:
+            continue
+        for code in ("200", "201", "202"):
+            schema = op.get("responses", {}).get(code, {}).get("content", {})
+            schema = schema.get("application/json", {}).get("schema")
+            if schema and "$ref" in schema:
+                name = schema["$ref"].split("/")[-1]
+                model = _models().get(name)
+                assert model is not None, f"{method} {full}: 응답 모델 {name}을 찾지 못했습니다"
+                return model
+        return None
     raise AssertionError(f"{method} {full}: 백엔드에 이 API가 없습니다")
 
 
@@ -72,12 +100,15 @@ def extra_keys(data: Any, schema: dict, defs: dict, at: str = "$") -> list[str]:
     return found
 
 
-@pytest.mark.parametrize("case", _cases(), ids=lambda c: c["name"])
+CASES = _cases()
+
+
+@pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
 def test_mock_response_matches_backend_schema(case: dict[str, Any]) -> None:
-    route = _route(case["method"], case["path"])
-    if route.response_model is None:
+    model = _response_model(case["method"], case["path"])
+    if model is None:
         return
-    adapter = TypeAdapter(route.response_model)
+    adapter = TypeAdapter(model)
     try:
         adapter.validate_python(case["data"])
     except ValidationError as e:
