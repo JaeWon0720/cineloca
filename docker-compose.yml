@@ -38,6 +38,7 @@ services:
       STAMP_SIGNING_KEY: ${STAMP_SIGNING_KEY:-}   # F5 서명 키(ADR-009). 비우면 방문 인증만 503
       DATA_GO_KR_SERVICE_KEY: ${DATA_GO_KR_SERVICE_KEY:-}   # TourAPI 주변 시설(FR-414). 응답은 저장 안 함
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}   # 관리자 비밀번호 해시(FR-615). 비우면 관리 API만 503
+      SYNC_INTERVAL_DAYS: ${SYNC_INTERVAL_DAYS:-7}   # 관리자 화면에 보여 줄 정기 동기화 주기(FR-616)
       LOG_DIR: /app/logs                   # 요청 로그(NFR-005), 7일 보관
     volumes:
       - api-logs:/app/logs                 # 재빌드해도 요청 로그가 7일 남게(#39 리뷰)
@@ -52,6 +53,27 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # C1 배치 감시(API-021, FR-616, ADR-012): 관리자 동기화 요청을 1분 안에 실행하고 정기 동기화를 돌린다.
+  # 외부 API를 부르므로 기본으로는 켜지 않는다. 켜기: docker compose --profile batch up -d batch
+  batch:
+    build: ./backend
+    profiles: ["batch"]
+    restart: unless-stopped
+    command: ["python", "-m", "app.batch", "--watch"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cineloca}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 값을 .env에 넣어 주세요}@db:5432/${POSTGRES_DB:-cineloca}
+      DATA_GO_KR_SERVICE_KEY: ${DATA_GO_KR_SERVICE_KEY:-}
+      KMDB_SERVICE_KEY: ${KMDB_SERVICE_KEY:-}
+      JUSO_SEARCH_API_KEY: ${JUSO_SEARCH_API_KEY:-}
+      JUSO_COORD_API_KEY: ${JUSO_COORD_API_KEY:-}
+      KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:-}
+      GEOCODE_KAKAO_KEYWORD: ${GEOCODE_KAKAO_KEYWORD:-false}
+      SYNC_INTERVAL_DAYS: ${SYNC_INTERVAL_DAYS:-7}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
     build: ./frontend                      # frontend/Dockerfile (빌드 후 nginx)

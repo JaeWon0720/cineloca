@@ -1,4 +1,7 @@
 """C1 배치 실행: backend 폴더에서 python -m app.batch --once [--out 결과.json]
+감시 실행(API-021, FR-616): python -m app.batch --watch
+  1분마다 관리자 수동 요청(sync_run 'requested')을 가져가 실행하고, 요청이 없으면
+  SYNC_INTERVAL_DAYS(기본 7일, 0이면 끔)마다 정기 동기화를 돌린다(ADR-012: API와는 DB로만 통신).
 
 환경변수 이름은 저장소 루트 .env.example과 같다. 저장소 루트 .env가 있으면 읽는다
 (scripts/ai_smoke.py와 같음, 이미 있는 환경변수는 덮지 않음). 다른 파일은 --env-file로 준다.
@@ -9,7 +12,7 @@
         키가 없으면 그 좌표만 비워 두고 계속한다.
   매칭: KMDB_SERVICE_KEY. 없으면 KMDB_CSV_PATH('영화기본정보' CSV)로 매칭한다.
   선택: JUSO_BASE_URL(주소 API 주소를 바꿀 때)
-정기 실행(FR-616)은 아직 없고 --once 수동 실행만 한다.
+--once는 지금 한 번만 돌고 끝난다(관리자 요청과 상관없음).
 
 AI 제안(FR-608, 선택): --ai-review를 주면 반영이 성공한 뒤 태그 없는 촬영지와 검수 대기 작품에
 AI 제안을 받아 검수 큐에 '미검수'로 넣는다. 공급자는 AI_PROVIDER(로컬 모델이 있는 곳에서
@@ -29,6 +32,7 @@ import os
 import re
 import sys
 from collections.abc import MutableMapping
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import asyncpg
@@ -36,7 +40,7 @@ import httpx
 
 from app.batch import job, kmdb
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
-from app.data import db
+from app.data import db, sync_runs
 from app.data.ai_gateway.factory import AISettings, build_llm_client
 from app.data.ai_gateway.store import PgUsageCounter
 from app.support.privacy import install_privacy_log_filter
@@ -47,6 +51,8 @@ _TRUE = ("1", "true", "yes", "on")
 _COMMENT = re.compile(r"(?:^|\s)#")
 ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 ENV_HINT = "저장소 루트의 .env.example을 복사해 .env를 만들고 값을 채우세요"
+POLL_S = 60  # 관리자 요청 확인 주기(ADR-012: 수동 동기화가 최대 1분 늦게 시작)
+DEFAULT_INTERVAL_DAYS = 7  # FR-616 기본 주 1회
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -121,12 +127,13 @@ def build_ai(env: MutableMapping[str, str] = os.environ):
     return build_llm_client(settings, usage=PgUsageCounter())  # Gemini 하루 한도를 지킨다
 
 
-async def main(
-    trigger: str, out: Path | None, ai_review: bool = False, ai_tag_limit: int | None = None
-) -> int:
-    if names := missing():
-        print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
-        return 2
+async def sync_once(
+    trigger: str,
+    run_id: int | None = None,
+    ai_review: bool = False,
+    ai_tag_limit: int | None = None,
+) -> dict:
+    """동기화 한 번. run_id가 있으면 관리자 요청으로 잡아 둔 기록을 이어 쓴다."""
     async with httpx.AsyncClient() as http:
         clients = build_clients(http)
         if ai_review:
@@ -134,18 +141,79 @@ async def main(
             clients.ai_tag_limit = ai_tag_limit
         conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
         try:
-            run_id, counts, stats = await job.run(conn, clients, trigger)
+            run_id, counts, stats = await job.run(conn, clients, trigger, run_id)
             status = await conn.fetchval("SELECT status FROM sync_run WHERE id = $1", run_id)
         finally:
             await conn.close()
             if ai_review:
                 await db.close_pool()  # AI 호출 수 집계(PgUsageCounter)가 연 풀을 닫는다(#92 리뷰)
-    result = {
+    return {
         "run_id": run_id,
         "status": status,
         "counts": counts.model_dump(),
         "stats": stats.__dict__,
     }
+
+
+def interval_days(env: MutableMapping[str, str] = os.environ) -> int:
+    """SYNC_INTERVAL_DAYS(일). 0이면 정기 실행 끔, 비었거나 틀리면 기본 7일."""
+    raw = _env(env, "SYNC_INTERVAL_DAYS")
+    if not raw:
+        return DEFAULT_INTERVAL_DAYS
+    if raw.isdigit():
+        return int(raw)
+    log.warning("SYNC_INTERVAL_DAYS 값이 숫자가 아니라 %d일로 둡니다", DEFAULT_INTERVAL_DAYS)
+    return DEFAULT_INTERVAL_DAYS
+
+
+def schedule_due(last_started: datetime | None, now: datetime, days: int) -> bool:
+    """정기 동기화를 돌릴 때인지(FR-616). 수동 실행도 마지막 실행으로 친다."""
+    return days > 0 and (last_started is None or now - last_started >= timedelta(days=days))
+
+
+async def next_job(conn: asyncpg.Connection, days: int, now: datetime) -> tuple[str, int | None]:
+    """이번에 할 일: ('manual', run_id) · ('schedule', None) · ('idle', None)."""
+    if await sync_runs.fail_stale(conn):
+        log.warning("멈춘 동기화 기록을 실패로 닫았습니다")
+    run_id = await sync_runs.claim_requested(conn)
+    if run_id is not None:
+        return "manual", run_id
+    if schedule_due(await sync_runs.last_started_at(conn), now, days):
+        return "schedule", None
+    return "idle", None
+
+
+async def watch(ai_review: bool = False, ai_tag_limit: int | None = None) -> int:
+    """관리자 요청·정기 실행을 기다리며 계속 돈다(Ctrl+C로 끝)."""
+    if names := missing():
+        print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    days = interval_days()
+    log.info("동기화 감시 시작: 요청 확인 %d초마다, 정기 %s", POLL_S, f"{days}일" if days else "끔")
+    while True:
+        try:
+            conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
+            try:
+                kind, run_id = await next_job(conn, days, datetime.now(timezone.utc))
+            finally:
+                await conn.close()
+            if kind != "idle":
+                log.info("동기화 시작(%s)", "관리자 요청" if kind == "manual" else "정기")
+                result = await sync_once(kind, run_id, ai_review, ai_tag_limit)
+                log.info("동기화 %s 결과: %s", result["run_id"], result["status"])
+        except Exception:  # 한 번 실패해도 감시는 계속한다. 실패는 sync_run에 남는다
+            log.exception("동기화 중 오류가 났습니다")
+        await asyncio.sleep(POLL_S)
+
+
+async def main(
+    trigger: str, out: Path | None, ai_review: bool = False, ai_tag_limit: int | None = None
+) -> int:
+    if names := missing():
+        print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    result = await sync_once(trigger, None, ai_review, ai_tag_limit)
+    status = result["status"]
     text = json.dumps(result, ensure_ascii=False, indent=1)
     print(text)
     if out:
@@ -158,7 +226,11 @@ def cli(argv: list[str] | None = None) -> int:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="python -m app.batch")
-    p.add_argument("--once", action="store_true", required=True, help="동기화 한 번 실행")
+    mode = p.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--once", action="store_true", help="동기화 한 번 실행")
+    mode.add_argument(
+        "--watch", action="store_true", help="관리자 요청·정기 동기화를 기다리며 계속 실행"
+    )
     p.add_argument("--trigger", choices=["manual", "schedule"], default="manual")
     p.add_argument("--env-file", type=Path, help="KEY=값 파일. 없으면 저장소 루트 .env")
     p.add_argument("--out", type=Path, help="결과 JSON을 UTF-8 파일로도 저장")
@@ -171,6 +243,11 @@ def cli(argv: list[str] | None = None) -> int:
     if (env_file := a.env_file or ROOT_ENV).is_file():
         load_env_file(env_file)
     setup_logging(_env(os.environ, "LOG_LEVEL") or "INFO")
+    if a.watch:
+        try:
+            return asyncio.run(watch(a.ai_review, a.ai_tag_limit))
+        except KeyboardInterrupt:
+            return 0
     return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit))
 
 

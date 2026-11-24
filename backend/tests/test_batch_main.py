@@ -80,3 +80,30 @@ def test_setup_logging_hides_keys_and_quiets_httpx(capsys) -> None:
     assert "pageNo=1" in err and "confmKey=" in err
     assert "SECRET1" not in err and "SECRET2" not in err
     assert "이 줄은 남지 않는다" not in err
+
+
+def test_interval_days_and_schedule_due(caplog) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from app.batch.__main__ import interval_days, schedule_due
+
+    assert interval_days({}) == 7  # FR-616 기본 주 1회
+    assert interval_days({"SYNC_INTERVAL_DAYS": "0"}) == 0
+    assert interval_days({"SYNC_INTERVAL_DAYS": "3"}) == 3
+    with caplog.at_level(logging.WARNING, logger="app.batch"):
+        assert interval_days({"SYNC_INTERVAL_DAYS": "weekly"}) == 7
+    assert "SYNC_INTERVAL_DAYS" in caplog.text
+
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+    assert schedule_due(None, now, 7)
+    assert not schedule_due(now - timedelta(days=6, hours=23), now, 7)
+    assert schedule_due(now - timedelta(days=7), now, 7)
+    assert not schedule_due(None, now, 0)
+
+
+def test_cli_watch_also_checks_env(monkeypatch, capsys, tmp_path) -> None:
+    for name in ("DATABASE_URL", "DATA_GO_KR_SERVICE_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(batch_main, "ROOT_ENV", tmp_path / "no-root.env")
+    assert cli(["--watch"]) == 2
+    assert "DATABASE_URL" in capsys.readouterr().err

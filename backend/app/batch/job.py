@@ -223,10 +223,12 @@ def _locations(m: Merged, coords: dict[str, tuple], sts: list[stations.Station])
 
 
 async def run(
-    conn: asyncpg.Connection, c: Clients, trigger: str = "manual"
+    conn: asyncpg.Connection, c: Clients, trigger: str = "manual", run_id: int | None = None
 ) -> tuple[int, SyncCounts, Stats]:
+    """동기화 한 번. run_id를 주면 관리자 요청으로 이미 'running'이 된 기록을 이어 쓴다(API-021)."""
     t0 = time.monotonic()
-    run_id = await sync_runs.start(conn, trigger)
+    if run_id is None:
+        run_id = await sync_runs.start(conn, trigger)
     failures: list[Failure] = []
     counts = SyncCounts()
     try:
