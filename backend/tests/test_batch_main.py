@@ -107,3 +107,11 @@ def test_cli_watch_also_checks_env(monkeypatch, capsys, tmp_path) -> None:
     monkeypatch.setattr(batch_main, "ROOT_ENV", tmp_path / "no-root.env")
     assert cli(["--watch"]) == 2
     assert "DATABASE_URL" in capsys.readouterr().err
+
+
+def test_cli_tags_only_needs_only_database_url(monkeypatch, capsys, tmp_path) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(batch_main, "ROOT_ENV", tmp_path / "no-root.env")
+    assert cli(["--tags-only"]) == 2
+    err = capsys.readouterr().err
+    assert "DATABASE_URL" in err and "DATA_GO_KR_SERVICE_KEY" not in err  # 외부 API 키는 필요 없음
