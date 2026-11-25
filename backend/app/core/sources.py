@@ -22,7 +22,7 @@ RUNTIME_SOURCES: tuple[dict[str, str | None], ...] = (
     {
         "id": "DATA-13",
         "provider": "한국관광공사",
-        "name": "TourAPI 위치기반 관광정보(음식점·숙박)",
+        "name": "TourAPI 국문 관광정보(음식점·숙박)",
         "url": "https://api.visitkorea.or.kr",
         "base_date": None,
         "license": "TourAPI 이용약관(요청 때만 조회, 응답 저장 안 함)",
