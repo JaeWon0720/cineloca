@@ -6,6 +6,7 @@
     python -m scripts.eval_ai redteam --out /tmp/eval-out           # 마스킹 + 범위 밖·지시 주입
     python -m scripts.eval_ai redteam --mask-only                   # 마스킹만(AI 호출 없음)
     python -m scripts.eval_ai c1                                    # 사람이 채운 매칭 확인표 집계
+    python -m scripts.eval_ai f4 --out /tmp/eval-out                # F4 시설(AI-REQ-11)
 
 f3·redteam은 ai_smoke와 같이 루트 .env(AI_PROVIDER·GEMINI_API_KEY·OLLAMA_BASE_URL)를 읽어
 실제 공급자를 부른다. Gemini는 이 실행 안에서 GEMINI_DAILY_LIMIT회까지만 부르고 멈춘다.
@@ -18,6 +19,7 @@ import argparse
 import asyncio
 import csv
 import json
+import re
 import time
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -47,6 +49,8 @@ TARGET_PRECISION = 85.0
 TARGET_RECALL = 80.0
 TARGET_REDTEAM = 100.0
 TARGET_C1 = 95.0
+TARGET_F4_FIELD = 85.0  # AI-REQ-11
+F4_FIELDS = ("kinds", "food", "lodging")
 
 # 필드 일치율의 필드(PoC p5와 같음). out_of_scope는 따로 본다.
 FIELDS = (
@@ -364,11 +368,175 @@ def summarize_c1(rows: Iterable[Mapping[str, str]]) -> dict[str, Any]:
     }
 
 
+# ── F4 시설 조건 구조화·추천 이유 (AI-REQ-11) ─────────────────
+def facility_field_eq(name: str, a: Any, b: Any) -> bool:
+    """목록은 순서 무시. kinds는 빈 목록 = 음식·숙박 모두라 ['food', 'lodging']과 같게 본다."""
+    sa, sb = set(a or []), set(b or [])
+    if name == "kinds":
+        every = {"food", "lodging"}
+        sa, sb = (sa or every), (sb or every)
+    return sa == sb
+
+
+def grade_facility(
+    gold: Mapping[str, Any],
+    pred: Mapping[str, Any] | None,
+    accept: Mapping[str, Sequence[Any]] | None = None,
+) -> dict[str, Any]:
+    """gold 대비 kinds·food·lodging 일치. pred=None(구조화 실패·강등)은 전부 틀림.
+
+    keywords는 시설 이름 일치에 쓰는 보조 값이라 채점하지 않는다.
+    """
+    if pred is None:
+        return {"fields_ok": 0, "fields": len(F4_FIELDS), "wrong": list(F4_FIELDS)}
+    accept = accept or {}
+    wrong = [
+        f
+        for f in F4_FIELDS
+        if not any(facility_field_eq(f, pred.get(f), g) for g in (gold[f], *accept.get(f, ())))
+    ]
+    return {"fields_ok": len(F4_FIELDS) - len(wrong), "fields": len(F4_FIELDS), "wrong": wrong}
+
+
+_DISTANCE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(km|킬로미터|m|미터)")
+
+
+def reason_violations(
+    picks: Sequence[tuple[str, str, int, bool]], names: Mapping[str, str]
+) -> tuple[int, int, list[str]]:
+    """(후보 밖 추천 수, 근거와 다른 AI 이유 수, 문제 설명).
+
+    picks: (시설 ID, 이유 문장, 그 시설 거리 m, AI 문장 여부). names: 후보 ID → 이름.
+    AI 문장만 본다. 거리(m·km)가 그 시설 거리와 다르거나 다른 후보의 이름이 나오면 위반이다.
+    """
+    outside = bad = 0
+    notes: list[str] = []
+    for fid, text, dist, ai in picks:
+        if fid not in names:
+            outside += 1
+            notes.append(f"{fid}: 후보 밖")
+            continue
+        if not ai:
+            continue
+        for num, unit in _DISTANCE.findall(text):
+            meters = float(num.replace(",", "")) * (1000 if unit in ("km", "킬로미터") else 1)
+            if abs(meters - dist) > 0.5:
+                bad += 1
+                notes.append(f"{fid}: 거리 {num}{unit} ≠ {dist}m")
+                break
+        else:
+            flat = text.replace(" ", "")
+            others = [n for i, n in names.items() if i != fid and n.replace(" ", "") in flat]
+            if others:
+                bad += 1
+                notes.append(f"{fid}: 다른 시설 이름 {others}")
+    return outside, bad, notes
+
+
+def load_segments(path: Path) -> list[Any]:
+    from app.services.facility_service import FacilityCandidate, FacilitySegment
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return [
+        FacilitySegment(
+            key=s["key"],
+            kind=s["kind"],
+            anchor=s["anchor"],
+            stop_names=tuple(s["stop_names"]),
+            candidates=tuple(FacilityCandidate(**c) for c in s["candidates"]),
+        )
+        for s in data["segments"]
+    ]
+
+
+def summarize_f4(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    pct = _pct(sum(r["fields_ok"] for r in rows), sum(r["fields"] for r in rows))
+    wrong = Counter(f for r in rows for f in r["wrong"])
+    reasons = sum(r["reasons"] for r in rows)
+    ai_reasons = sum(r["ai_reasons"] for r in rows)
+    outside = sum(r["outside"] for r in rows)
+    bad = sum(r["bad_reasons"] for r in rows)
+    latencies = sorted(r["latency_ms"] for r in rows if r.get("latency_ms") is not None)
+    return {
+        "questions": len(rows),
+        "field_match_pct": pct,
+        "target_pct": TARGET_F4_FIELD,
+        "structured_by_ai": sum(1 for r in rows if r["status"] == "ai"),
+        "per_field_pct": {
+            f: _pct(sum(1 for r in rows if f not in r["wrong"]), len(rows)) for f in F4_FIELDS
+        },
+        "wrong_top": wrong.most_common(5),
+        "picks_outside_candidates": outside,
+        "reasons": reasons,
+        "ai_reasons": ai_reasons,
+        "ai_reason_pct": _pct(ai_reasons, reasons),
+        "reasons_not_grounded": bad,
+        "pass": None if pct is None else pct >= TARGET_F4_FIELD and outside == 0 and bad == 0,
+        "latency_p95_ms": latencies[round(0.95 * (len(latencies) - 1))] if latencies else None,
+    }
+
+
+async def run_f4(
+    client: LLMClient,
+    items: Sequence[Mapping[str, Any]],
+    segments: Sequence[Any],
+    *,
+    sleep_s: float = 0.0,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """문항마다 서비스와 같은 경로(FacilityService.recommend)로 조건 구조화 → 선정 → 추천 이유.
+
+    서비스가 AI 실패를 강등으로 처리하므로 한도에 걸려도 멈추지 않는다(status=manual로 남음).
+    """
+    from app.services.facility_service import FacilityService
+
+    service = FacilityService(client)
+    names = {c.id: c.name for seg in segments for c in seg.candidates}
+    rows: list[dict[str, Any]] = []
+    for i, item in enumerate(items):
+        if i and sleep_s:
+            await asyncio.sleep(sleep_s)
+        started = time.monotonic()
+        result = await service.recommend(segments, text=item["text"])
+        latency = round((time.monotonic() - started) * 1000)
+        cond = result.conditions
+        pred = cond.conditions.model_dump(mode="json") if cond.status == "ai" else None
+        grade = grade_facility(item["gold"], pred, item.get("accept"))
+        picks = [
+            (p.facility.id, p.reason, p.facility.distance_m, p.ai_reason)
+            for seg in result.segments
+            for p in seg.picks
+        ]
+        outside, bad, notes = reason_violations(picks, names)
+        rows.append(
+            {
+                "id": item["id"],
+                "tags": item.get("tags", []),
+                "text_masked": mask(item["text"]).text,
+                "status": cond.status,
+                "pred": pred,
+                **grade,
+                "reasons": len(picks),
+                "ai_reasons": sum(1 for p in picks if p[3]),
+                "outside": outside,
+                "bad_reasons": bad,
+                "notes": notes,
+                "latency_ms": latency,
+            }
+        )
+    return rows, None
+
+
 # ── 실행 ──────────────────────────────────────────────────
 def _client(timeout_s: float) -> tuple[LLMClient, AISettings]:
-    """build_llm_client와 같되 extract_query의 1회 제한 시간만 timeout_s로 바꾼다."""
+    """build_llm_client와 같되 평가하는 작업의 1회 제한 시간만 timeout_s로 바꾼다."""
     settings = AISettings.from_env()
-    tasks = {**TASKS, "extract_query": replace(TASKS["extract_query"], timeout_s=timeout_s)}
+    tasks = {
+        **TASKS,
+        **{
+            name: replace(TASKS[name], timeout_s=timeout_s)
+            for name in ("extract_query", "structure_facility", "facility_reasons")
+        },
+    }
     quota = DailyQuota(MemoryUsage(), {"gemini": settings.gemini_daily_limit})
     providers = build_providers(settings)
     if not providers:
@@ -418,6 +586,25 @@ async def main_redteam(args: argparse.Namespace) -> int:
     return 0 if stopped is None else 2
 
 
+async def main_f4(args: argparse.Namespace) -> int:
+    items = load_jsonl(args.file or EVAL_DIR / "f4_facility.jsonl")[: args.limit]
+    segments = load_segments(EVAL_DIR / "f4_segments.json")
+    client, settings = _client(args.timeout)
+    print(settings)
+    started = time.monotonic()
+    rows, stopped = await run_f4(client, items, segments, sleep_s=args.sleep)
+    summary = {
+        **summarize_f4(rows),
+        "planned": len(items),
+        "stopped": stopped,
+        "elapsed_s": round(time.monotonic() - started, 1),
+        "provider_mode": settings.provider,
+        "model": settings.gemini_model if settings.provider == "gemini" else settings.ollama_model,
+    }
+    _write(args.out, "f4", {"summary": summary, "items": rows})
+    return 0
+
+
 def main_c1(args: argparse.Namespace) -> int:
     path = args.file or EVAL_DIR / "c1_match_sample.csv"
     with path.open(encoding="utf-8-sig", newline="") as f:
@@ -428,7 +615,7 @@ def main_c1(args: argparse.Namespace) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI 평가셋 채점 (eval/README.md)")
-    parser.add_argument("set", choices=("f3", "redteam", "c1"))
+    parser.add_argument("set", choices=("f3", "redteam", "c1", "f4"))
     parser.add_argument("--file", type=Path, help="평가셋 파일(기본: eval/의 해당 파일)")
     parser.add_argument("--limit", type=int, default=None, help="앞에서부터 N문항만")
     parser.add_argument("--out", type=Path, default=None, help="결과 JSON을 둘 폴더")
@@ -441,7 +628,7 @@ def main() -> None:
     if args.set == "c1":
         raise SystemExit(main_c1(args))
     load_dotenv()
-    runner = main_f3 if args.set == "f3" else main_redteam
+    runner = {"f3": main_f3, "redteam": main_redteam, "f4": main_f4}[args.set]
     raise SystemExit(asyncio.run(runner(args)))
 
 

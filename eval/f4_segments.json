@@ -1,0 +1,27 @@
+{
+  "_note": "F4 시설 평가용 가상 후보. TourAPI 응답이 아니라 평가를 위해 지어낸 이름·거리다(TourAPI는 저장 금지, DATA-13 NO_STORE).",
+  "segments": [
+    {"key": "1-2", "kind": "food", "anchor": "자갈치시장~영도대교 사이", "stop_names": ["자갈치시장", "영도대교"],
+     "candidates": [
+       {"id": "F101", "name": "남포 돼지국밥", "kind": "food", "category": "밥", "lat": 35.0968, "lon": 129.0306, "distance_m": 180},
+       {"id": "F102", "name": "바다 커피로스터스", "kind": "food", "category": "카페", "lat": 35.0972, "lon": 129.0321, "distance_m": 240},
+       {"id": "F103", "name": "영도 밀면", "kind": "food", "category": "밥", "lat": 35.0951, "lon": 129.0335, "distance_m": 410},
+       {"id": "F104", "name": "광복 베이커리", "kind": "food", "category": "카페", "lat": 35.0989, "lon": 129.0297, "distance_m": 520},
+       {"id": "F105", "name": "남항 횟집", "kind": "food", "category": null, "lat": 35.0940, "lon": 129.0280, "distance_m": 760}
+     ]},
+    {"key": "2-3", "kind": "food", "anchor": "영도대교~흰여울문화마을 사이", "stop_names": ["영도대교", "흰여울문화마을"],
+     "candidates": [
+       {"id": "F201", "name": "흰여울 브런치 카페", "kind": "food", "category": "카페", "lat": 35.0801, "lon": 129.0442, "distance_m": 150},
+       {"id": "F202", "name": "청학동 칼국수", "kind": "food", "category": "밥", "lat": 35.0815, "lon": 129.0460, "distance_m": 330},
+       {"id": "F203", "name": "오션뷰 디저트", "kind": "food", "category": "카페", "lat": 35.0790, "lon": 129.0471, "distance_m": 690}
+     ]},
+    {"key": "last", "kind": "lodging", "anchor": "흰여울문화마을", "stop_names": ["흰여울문화마을"],
+     "candidates": [
+       {"id": "L301", "name": "영도 오션뷰 호텔", "kind": "lodging", "category": "호텔", "lat": 35.0782, "lon": 129.0448, "distance_m": 210},
+       {"id": "L302", "name": "흰여울 게스트하우스", "kind": "lodging", "category": "게스트하우스·호스텔", "lat": 35.0795, "lon": 129.0433, "distance_m": 260},
+       {"id": "L303", "name": "바닷가 펜션", "kind": "lodging", "category": "펜션·민박", "lat": 35.0770, "lon": 129.0420, "distance_m": 480},
+       {"id": "L304", "name": "영도 레지던스", "kind": "lodging", "category": "콘도·레지던스", "lat": 35.0811, "lon": 129.0401, "distance_m": 640},
+       {"id": "L305", "name": "태종대 모텔", "kind": "lodging", "category": "모텔", "lat": 35.0760, "lon": 129.0490, "distance_m": 880}
+     ]}
+  ]
+}
