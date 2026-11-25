@@ -83,7 +83,7 @@ def test_prompt_contains_only_evidence() -> None:
     assert prompt.user.splitlines()[0] == "근거:"
     assert "- 촬영지: 자갈치시장 (부산 중구)" in prompt.user
     assert "300~500자" in prompt.system and "결말·반전" in prompt.system
-    assert (prompt.version, prompt.temperature) == ("v3", 0.3)
+    assert (prompt.version, prompt.temperature) == ("v2", 0.3)
 
 
 # ── 소개 생성·검증·강등 ────────────────────────────────────
