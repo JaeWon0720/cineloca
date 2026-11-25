@@ -9,7 +9,7 @@ import { EMPTY_FILTERS, QUERY_MAX, type ChipKey, type Filters, type QueryRespons
 import MapView from '../components/MapView.tsx'
 import { AiBadge } from '../components/ai.tsx'
 import { queryErrorMessage } from '../lib/ai.ts'
-import { Empty, ErrorBox, Loading } from '../components/common.tsx'
+import { Empty, ErrorBox, Loading, Sources } from '../components/common.tsx'
 import { getPosition } from '../lib/geo.ts'
 import { useNotice } from '../lib/notice.ts'
 import './ask.css'
@@ -229,9 +229,7 @@ export default function AskPage() {
                               </span>
                             )}
                           </span>
-                          <span className="small muted">
-                            출처 {h.source_ids.length}건 · <Link to={`/locations/${h.location_id}`}>출처 카드 보기</Link>
-                          </span>
+                          <Sources items={(res.sources ?? []).filter((s) => h.source_ids.includes(s.id))} />
                         </div>
                       </article>
                     </li>

@@ -65,6 +65,14 @@ function match(f: Filters): Hit[] {
     }))
 }
 
+/** hits에 쓰인 출처 카드(중복 없이, FR-704) */
+function sourcesOf(hits: Hit[]) {
+  const ids = new Set(hits.flatMap((h) => h.source_ids))
+  const cards = new Map<string, LocationDetail['sources'][number]>()
+  for (const l of DATA.locations) for (const s of l.sources) if (ids.has(s.id)) cards.set(s.id, s)
+  return [...cards.values()]
+}
+
 function search(f: Filters) {
   let cur = { ...f }
   let hits = match(cur)
@@ -102,6 +110,7 @@ function answer(sid: string, s: Session, f: Filters, notices: string[], masked: 
     total: hits.length,
     hits: top,
     filter_panel: found ? null : f,
+    sources: sourcesOf(top),
     masked,
     unknown,
     summary,
@@ -134,7 +143,7 @@ function query(body: { text?: string } | null, headers: Record<string, string>) 
   const [sid, s] = session(headers['X-Session-Id'])
   const masked = /01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}|@/.test(text)
   const notices = masked ? [MASK_NOTICE] : []
-  const base = { session_id: sid, chips: [], relaxed: [], total: 0, hits: [], filter_panel: null, masked, unknown: [], summary: [], ai_generated: false, choices: [] }
+  const base = { session_id: sid, chips: [], relaxed: [], total: 0, hits: [], filter_panel: null, sources: [], masked, unknown: [], summary: [], ai_generated: false, choices: [] }
   if (/날씨|주식|비트코인|전화번호|연락처|사는 곳/.test(text)) return ok({ ...base, status: 'out_of_scope', notices: [...notices, SCOPE_NOTICE] })
   const { f, unknown } = parse(text)
   if (/AI ?장애/.test(text)) return ok({ ...base, status: 'ai_unavailable', notices: [...notices, AI_DOWN_NOTICE], filter_panel: f })
@@ -184,6 +193,7 @@ function filterSearch(body: { conditions?: Filters } | null) {
     total: hits.length,
     hits: hits.slice(0, 20),
     filter_panel: null,
+    sources: sourcesOf(hits.slice(0, 20)),
   })
 }
 
