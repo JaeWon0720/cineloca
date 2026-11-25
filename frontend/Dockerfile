@@ -6,6 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# 화면 설정(VITE_*)은 빌드 때 코드에 들어간다. 루트 .env는 빌드 문맥(./frontend) 밖이라 읽히지 않으므로
+# 값을 여기서 정한다. compose로 띄우면 api 컨테이너가 함께 있으니 목업 대신 실제 API(/api)를 쓴다.
+ARG VITE_API_MOCK=false
+ENV VITE_API_MOCK=$VITE_API_MOCK
 RUN npm run build
 
 # 2단계: nginx로 정적 파일 제공 + /api를 api 컨테이너로 전달
