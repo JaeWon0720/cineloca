@@ -91,6 +91,23 @@ def test_entity_not_in_evidence_drops_sentence() -> None:
     ]
 
 
+def test_foreign_script_drops_sentence() -> None:
+    # 모델이 중국어·일본어로 새는 경우(N-05 생성에서 '해양风情'이 나옴)
+    result = verify(
+        S("자갈치시장은 해양风情을 잘 보여 줍니다.", ["자갈치시장"]),
+        S("광안대교の야경입니다.", ["광안대교"]),
+        S("자갈치시장에서 친구를 찍었습니다.", ["자갈치시장", "친구"]),
+    )
+    assert result.sentences == ("자갈치시장에서 친구를 찍었습니다.",)
+    assert [(d.reason, d.detail) for d in result.dropped] == [("script", "情风"), ("script", "の")]
+
+
+def test_foreign_script_in_evidence_is_allowed() -> None:
+    evidence = Evidence(facts=("친구(親舊, 2001) — 자갈치시장 (중구)",), names=frozenset({"친구"}))
+    s = S("친구(親舊)는 자갈치시장에서 찍었습니다.", ["친구", "자갈치시장"])
+    assert GroundingVerifier().verify([s], evidence).sentences == (s.text,)
+
+
 @pytest.mark.parametrize(
     ("text", "number"),
     [

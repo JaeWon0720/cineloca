@@ -6,6 +6,7 @@ AI 문장(F3 요약, F1 작품 소개, F4 시설 추천 이유)은 시스템이 
   2. 모델이 적은 인명·작품명·장소명(entities)이 근거 이름에도 근거 한 줄 안에도 없음 → entity
   3. 문장에 나온 지식베이스 고유명사(사전)가 근거에 없음     → entity  (사전이 있을 때)
   4. 문장 속 숫자(연도·분·거리·개수)가 근거에 없음          → number
+  5. 근거에 없는 한자·일본 문자가 섞임(모델이 다른 언어로 새는 경우, 예: '해양风情') → script
 남은 문장이 몇 개면 보여 줄지(F1은 2개 이상, F3은 1개 이상)는 부르는 서비스가 정한다.
 
     evidence = Evidence(facts=("광안대교 (수영구) — 작품: 친구(2001), 도보 10분",),
@@ -20,6 +21,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -111,7 +113,7 @@ def gate(evidence: Evidence | None) -> bool:
 @dataclass(frozen=True)
 class Dropped:
     text: str
-    reason: str  # spoiler·entity·number
+    reason: str  # spoiler·entity·number·script
     detail: str  # 걸린 표현·이름·숫자(로그·평가용)
 
 
@@ -154,13 +156,15 @@ class GroundingVerifier:
         # 줄을 이어 붙이면 줄 경계를 넘는 가짜 이름('2001부산')도 통과하므로 줄마다 따로 넣는다.
         names |= {normalize(f) for f in evidence.facts}
         numbers = evidence.allowed_numbers()
+        # 근거에 한자가 있으면(작품명 표기 등) 그 글자는 써도 된다
+        scripts = {c for f in evidence.facts for c in _FOREIGN.findall(f)}
         kept: list[str] = []
         dropped: list[Dropped] = []
         for claim in claims:
             text = claim.text.strip()
             if not text:
                 continue
-            problem = self._check(text, claim.entities, names, numbers)
+            problem = self._check(text, claim.entities, names, numbers, scripts)
             if problem:
                 dropped.append(Dropped(text, *problem))
             elif max_sentences is None or len(kept) < max_sentences:
@@ -168,8 +172,16 @@ class GroundingVerifier:
         return Verified(tuple(kept), tuple(dropped))
 
     def _check(
-        self, text: str, entities: Sequence[str], names: set[str], numbers: set[str]
+        self,
+        text: str,
+        entities: Sequence[str],
+        names: set[str],
+        numbers: set[str],
+        scripts: AbstractSet[str] = frozenset(),
     ) -> tuple[str, str] | None:
+        foreign = sorted(set(_FOREIGN.findall(text)) - scripts)
+        if foreign:
+            return "script", "".join(foreign)
         flat = normalize(text)
         for key, phrase in self._spoilers:
             if key in flat:
@@ -182,6 +194,10 @@ class GroundingVerifier:
             if number not in numbers:
                 return "number", number
         return None
+
+
+# 한글 문장에 섞이면 안 되는 문자: 한자(CJK 통합·확장 A·호환), 히라가나·가타카나
+_FOREIGN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]")
 
 
 def _supported(entity: str, names: set[str]) -> bool:
