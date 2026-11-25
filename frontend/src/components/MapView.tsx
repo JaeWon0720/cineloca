@@ -106,7 +106,14 @@ function KakaoMap({ center, markers, path, radiusM, me, onSelect, height = 320 }
     return () => drawn.forEach((d) => d.setMap(null))
   }, [ready, center, markers, path, radiusM, me, onSelect])
 
-  if (failed) return <p className="error">카카오 지도를 불러오지 못했습니다. 키 설정과 등록한 도메인을 확인해 주세요.</p>
+  // 키가 틀렸거나 이 주소(도메인)가 카카오 콘솔에 등록되지 않아 SDK를 못 불러오면 지도를 비우지 않고 대체 표시한다.
+  if (failed)
+    return (
+      <>
+        <p className="muted">카카오 지도를 불러오지 못해 대체 지도로 보여 드려요.</p>
+        <LeafletMap center={center} markers={markers} path={path} radiusM={radiusM} me={me} onSelect={onSelect} height={height} />
+      </>
+    )
   return <div ref={el} className="map" style={{ height }} role="application" aria-label="카카오 지도" />
 }
 
