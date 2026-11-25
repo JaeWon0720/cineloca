@@ -80,7 +80,7 @@ def _base(work: WorkFacts, *, with_scene: bool) -> tuple[list[str], set[str]]:
         facts.append(f"출연: {', '.join(cast)}")
         names.update(cast)
     for loc in work.locations[:MAX_LOCATIONS]:
-        # 구·군이 있으면 부산 촬영지로 적는다. 없으면 부산 밖이거나 위치 미확인이라 '부산'을 안 붙인다
+        # 구·군이 있으면 부산 촬영지로 적고, 없으면(부산 밖·위치 미확인) '부산'을 붙이지 않는다
         # (이름 괄호의 김해·양산 등을 모델이 '부산의 …'로 쓰던 문제, N-05)
         if loc.gu:
             line = f"촬영지: {loc.name} (부산 {loc.gu})"
