@@ -65,7 +65,7 @@ WHERE ($3::text IS NULL OR c.status = $3)
   AND ($1::int IS NULL OR c.id = $1)
   AND ($2::text IS NULL OR c.theme = $2)
 GROUP BY c.id
-ORDER BY c.theme, c.title, c.id
+ORDER BY c.theme, c.title COLLATE "C", c.id
 """
 
 
