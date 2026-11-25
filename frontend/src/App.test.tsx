@@ -45,10 +45,10 @@ describe('App 라우팅 (SRS 6.1)', () => {
     expect(within(nav).getByRole('link', { name: '지도' }).getAttribute('aria-current')).toBeNull()
   })
 
-  it('관리자 화면에는 하단 탭이 없다', () => {
+  it('관리자 화면에는 하단 탭이 없고, 로그인부터 묻는다', async () => {
     renderAt('/admin')
 
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('관리자')
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('관리자 로그인')
     expect(screen.queryByRole('navigation', { name: '주요 메뉴' })).toBeNull()
   })
 
