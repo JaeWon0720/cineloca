@@ -63,8 +63,29 @@ def test_stored_kmdb_has_no_image_fields() -> None:
         "keywords": "k",
         "link": "l",
         "rating": "15세관람가",  # 관람등급도 KMDb 텍스트라 저장한다(FR-107, ADR-007)
+        "genres": [],
+        "directors": [],
+        "actors": [],
         "source_id": "DATA-04",
     }
+
+
+def test_stored_kmdb_keeps_genres_directors_and_first_actors() -> None:
+    # 장르·감독·출연도 KMDb 텍스트(공공누리 제1유형)라 저장하고 반영 단계가 표로 옮긴다
+    cast = ",".join(f"배우{i}(역{i})" for i in range(1, 15))
+    v = kmdb.stored_kmdb(
+        C("친구", genres="드라마,사회물(경향),드라마", director="감독1,감독2", cast=cast)
+    )
+    assert v["genres"] == ["드라마", "사회물(경향)"]  # 장르 괄호는 묶음표 이름의 일부
+    assert v["directors"] == ["감독1", "감독2"]
+    assert v["actors"] == [f"배우{i}" for i in range(1, kmdb.ACTOR_LIMIT + 1)]
+
+
+def test_names_drops_roles_keeps_order_and_skips_repeats() -> None:
+    raw = "강가짜(영호, 어른),천가짜(소희),강가짜(영호 아버지), 이 가짜 (조연(회상)) ,,"
+    assert kmdb.names(raw) == ["강가짜", "천가짜", "이 가짜"]
+    assert kmdb.names(raw, limit=2) == ["강가짜", "천가짜"]
+    assert kmdb.names(None) == [] and kmdb.names("") == []
 
 
 # ---- v2 매칭 보완 (2026-11-13) ----
@@ -149,7 +170,8 @@ def test_csv_loader_reads_columns_by_position(tmp_path) -> None:
         "대한민국",
         "2020",
     ]
-    row += ["가짜사", "홍길동", "배우", "작가", "배우", "Y", "", "", "15세", "20200101", "100"]
+    row += ["가짜사", "홍길동", "배우가(갑),배우나(을)", "작가", "배우가(갑),배우나(을)"]
+    row += ["Y", "", "", "15세", "20200101", "100"]
     row += ["부산,바다", "부산에서 벌어지는 이야기", "http://x", "2020", "2021"]
     path = tmp_path / "kmdb.csv"
     with open(path, "w", encoding="cp949", newline="") as f:
@@ -173,6 +195,7 @@ def test_csv_loader_reads_columns_by_position(tmp_path) -> None:
         "15세",  # 18번 칸 '대표영화관람등급'
     )
     assert c.link == "https://www.kmdb.or.kr/db/kor/detail/movie/K/00001"
+    assert (c.genres, c.cast) == ("드라마", "배우가(갑),배우나(을)")  # 7번 장르, 12번 출연
 
     assert [x.docid for x in asyncio.run(src.candidates("가짜 영화"))] == ["K00001"]
 

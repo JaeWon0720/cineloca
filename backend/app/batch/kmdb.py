@@ -23,6 +23,11 @@ v2 보완(2026-11-13, 자동 연결 표본에서 찾은 오류 유형 기준):
 CSV에는 촬영 장소가 없어 규칙 C는 줄거리·키워드로만 판단한다.
 
 관람등급(FR-107, ADR-007 KMDb 단독)은 CSV의 '대표영화관람등급' 칸을 work.kmdb에 함께 저장한다.
+장르·감독·출연(FR-103·205·310)도 work.kmdb에 목록으로 넣고, 반영 단계(app/data/credits.py)가
+work.genres와 person·work_person으로 옮긴다. 출연은 앞에서 ACTOR_LIMIT명까지만 둔다
+(단역 수백 명 제외).
+CSV 출연 칸은 '이름(배역),이름(배역)' 꼴이라 괄호를 떼고 이름만 쓴다. 오픈API의 장르·출연 필드는
+실제 응답 사본이 없어 아직 읽지 않는다(감독만 기존대로).
 2026-11-13에 받은 CSV는 이 칸이 10만 행 모두 'null'이라 지금은 등급이 비어 있다. 오픈API 응답의
 등급 필드는 실제 응답 사본을 tests/fixtures/real/에 넣은 뒤 읽는다(AGENTS.md: 필드를 추측하지 않음).
 """
@@ -43,9 +48,11 @@ AUTO, REVIEW = 0.9, 0.6
 TIE_GAP = 0.05
 MIN_YEAR_UNKNOWN = 1998
 SHORT_MIN = 40
+ACTOR_LIMIT = 10  # 작품마다 저장할 출연자 수(화면은 5명, F3 배우 검색은 10명까지)
 API_URL = "https://api.koreafilm.or.kr/openapi-data2/wisenut/search_api/search_json2.jsp"
 DETAIL_URL = "https://www.kmdb.or.kr/db/kor/detail/movie/{kind}/{no}"
 _HL = re.compile(r"\s*!H[SE]\s*")
+_PAREN = re.compile(r"\([^()]*\)")
 
 
 @dataclass(frozen=True)
@@ -65,6 +72,8 @@ class Candidate:
     director: str | None = None
     country: str | None = None
     rating: str | None = None  # 관람등급(예: 15세관람가)
+    genres: str | None = None  # KMDb 장르, 쉼표 구분(예: 드라마,가족)
+    cast: str | None = None  # 출연, '이름(배역)' 쉼표 구분
 
 
 class CandidateSource(Protocol):
@@ -204,6 +213,34 @@ def demote_duplicates(results: dict[str, MatchResult]) -> dict[str, MatchResult]
     return out
 
 
+def names(raw: str | None, limit: int | None = None) -> list[str]:
+    """'강하늘(영호),천우희(소희)' → ['강하늘', '천우희']. 괄호(배역) 안의 쉼표로는 나누지 않고,
+    같은 이름은 한 번만 둔다."""
+    if not raw:
+        return []
+    text = raw
+    while (stripped := _PAREN.sub("", text)) != text:  # 겹친 괄호도 안쪽부터 뗀다
+        text = stripped
+    out: list[str] = []
+    for part in text.split(","):
+        name = " ".join(part.split())
+        if name and name not in out:
+            out.append(name)
+            if limit is not None and len(out) >= limit:
+                break
+    return out
+
+
+def genre_list(raw: str | None) -> list[str]:
+    """'드라마,사회물(경향)' → ['드라마', '사회물(경향)']. 장르 괄호는 이름의 일부라 그대로 둔다."""
+    out: list[str] = []
+    for part in (raw or "").split(","):
+        name = part.strip()
+        if name and name not in out:
+            out.append(name)
+    return out
+
+
 def stored_kmdb(c: Candidate) -> dict:
     """work.kmdb에 넣는 값(DATA-04 STORE일 때만). 이미지 주소·파일은 넣지 않는다."""
     return {
@@ -211,6 +248,9 @@ def stored_kmdb(c: Candidate) -> dict:
         "keywords": c.keywords,
         "link": c.link,
         "rating": c.rating,
+        "genres": genre_list(c.genres),
+        "directors": names(c.director),
+        "actors": names(c.cast, ACTOR_LIMIT),
         "source_id": "DATA-04",
     }
 
@@ -273,10 +313,11 @@ class KmdbCsv:
     헤더 25칸, 데이터 26칸(출연이 두 번)이라 위치로 읽는다."""
 
     has_location = False
-    # 0 ID종류 1 번호 2 영화명 3 영문제명 4 원제명 5 유형 6 용도 8 제작국가 9 제작년도
-    # 11 감독 18 관람등급 19 개봉일 20 상영시간 21 키워드 22 줄거리
-    I_KIND, I_NO, I_TITLE, I_EN, I_ORG, I_TYPE, I_USE = 0, 1, 2, 3, 4, 5, 6
-    I_NAT, I_YEAR, I_DIR, I_RATING, I_REL, I_RUN, I_KW, I_PLOT = 8, 9, 11, 18, 19, 20, 21, 22
+    # 0 ID종류 1 번호 2 영화명 3 영문제명 4 원제명 5 유형 6 용도 7 장르 8 제작국가 9 제작년도
+    # 11 감독 12 출연 18 관람등급 19 개봉일 20 상영시간 21 키워드 22 줄거리
+    I_KIND, I_NO, I_TITLE, I_EN, I_ORG, I_TYPE, I_USE, I_GENRE = 0, 1, 2, 3, 4, 5, 6, 7
+    I_NAT, I_YEAR, I_DIR, I_CAST = 8, 9, 11, 12
+    I_RATING, I_REL, I_RUN, I_KW, I_PLOT = 18, 19, 20, 21, 22
 
     def __init__(self, rows: list[Candidate]):
         self.rows = rows
@@ -311,6 +352,8 @@ class KmdbCsv:
                         director=v[cls.I_DIR],
                         country=v[cls.I_NAT],
                         rating=v[cls.I_RATING],
+                        genres=v[cls.I_GENRE],
+                        cast=v[cls.I_CAST],
                         title_etc="^".join(x for x in (v[cls.I_EN], v[cls.I_ORG]) if x) or None,
                         link=DETAIL_URL.format(kind=r[cls.I_KIND], no=r[cls.I_NO]),
                     )

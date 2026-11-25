@@ -139,3 +139,14 @@ def test_locations_carry_source_and_nearest_station() -> None:
     locs = {r[0]: r for r in job._locations(m, {"a": (35.0985, 129.0347, "address")}, sts)}
     assert locs["a"][6:8] == ("address", "110") and locs["a"][8] == pytest.approx(1.3, abs=0.2)
     assert locs["b"][4:9] == (None, None, "none", None, None)
+
+
+def test_unknown_genres_lists_kmdb_genres_outside_groups() -> None:
+    # FR-613: 묶음표에 없는 장르는 필터에서 빠지므로 동기화 리포트에 경고로 남긴다
+    works = [
+        ("a", "가", 2020, "K00001", {"genres": ["드라마", "가짜장르"]}),
+        ("b", "나", 2020, None, None),
+        ("c", "다", 2020, "K00002", {"genres": ["가짜장르", "새장르"]}),
+        ("d", "라", 2020, "K00003", {"plot": "장르 없음"}),
+    ]
+    assert job.unknown_genres(works) == ["가짜장르", "새장르"]
