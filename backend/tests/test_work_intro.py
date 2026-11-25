@@ -62,7 +62,7 @@ def test_no_spoiler_evidence_has_no_synopsis() -> None:
     assert not any("줄거리" in f for f in evidence.facts)  # AI-REQ-07
     assert evidence.facts[0] == "작품: 친구 (2001), 극영화"
     assert "출연: 유오성, 장동건, 서태화, 정운택, 김보경" in evidence.facts  # 최대 5명
-    assert "부산 촬영지: 범일동 철길 (동구)" in evidence.facts
+    assert "촬영지: 범일동 철길 (부산 동구)" in evidence.facts
     assert not any("장면" in f for f in evidence.facts)  # 장면 설명도 줄거리를 담을 수 있어 뺀다
     assert {"친구", "곽경택", "범일동 철길", "동구", "자갈치시장"} <= evidence.names
     assert "기주봉" not in evidence.names
@@ -72,7 +72,7 @@ def test_partial_evidence_adds_synopsis() -> None:
     evidence = PartialSpoilerEvidence().build(WORK)
 
     assert evidence.facts[-1].startswith("줄거리: 1976년 부산")
-    assert "부산 촬영지: 범일동 철길 (동구) — 네 친구가 뛰어가는 장면" in evidence.facts
+    assert "촬영지: 범일동 철길 (부산 동구) — 네 친구가 뛰어가는 장면" in evidence.facts
 
 
 def test_prompt_contains_only_evidence() -> None:
@@ -81,9 +81,9 @@ def test_prompt_contains_only_evidence() -> None:
     prompt = DefaultPromptBuilder().build(TASKS["work_intro"], {"evidence": evidence})
 
     assert prompt.user.splitlines()[0] == "근거:"
-    assert "- 부산 촬영지: 자갈치시장 (중구)" in prompt.user
+    assert "- 촬영지: 자갈치시장 (부산 중구)" in prompt.user
     assert "300~500자" in prompt.system and "결말·반전" in prompt.system
-    assert (prompt.version, prompt.temperature) == ("v1", 0.3)
+    assert (prompt.version, prompt.temperature) == ("v2", 0.3)
 
 
 # ── 소개 생성·검증·강등 ────────────────────────────────────
@@ -220,3 +220,16 @@ def test_work_facts_from_detail_row() -> None:
     assert facts.locations == (LocationFact("범일동 철길", "동구"), LocationFact("어느 골목"))
     no_kmdb = WorkDetailRow(row.work, [], None, [], set())
     assert work_facts(no_kmdb).synopsis is None
+
+
+def test_place_without_busan_gu_is_not_called_busan() -> None:  # N-05: '부산의 은하사(김해)' 방지
+    work = WorkFacts(
+        work_id=9,
+        title="달마야 놀자",
+        kmdb_matched=True,
+        locations=(LocationFact("은하사(김해)"), LocationFact("자갈치시장", "중구")),
+    )
+    facts = NoSpoilerEvidence().build(work).facts
+    assert "촬영지: 은하사(김해)" in facts
+    assert "촬영지: 자갈치시장 (부산 중구)" in facts
+    assert not any(f.startswith("부산 촬영지") for f in facts)
