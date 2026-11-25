@@ -1,5 +1,6 @@
 // 관리자 API 타입: API-020 관리자 로그인 (FR-615, SDD 3.2).
 // 백엔드 app/api/schemas/admin.py와 같게 둔다. 세션 토큰은 HttpOnly 쿠키로만 오가고 화면 코드는 만지지 않는다.
+import type { CourseDetail, Theme } from './courses.ts'
 import type { Caution } from './locations.ts'
 
 /** GET·POST /admin/session 응답 */
@@ -162,3 +163,40 @@ export const PLACE_TAGS = [
   '산업시설',
   '업무 건물',
 ] as const
+
+// ── API-024 추천 코스 후보 생성·수정·승인 (FR-614, UI-12) — backend app/api/schemas/admin_courses.py와 같게
+export type AdminCourseStatus = 'draft' | 'approved'
+
+export type AdminCourseSummary = {
+  id: number
+  title: string
+  theme: Theme
+  theme_ref: string | null
+  status: AdminCourseStatus
+  approved_at: string | null
+  start_station_id: string | null
+  stop_count: number
+  /** 계산할 수 없으면 null(problem 참고) */
+  total_min: number | null
+  total_distance_m: number | null
+  problem: string | null
+}
+export type AdminCourseList = { items: AdminCourseSummary[] }
+
+/** 사용자 화면(API-010)과 같은 계산 + 상태 */
+export type AdminCourseDetail = CourseDetail & { status: AdminCourseStatus; approved_at: string | null; start_station_id: string | null }
+
+/** POST /admin/courses: 테마에 맞는 촬영지를 모아 후보(승인 전)를 만든다 */
+export type CourseCandidateRequest = { theme: Theme; theme_ref: string; max_stops?: number }
+
+/** PATCH /admin/courses/{id}: 보낸 항목만 고친다. 제목·장소·출발역을 고치면 승인 전으로 돌아간다 */
+export type AdminCoursePatch = {
+  title?: string
+  stops?: { location_id: number; stay_min: number }[]
+  start_station_id?: string | null
+  status?: AdminCourseStatus
+}
+
+export const COURSE_STATUS_LABEL: Record<AdminCourseStatus, string> = { draft: '승인 전', approved: '승인됨' }
+export const COURSE_STOPS_MIN = 2
+export const COURSE_STOPS_MAX = 10

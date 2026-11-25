@@ -64,7 +64,7 @@ function leg(from: { lat: number; lon: number }, to: { lat: number; lon: number 
   return { from_order: fromOrder, to_order: toOrder, mode: 'walk', minutes: walk, distance_m: d }
 }
 
-function buildPlan(start: StartOut, points: LocationDetail[], keepOrder: boolean): CoursePlan {
+export function buildPlan(start: StartOut, points: LocationDetail[], keepOrder: boolean): CoursePlan {
   let order = points
   const origin = start.lat != null && start.lon != null ? { lat: start.lat, lon: start.lon } : null
   if (!keepOrder) {
