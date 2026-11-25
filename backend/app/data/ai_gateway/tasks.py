@@ -198,8 +198,8 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "work_intro",  # F1 작품 소개(FR-109)
             GroundedText,
-            temperature=0.3,
-            prompt_version="v2",
+            temperature=0.0,  # 판마다 오류 수가 달라지던 편차를 줄임(N-05)
+            prompt_version="v5",
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
