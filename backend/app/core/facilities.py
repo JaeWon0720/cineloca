@@ -30,7 +30,7 @@ WEIGHTS: dict[str, float] = {"match": 0.6, "distance": 0.4}
 SEARCH_RADIUS_M = 1000  # FR-414: 구간 중간 지점·마지막 촬영지에서 1km
 PER_SEGMENT = 3  # FR-416: 구간마다 최대 3곳
 
-# 추천 이유(FR-417)에 들어가면 그 문장을 지우는 말. 후보 데이터(TourAPI 위치기반 조회)에는
+# 추천 이유(FR-417)에 들어가면 그 문장을 지우는 말. 후보 데이터(TourAPI 국문 관광정보)에는
 # 맛·가격·인기·청결 같은 평가가 없어서 이런 말은 근거 없이 지어낸 것이다.
 UNVERIFIABLE_PHRASES: tuple[str, ...] = (
     "맛집",

@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from app.core.amenities import category_of, is_excluded
-from app.data.tourapi import TourApiClient, TourApiError, _parse
+from app.data.tourapi import MAX_PAGES, PAGE_ROWS, TourApiClient, TourApiError, _parse
 from app.services.amenity_finder import AmenityFinder, Stop, midpoint
 
 M = 1 / 111_195  # 위도 1m
@@ -76,7 +76,7 @@ def test_category_mapping(facility: str, code: str | None, category: str | None)
     assert category_of(facility, code) == category  # type: ignore[arg-type]
 
 
-def test_searches_each_segment_midpoint_and_last_stop_for_lodging() -> None:
+def test_fetches_busan_list_once_per_kind_and_keeps_search_order() -> None:
     f, get = finder(lambda p: ok())
 
     result = asyncio.run(f.find([A, B, C]))
@@ -86,12 +86,39 @@ def test_searches_each_segment_midpoint_and_last_stop_for_lodging() -> None:
         ("segment", 1, 2, 3),
         ("lodging", 2, 3, None),
     ]
-    centers = [(c["mapY"], c["mapX"], c["contentTypeId"], c["radius"]) for c in get.calls]
-    assert sorted(centers) == sorted(
-        [(*midpoint(A, B), 39, 1000), (*midpoint(B, C), 39, 1000), (C.lat, C.lon, 32, 1000)]
-    )
-    assert all(c["timeout_s"] == 3.0 and c["arrange"] == "E" for c in get.calls)
+    # 위치기반 조회는 법정동 코드로 옮겨진 항목을 빠뜨려 부산 목록을 종류마다 한 번씩만 받는다
+    assert sorted(c["contentTypeId"] for c in get.calls) == [32, 39]
+    assert all(
+        c["lDongRegnCd"] == "26" and c["pageNo"] == 1 and c["numOfRows"] == PAGE_ROWS
+        and c["timeout_s"] == 3.0 and "mapX" not in c
+        for c in get.calls
+    )  # fmt: skip
     assert {r.status for r in result} == {"empty"}
+
+
+def test_each_segment_filters_the_shared_list_by_its_own_center() -> None:
+    far_c = Stop(3, 35.13, 129.06)  # B~C 중간 지점은 A~B 중간 지점에서 1km 넘게 떨어짐
+    lat, lon = midpoint(A, B)
+    f, get = finder(lambda p: ok(item("near_ab", lat, lon)) if p["contentTypeId"] == 39 else ok())
+
+    ab, bc, _lodging = asyncio.run(f.find([A, B, far_c]))
+
+    assert [c.content_id for c in ab.candidates] == ["near_ab"] and ab.status == "ok"
+    assert bc.candidates == [] and bc.status == "empty"
+    assert sum(c["contentTypeId"] == 39 for c in get.calls) == 1
+
+
+def test_reads_remaining_pages_up_to_the_limit() -> None:
+    def reply(p: Mapping[str, Any]) -> dict:
+        data = ok(item(f"p{p['pageNo']}", A.lat, A.lon))
+        data["response"]["body"]["totalCount"] = PAGE_ROWS * (MAX_PAGES + 2)
+        return data
+
+    get = FakeGet(reply)
+    places = asyncio.run(TourApiClient("test-key", get=get).busan(39))
+
+    assert sorted(c["pageNo"] for c in get.calls) == list(range(1, MAX_PAGES + 1))
+    assert len(places) == MAX_PAGES
 
 
 def test_candidates_are_filtered_sorted_and_classified() -> None:
@@ -126,7 +153,7 @@ def test_one_failed_search_does_not_break_others() -> None:
     def reply(p: Mapping[str, Any]) -> Any:
         if p["contentTypeId"] == 32:
             return TourApiError("timeout")
-        return ok(item("r", p["mapY"], p["mapX"]))
+        return ok(item("r", *midpoint(A, B)))
 
     f, _ = finder(reply)
     result = asyncio.run(f.find([A, B]))

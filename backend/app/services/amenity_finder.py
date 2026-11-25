@@ -2,7 +2,9 @@
 
 - 구간: 코스에서 이웃한 두 촬영지 사이(n곳 코스는 n−1개). 중간 지점 = 두 촬영지 위경도의 중간점.
 - 구간마다 중간 지점 반경 1km 음식점(카페 포함), 마지막 촬영지 반경 1km 숙박을 찾는다.
-- 요청 1건에 최대 10회(9구간 + 숙박 1회)를 동시에 보내고, 호출당 3초가 지나면 그 검색만 failed.
+- 요청 1건에 부산 음식점·숙박 목록을 한 번씩(2회) 동시에 받고, 반경은 직선거리로 직접 거른다.
+  위치기반 조회가 법정동 코드로 옮겨진 항목을 빠뜨려서다(app/data/tourapi.py 참고).
+  목록 조회가 3초를 넘거나 실패하면 그 종류(음식·숙박)의 검색만 failed.
   실패·0건은 상태로만 알리고 코스는 그대로 둔다(FR-418, SDD 오류 표).
 - 출발지가 현재 위치여도 그 좌표는 쓰지 않는다(구간은 촬영지끼리만).
 - 응답은 저장하지 않는다(NO_STORE).
@@ -94,9 +96,27 @@ class AmenityFinder:
         ]
         last = stops[-1]
         jobs.append(("lodging", len(stops) - 1, last, None, (last.lat, last.lon), "lodging"))
-        return list(await asyncio.gather(*(self._search(*job) for job in jobs)))
+        kinds: list[FacilityType] = list(dict.fromkeys(job[-1] for job in jobs))
+        fetched = dict(
+            zip(kinds, await asyncio.gather(*(self._fetch(k) for k in kinds)), strict=True)
+        )
+        return [self._search(*job, fetched[job[-1]]) for job in jobs]
 
-    async def _search(
+    async def _fetch(self, facility: FacilityType) -> list[Place] | str:
+        """부산 목록. 실패하면 오류 종류(timeout·http·format·result·no_key)."""
+        try:
+            # 호출 전체를 3초로 묶는다(httpx 제한은 연결·읽기 단계마다라 넘을 수 있음, #80 리뷰)
+            return await asyncio.wait_for(
+                self._client.busan(CONTENT_TYPE[facility]), timeout=CALL_TIMEOUT_S
+            )
+        except asyncio.TimeoutError:
+            logger.warning("주변 시설 조회 실패 provider=tourapi error=timeout")
+            return "timeout"
+        except TourApiError as e:
+            logger.warning("주변 시설 조회 실패 provider=tourapi error=%s", e.kind)
+            return e.kind
+
+    def _search(
         self,
         kind: SearchKind,
         index: int,
@@ -104,6 +124,7 @@ class AmenityFinder:
         b: Stop | None,
         center: tuple[float, float],
         facility: FacilityType,
+        places: list[Place] | str,
     ) -> AmenitySearch:
         base = {
             "kind": kind,
@@ -111,18 +132,8 @@ class AmenityFinder:
             "from_location_id": a.location_id,
             "to_location_id": b.location_id if b else None,
         }
-        try:
-            # 호출 전체를 3초로 묶는다(httpx 제한은 연결·읽기 단계마다라 넘을 수 있음, #80 리뷰)
-            places = await asyncio.wait_for(
-                self._client.nearby(center[0], center[1], self._radius, CONTENT_TYPE[facility]),
-                timeout=CALL_TIMEOUT_S,
-            )
-        except asyncio.TimeoutError:
-            logger.warning("주변 시설 조회 실패 provider=tourapi error=timeout")
-            return AmenitySearch(**base, status="failed", error="timeout")
-        except TourApiError as e:
-            logger.warning("주변 시설 조회 실패 provider=tourapi error=%s", e.kind)
-            return AmenitySearch(**base, status="failed", error=e.kind)
+        if isinstance(places, str):
+            return AmenitySearch(**base, status="failed", error=places)
         candidates = _candidates(places, facility, center, self._radius)
         return AmenitySearch(**base, status="ok" if candidates else "empty", candidates=candidates)
 
@@ -135,9 +146,7 @@ def _candidates(
     for p in places:
         if p.content_id in seen or is_excluded(p.lcls_code):
             continue
-        dist = haversine_m(
-            center[0], center[1], p.lat, p.lon
-        )  # 응답의 dist 대신 직접 계산(검증 가능)
+        dist = haversine_m(center[0], center[1], p.lat, p.lon)
         if dist > radius_m:
             continue
         seen.add(p.content_id)

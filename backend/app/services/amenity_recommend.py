@@ -30,7 +30,7 @@ LODGING_KEY = "last"
 TOURAPI_SOURCE = {
     "id": "DATA-13",
     "provider": "한국관광공사",
-    "name": "TourAPI 위치기반 관광정보(음식점·숙박)",
+    "name": "TourAPI 국문 관광정보(음식점·숙박)",
     "base_date": None,
     "url": "https://api.visitkorea.or.kr",
 }

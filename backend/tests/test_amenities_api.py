@@ -48,17 +48,22 @@ def item(cid: str, lat: float, lon: float, lcls: str, title: str) -> dict:
 
 
 class FakeTour:
-    """음식(39)은 카페·밥 두 곳, 숙박(32)은 lodging_fail이면 실패."""
+    """부산 목록. 음식(39)은 1~2 구간 중간 지점 근처 카페·밥 두 곳.
+
+    숙박(32)은 마지막 촬영지 근처 한 곳이고, lodging_fail이면 실패한다.
+    """
 
     def __init__(self, lodging_fail: bool = False) -> None:
         self.lodging_fail = lodging_fail
 
     async def __call__(self, url: str, params: dict, *, timeout_s: float) -> dict:
-        lat, lon = params["mapY"], params["mapX"]
+        a, b = PLACES[1], PLACES[2]
+        lat, lon = (a.lat + b.lat) / 2, (a.lon + b.lon) / 2  # type: ignore[operator]
         if params["contentTypeId"] == 32:
             if self.lodging_fail:
                 raise TourApiError("timeout")
-            items = [item("h1", lat + 200 * M, lon, "AC060200", "바다 게스트하우스")]
+            h_lat, h_lon = b.lat + 200 * M, b.lon  # type: ignore[operator]
+            items = [item("h1", h_lat, h_lon, "AC060200", "바다 게스트하우스")]
         else:
             items = [
                 item("c1", lat + 100 * M, lon, "FD050100", "골목 카페"),
