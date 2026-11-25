@@ -196,8 +196,13 @@ class CourseService:
         """API-010. 없거나 승인 전이면 None."""
         async with self._connect() as conn:
             row = await course_repo.approved_course(conn, course_id)
-            if row is None:
-                return None
+        if row is None:
+            return None
+        return await self.detail_of(row)
+
+    async def detail_of(self, row: course_repo.CourseRow) -> dict[str, Any]:
+        """코스 한 행의 상세 계산(API-010, 관리자 미리 보기 API-024도 같은 계산)."""
+        async with self._connect() as conn:
             ids = [i for i, _ in row.stops] + (
                 [row.start_location_id] if row.start_location_id else []
             )
@@ -211,6 +216,9 @@ class CourseService:
         if plan is None:
             raise LocationNotLocated([i for i, _ in row.stops])
         return {**_course_head(row), **plan}
+
+    async def network(self) -> Network:
+        return await self._network()
 
     def _recommended(
         self,
