@@ -4,6 +4,7 @@
 """
 
 import json
+from datetime import datetime
 from typing import Any
 
 import asyncpg
@@ -107,3 +108,66 @@ async def recent_reports(conn: asyncpg.Connection, limit: int = KEEP_RUNS) -> li
         limit,
     )
     return [_row_to_report(r) for r in rows]
+
+
+# ── 수동 요청·정기 실행 (API-021, FR-616, ADR-012) ─────────────
+# API는 'requested' 행만 넣고, 배치(python -m app.batch --watch)가 1분마다 가져가 실행한다.
+STALE_RUNNING_H = 3  # 이보다 오래 'running'이면 배치가 중간에 죽은 것으로 본다
+_LOCK_KEY = 612_613  # 수동 요청을 동시에 두 번 넣지 않게(트랜잭션 advisory lock)
+_ACTIVE = (
+    "status = 'requested' OR "
+    "(status = 'running' AND started_at > now() - make_interval(hours => $1::integer))"
+)
+
+
+async def active_run(conn: asyncpg.Connection) -> asyncpg.Record | None:
+    """대기·실행 중인 동기화(없으면 None). 오래된 'running'은 멈춘 것으로 보고 뺀다."""
+    return await conn.fetchrow(
+        f"SELECT id, trigger, status, created_at, started_at FROM sync_run WHERE {_ACTIVE} "
+        "ORDER BY id DESC LIMIT 1",
+        STALE_RUNNING_H,
+    )
+
+
+async def request_manual(conn: asyncpg.Connection) -> tuple[int, bool]:
+    """수동 동기화를 요청한다. (run_id, 새로 넣었는지). 이미 대기·실행 중이면 그 id와 False."""
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock($1)", _LOCK_KEY)
+        current = await active_run(conn)
+        if current is not None:
+            return current["id"], False
+        run_id = await conn.fetchval(
+            "INSERT INTO sync_run (trigger, status) VALUES ('manual', 'requested') RETURNING id"
+        )
+        return run_id, True
+
+
+async def claim_requested(conn: asyncpg.Connection) -> int | None:
+    """가장 오래된 요청 하나를 'running'으로 바꾸고 그 id를 돌려준다(배치가 부름)."""
+    return await conn.fetchval(
+        """
+        UPDATE sync_run SET status = 'running', started_at = now()
+        WHERE id = (SELECT id FROM sync_run WHERE status = 'requested'
+                    ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED)
+        RETURNING id
+        """
+    )
+
+
+async def fail_stale(conn: asyncpg.Connection) -> int:
+    """오래 'running'에 멈춘 기록(배치가 중간에 죽음)을 'failed'로 닫는다. 닫은 수."""
+    stopped = [Failure(step="batch", reason="배치가 끝나지 않고 멈췄습니다")]
+    result = await conn.execute(
+        """
+        UPDATE sync_run SET status = 'failed', finished_at = now(), failures = $2::jsonb
+        WHERE status = 'running' AND started_at <= now() - make_interval(hours => $1::integer)
+        """,
+        STALE_RUNNING_H,
+        _dump(stopped),
+    )
+    return int(result.split()[-1])
+
+
+async def last_started_at(conn: asyncpg.Connection) -> datetime | None:
+    """마지막으로 시작한 동기화 시각(수동·정기 모두). 정기 실행 간격 계산에 쓴다."""
+    return await conn.fetchval("SELECT max(started_at) FROM sync_run")

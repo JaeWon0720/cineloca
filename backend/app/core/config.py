@@ -18,6 +18,12 @@ class Settings:
         None  # 공공데이터포털 키(TourAPI 주변 시설, FR-414). 비우면 시설 검색만 실패
     )
     admin_password_hash: str | None = None  # 관리자 비밀번호 해시(FR-615). 비우면 관리 API만 503
+    sync_interval_days: int = 7  # 정기 동기화 주기(FR-616). 0이면 끔. 배치(--watch)와 같은 값
+
+
+def _days(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    return int(raw) if raw.isdigit() else default
 
 
 def _flag(name: str) -> bool:
@@ -34,4 +40,5 @@ def get_settings() -> Settings:
         stamp_signing_key=os.getenv("STAMP_SIGNING_KEY") or None,
         tour_api_key=os.getenv("DATA_GO_KR_SERVICE_KEY") or None,
         admin_password_hash=(os.getenv("ADMIN_PASSWORD_HASH") or "").strip() or None,
+        sync_interval_days=_days("SYNC_INTERVAL_DAYS", 7),
     )
