@@ -28,6 +28,7 @@ from app.batch.geocode import JusoGeocoder, KakaoKeywordGeocoder, precise
 from app.batch.merge import Merged, merge
 from app.batch.report import Failure, GeoCounts, MatchCounts, SyncCounts, failure
 from app.batch.sync_record import guard_and_publish, record_failure
+from app.core.genres import group_genres
 from app.data import staging, sync_runs
 from app.data.ai_gateway import LLMClient
 
@@ -222,6 +223,14 @@ def _locations(m: Merged, coords: dict[str, tuple], sts: list[stations.Station])
     return locs
 
 
+def unknown_genres(works: list[tuple]) -> list[str]:
+    """묶음표에 없는 KMDb 장르(동기화 리포트 경고, FR-613). works는 _match의 행(4번 = 저장값)."""
+    found: set[str] = set()
+    for w in works:
+        found.update(group_genres((w[4] or {}).get("genres") or [])[1])
+    return sorted(found)
+
+
 async def run(
     conn: asyncpg.Connection, c: Clients, trigger: str = "manual", run_id: int | None = None
 ) -> tuple[int, SyncCounts, Stats]:
@@ -249,6 +258,7 @@ async def run(
     counts.match = MatchCounts(
         **{s: sum(1 for w in works if w[5] == s) for s in ("matched", "review", "unmatched")}
     )
+    counts.unknown_genres = unknown_genres(works)
     by_source = {v: sum(1 for x in locs if x[6] == v) for v in GEO_SOURCES}
     counts.geo = GeoCounts(
         located=len(locs) - by_source["none"], failed=by_source["none"], by_source=by_source

@@ -5,7 +5,7 @@
 - publish(): 가드 통과 뒤 같은 트랜잭션에서 서비스 테이블로 반영
   (sync_record.guard_and_publish가 부른다).
   id는 정규화 이름으로 찾아 유지하고, 이번 수집에 없는 작품·촬영지는 지운다.
-  끝에 고유명사 사전(dict_entry, FR-303)을 새 작품·역에 맞춘다.
+  끝에 장르·감독·출연(app/data/credits.py)을 옮기고 고유명사 사전(dict_entry, FR-303)을 맞춘다.
 - 이전 반영 결과 읽기: 좌표 캐시(같은 주소면 다시 부르지 않음), 관리자 검수 결과
 - 역간 소요시간(station_time)은 이번 실행에서 받았을 때만 통째로 바꾼다(FR-413)
 """
@@ -16,7 +16,7 @@ from collections.abc import Iterable
 
 import asyncpg
 
-from app.data import dictionary
+from app.data import credits, dictionary
 
 logger = logging.getLogger(__name__)
 
@@ -216,5 +216,7 @@ async def publish(conn: asyncpg.Connection) -> None:
                             AND r.proposer = 'rule')
         """
     )
+    # 장르·감독·출연(FR-103·205·310)을 KMDb 저장값에서 옮긴다. 사전이 인물을 읽으므로 그 앞에서
+    await credits.apply(conn)
     # F3 사전 대조(FR-303)가 새 작품·역 이름을 바로 찾게 사전을 같은 트랜잭션에서 맞춘다
     await dictionary.rebuild(conn)
