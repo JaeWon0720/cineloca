@@ -13,7 +13,8 @@ AI Gateway(suggest_tags·judge_match)로 제안을 받아 검수 큐 항목(Revi
   match : {"verdict": "match|not_listed|unsure", "kmdb_id": "K12345" | null,
            "title": "...", "year": 2001, "reason": "...", "provider": "...", "prompt_version": "v1"}
           kmdb_id는 규칙 항목(#42 staging)과 같은 키다. 승인 처리(FR-609)가 같은 방식으로 읽는다.
-          AI 항목은 동기화 반영의 결정을 덮지 않는다(staging.review_decisions는 규칙 항목만 읽음).
+          AI 판정은 관리자가 승인·수정했을 때만 동기화 반영의 결정이 된다
+          (staging.review_decisions, FR-609).
 
 run_ai_review()는 동기화 배치가 반영(publish)한 뒤 부르는 한 단계다.
 """

@@ -1,6 +1,8 @@
 // 목업 API 서버: 백엔드 없이 프론트만 띄워도 화면이 동작하게 하는 가짜 응답이다.
 // 응답 모양은 백엔드 스키마(app/api/schemas)와 같게 유지한다. 기능별 처리기는 handlers/에 둔다.
 import type { ApiRequest, ApiResponse } from '../api/client.ts'
+import { adminHandlers } from './handlers/admin.ts'
+import { adminCourseHandlers } from './handlers/adminCourses.ts'
 import { commonHandlers } from './handlers/common.ts'
 import { courseHandlers } from './handlers/courses.ts'
 import { locationHandlers } from './handlers/locations.ts'
@@ -9,7 +11,7 @@ import { stampHandlers } from './handlers/stamps.ts'
 import { workHandlers } from './handlers/works.ts'
 import { fail, type Handler } from './http.ts'
 
-const HANDLERS: Handler[] = [...commonHandlers, ...locationHandlers, ...workHandlers, ...queryHandlers, ...courseHandlers, ...stampHandlers]
+const HANDLERS: Handler[] = [...commonHandlers, ...locationHandlers, ...workHandlers, ...queryHandlers, ...courseHandlers, ...stampHandlers, ...adminHandlers, ...adminCourseHandlers]
 const DELAY_MS = import.meta.env.MODE === 'test' ? 0 : 150
 
 export async function mockRequest(req: ApiRequest): Promise<ApiResponse> {

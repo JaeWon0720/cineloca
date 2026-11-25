@@ -84,5 +84,6 @@ export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
 export const api = {
   get: <T>(path: string, headers?: Record<string, string>) => request<T>('GET', path, undefined, headers),
   post: <T>(path: string, body: unknown, headers?: Record<string, string>) => request<T>('POST', path, body, headers),
+  patch: <T>(path: string, body: unknown, headers?: Record<string, string>) => request<T>('PATCH', path, body, headers),
   del: <T>(path: string, headers?: Record<string, string>) => request<T>('DELETE', path, undefined, headers),
 }
