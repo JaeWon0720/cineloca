@@ -22,6 +22,7 @@ from app.api.routers import (
     locations,
     meta,
     query,
+    sources,
     stamps,
     works,
 )
@@ -63,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router, prefix="/api")
     app.include_router(locations.router, prefix="/api")
     app.include_router(meta.router, prefix="/api")
+    app.include_router(sources.router, prefix="/api")
     app.include_router(stamps.router, prefix="/api")
     app.include_router(works.router, prefix="/api")
     app.include_router(amenities.router, prefix="/api")

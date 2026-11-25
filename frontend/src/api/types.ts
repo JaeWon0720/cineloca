@@ -6,7 +6,7 @@ export type SourceCard = { id: string; provider: string; name: string; base_date
 /** 오류 응답: {"error": {"code", "message", "retry_after"}} (SDD 3.2) */
 export type ErrorBody = { code: string; message: string; retry_after?: number | null }
 
-/** UI-09 데이터 출처 화면 응답. 백엔드 형식이 정해지면 맞춘다(초안). */
+/** UI-09 데이터 출처 화면 응답(API-019). 백엔드 app/api/schemas/sources.py SourcesResponse와 같게 둔다. */
 export type SourcesInfo = {
   ledger: (SourceCard & { license: string; policy: 'STORE' | 'ID_ONLY' | 'NO_STORE' })[]
   notice_version: string
