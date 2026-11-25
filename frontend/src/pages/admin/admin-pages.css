@@ -440,3 +440,39 @@
 .attr-find input {
   width: 8em;
 }
+
+/* UI-12 추천 코스 관리 */
+.course-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.course-row.on {
+  outline: 2px solid var(--accent);
+}
+.link-like {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.course-stops {
+  display: grid;
+  gap: 0.4rem;
+  padding-left: 1.4rem;
+}
+.course-stops li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.course-stops .stop-name {
+  flex: 1 1 12rem;
+}
+.course-stops input[type='number'] {
+  width: 4.5rem;
+}
