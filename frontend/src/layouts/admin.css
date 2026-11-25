@@ -1,0 +1,197 @@
+/* 관리자 화면 틀: 상단 헤더 + 왼쪽 관리 메뉴 + 본문 (좁은 화면에서는 메뉴가 위로 올라간다)
+   사용자 화면과 같은 색 토큰을 쓰되, 헤더에 '관리자' 표를 달아 지금 관리 화면임을 늘 보이게 한다. */
+.admin-shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  color: #fff;
+  background: var(--ink);
+}
+
+.admin-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: 0.25em;
+  color: var(--ink);
+  background: var(--marquee);
+  border-radius: 999px;
+}
+
+.admin-session {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: #c9d6e3;
+}
+
+.admin-logout {
+  color: #fff;
+  background: transparent;
+  border-color: #5a7590;
+}
+
+.admin-logout:hover {
+  background: #1c3a5a;
+}
+
+.admin-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+}
+
+.admin-nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius);
+  border-left: 3px solid transparent;
+}
+
+.admin-nav-link small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.admin-nav-link:hover {
+  background: var(--surface);
+}
+
+/* 지금 메뉴: 왼쪽 노란 막대 (사용자 화면 하단 탭의 막대와 같은 신호) */
+.admin-nav-link.active {
+  font-weight: 600;
+  background: var(--marquee-soft);
+  border-left-color: var(--marquee);
+}
+
+.admin-nav-back {
+  padding: 0 12px;
+  font-size: 0.8125rem;
+  color: var(--accent);
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 24px 32px;
+}
+
+/* 관리 화면은 표가 넓어 가운데 좁은 단 대신 왼쪽부터 넓게 쓴다 */
+.admin-main .page {
+  max-width: none;
+  margin: 0;
+}
+
+.admin-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  margin: 8vh auto 0;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.admin-login-form input {
+  width: 100%;
+}
+
+/* 좁은 화면(태블릿 세로·휴대폰): 메뉴를 본문 위 가로 줄로 */
+@media (max-width: 719px) {
+  .admin-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-nav ul {
+    flex-direction: row;
+  }
+
+  .admin-nav-link {
+    white-space: nowrap;
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .admin-nav-link small {
+    display: none;
+  }
+
+  .admin-nav-link.active {
+    border-bottom-color: var(--marquee);
+  }
+
+  .admin-nav-back {
+    white-space: nowrap;
+  }
+
+  .admin-until {
+    display: none;
+  }
+
+  .admin-main {
+    padding: 16px;
+  }
+}

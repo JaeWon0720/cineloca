@@ -14,6 +14,7 @@ from app.api.errors import install_error_handlers
 from app.api.request_log import DailyJsonlWriter, RequestLogMiddleware
 from app.api.routers import (
     admin,
+    admin_courses,
     admin_review,
     amenities,
     courses,
@@ -66,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(works.router, prefix="/api")
     app.include_router(amenities.router, prefix="/api")
     app.include_router(courses.router, prefix="/api")
+    app.include_router(admin_courses.router, prefix="/api")
     app.include_router(query.router, prefix="/api")
     app.include_router(admin.router, prefix="/api")
     app.include_router(admin_review.router, prefix="/api")

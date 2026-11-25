@@ -1,0 +1,442 @@
+/* 관리 화면(UI-10·11) 공통: 카드·경고·상태 표·표 */
+.admin-page {
+  gap: 16px;
+}
+
+.admin-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.admin-card h2,
+.admin-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.admin-alerts {
+  margin: 0;
+  padding: 10px 14px 10px 32px;
+  color: #7a3b00;
+  background: #fff4e0;
+  border: 1px solid #f3c77a;
+  border-radius: var(--radius);
+}
+
+.admin-alerts li + li {
+  margin-top: 4px;
+}
+
+/* 진행 중 동기화: 깜빡이는 점으로 '지금 돌고 있음'을 알린다 */
+.sync-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--marquee-soft);
+  border-radius: var(--radius);
+}
+
+.sync-active .dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--marquee);
+  border-radius: 50%;
+  animation: sync-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sync-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-active .dot {
+    animation: none;
+  }
+}
+
+.sync-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.kv dt {
+  color: var(--text-muted);
+}
+
+.kv dd {
+  margin: 0;
+}
+
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage li {
+  display: grid;
+  grid-template-columns: 80px auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.usage-key {
+  font-weight: 600;
+}
+
+.usage-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-bar {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 3px;
+}
+
+.usage-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.usage-warning .usage-bar span {
+  background: #e08a00;
+}
+
+.usage-exhausted .usage-bar span {
+  background: var(--danger, #c0392b);
+}
+
+.usage-level {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a85d00;
+}
+
+.usage-exhausted .usage-level {
+  color: var(--danger, #c0392b);
+}
+
+.sync-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sync-report {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left-width: 4px;
+}
+
+.sync-report.status-succeeded {
+  border-left-color: #2e8b57;
+}
+
+.sync-report.status-failed,
+.sync-report.status-guarded {
+  border-left-color: #d9822b;
+}
+
+.sync-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.sync-report-head h3 {
+  margin: 0;
+}
+
+.status-pill {
+  padding: 1px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.status-pill.status-succeeded {
+  color: #1f6b43;
+  background: #e3f4ea;
+}
+
+.status-pill.status-failed,
+.status-pill.status-guarded {
+  color: #8a4a00;
+  background: #fdebd3;
+}
+
+.status-pill.status-running,
+.status-pill.status-requested {
+  color: var(--ink);
+  background: var(--marquee-soft);
+}
+
+.sync-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.sync-counts dt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sync-counts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.delta {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.delta.up {
+  color: #1f6b43;
+}
+
+.delta.down {
+  color: #a33a2b;
+}
+
+.sync-warnings {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.875rem;
+  color: #7a3b00;
+}
+
+.sync-failures summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--accent);
+}
+
+.sync-failures ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+}
+
+/* ---------- UI-11 검수 큐·속성 편집 */
+.review-filters,
+.attr-find {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.field.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.review-target {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.kind-pill {
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.kind-match {
+  color: #1d4f73;
+  background: #e2eef7;
+}
+
+.kind-tag {
+  color: #5b3a8a;
+  background: #efe8f8;
+}
+
+.status-pill.status-approved,
+.status-pill.status-modified {
+  color: #1f6b43;
+  background: #e3f4ea;
+}
+
+.status-pill.status-rejected {
+  color: #8a2b1d;
+  background: #fbe4e0;
+}
+
+.review-proposal {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.chip {
+  display: inline-block;
+  margin: 0 4px 0 0;
+  padding: 1px 8px;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border-radius: 999px;
+}
+
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.danger {
+  color: var(--danger);
+  border-color: #e7b2ab;
+}
+
+.review-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.tag-picker,
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tag-picker legend,
+.radio-row legend {
+  width: 100%;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.attr-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attr-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.attr-form h2 {
+  margin: 0;
+}
+
+.attr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.attr-row input[type='number'] {
+  width: 120px;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.admin-page > .seg,
+.review-filters .seg {
+  align-self: flex-start;
+}
+
+.field.inline > span {
+  white-space: nowrap;
+}
+
+.attr-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.attr-find input {
+  width: 8em;
+}
