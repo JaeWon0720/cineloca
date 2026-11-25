@@ -199,7 +199,7 @@ TASKS: dict[str, TaskSpec] = {
             "work_intro",  # F1 작품 소개(FR-109)
             GroundedText,
             temperature=0.3,
-            prompt_version="v2",
+            prompt_version="v3",
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
