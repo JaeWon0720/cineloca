@@ -96,6 +96,16 @@ def test_text_is_structured_and_selection_wins() -> None:
     assert gemini.calls[0].user == "원하는 조건: 국밥 먹고 싶어요"
 
 
+def test_precomputed_conditions_skip_structuring() -> None:  # NFR-006: 후보 검색과 동시에 구조화
+    svc, gemini = make(COND_AI, ProviderError("upstream", "이유 생략"))
+
+    cond = asyncio.run(svc.structure("국밥 먹고 싶어요"))
+    result = recommend(svc, conditions=cond)
+
+    assert cond.status == "ai" and result.conditions is cond
+    assert [c.task for c in gemini.calls] == ["structure_facility", "facility_reasons"]
+
+
 @pytest.mark.parametrize(
     "reply",
     [
@@ -311,7 +321,7 @@ def test_reason_prompt() -> None:
         TASKS["facility_reasons"], {"evidence": Evidence(("1. 할매국밥 (음식·밥) — X에서 300m",))}
     )
     assert p.user == "근거:\n1. 할매국밥 (음식·밥) — X에서 300m"
-    assert "맛·가격·분위기·평점" in p.system and p.version == "v1"
+    assert "맛·가격·분위기·평점" in p.system and p.version == "v2"
     s = DefaultPromptBuilder().build(TASKS["structure_facility"], {"text": mask("카페")})
     assert (
         "밥, 카페" in s.system

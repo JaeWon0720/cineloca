@@ -218,7 +218,7 @@ def test_summary_prompt_uses_only_top_10_facts() -> None:
     assert "- 촬영지9 (중구)" in prompt.user and "촬영지10" not in prompt.user
     assert SUMMARY_MAX_FACTS == 10
     assert "근거에 적힌 사실만" in prompt.system
-    assert (prompt.version, prompt.temperature) == ("v1", 0.2)
+    assert (prompt.version, prompt.temperature) == ("v2", 0.2)
 
 
 def test_summary_requires_masked_query() -> None:
