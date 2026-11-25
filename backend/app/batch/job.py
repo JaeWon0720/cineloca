@@ -11,6 +11,8 @@
   (반영 때 station_time은 지난 값을 그대로 둔다).
 - 매칭: 관리자 검수 결과가 자동 판정보다 우선(FR-611). 같은 KMDb 작품에 두 작품이 붙으면
   하나만 남기고 검수로 돌린다(work.kmdb_id UNIQUE).
+- 사전 임베딩(FR-617, 선택): Clients.embedder가 있고 반영이 성공했으면 비어 있는 dict_entry 벡터를
+  로컬 bge-m3로 채운다(--embed). 실패해도 동기화 결과는 바뀌지 않는다.
 - AI 제안(FR-608, 선택): Clients.ai가 있고 반영이 성공했을 때만 태그 없는 촬영지의 유형 태그와
   검수 대기 작품의 매칭 판정을 제안받아 검수 큐에 '미검수'로 넣는다(BR-04, #89). 로컬 모델이
   필요해서 진입점의 --ai-review로만 켠다. 이 단계가 실패해도 동기화 결과는 바뀌지 않는다.
@@ -23,14 +25,14 @@ from dataclasses import dataclass, field
 import asyncpg
 import httpx
 
-from app.batch import ai_review, collect, kmdb, station_times, stations
+from app.batch import ai_review, collect, embed, kmdb, station_times, stations
 from app.batch.geocode import JusoGeocoder, KakaoKeywordGeocoder, precise
 from app.batch.merge import Merged, merge
 from app.batch.report import Failure, GeoCounts, MatchCounts, SyncCounts, failure
 from app.batch.sync_record import guard_and_publish, record_failure
 from app.core.genres import group_genres
 from app.data import staging, sync_runs
-from app.data.ai_gateway import LLMClient
+from app.data.ai_gateway import Embedder, LLMClient
 
 log = logging.getLogger(__name__)
 GEO_SOURCES = ("address", "keyword", "none")
@@ -46,6 +48,7 @@ class Clients:
     kmdb_store: bool = True  # DATA-04 STORE(2026-11-11 공공누리 제1유형 확인, #12)
     ai: LLMClient | None = None  # FR-608 AI 제안 단계(선택, --ai-review)
     ai_tag_limit: int | None = None  # 한 번에 태그를 물을 촬영지 수(없으면 전부)
+    embedder: Embedder | None = None  # FR-617 사전 임베딩 단계(선택, --embed)
 
 
 @dataclass
@@ -55,6 +58,7 @@ class Stats:
     station_pairs: int = 0
     seconds: float = 0.0
     ai_review: dict | None = None  # FR-608 단계를 돌렸을 때 건수
+    embeddings: dict | None = None  # FR-617 단계를 돌렸을 때 건수
 
 
 def _count(errors: dict[str, int], e: Exception) -> None:
@@ -285,11 +289,23 @@ async def run(
         station_pairs=len(times),
         seconds=round(time.monotonic() - t0, 1),
     )
+    if c.embedder is not None and guard.passed:
+        stats.embeddings = await _embeddings(conn, c.embedder)
+        stats.seconds = round(time.monotonic() - t0, 1)
     if c.ai is not None and guard.passed:
         stats.ai_review = await _ai_review(conn, c, m, works, cands_of)
         stats.seconds = round(time.monotonic() - t0, 1)
     log.info("동기화 %s 끝: %.1f초", run_id, stats.seconds)
     return run_id, counts, stats
+
+
+async def _embeddings(conn, embedder: Embedder) -> dict:
+    """반영된 사전에 벡터를 채운다. 실패해도 동기화는 그대로 두고 종류만 남긴다."""
+    try:
+        return (await embed.fill_embeddings(conn, embedder)).as_dict()
+    except Exception as e:
+        log.warning("사전 임베딩 단계 실패: %s", type(e).__name__)
+        return {"error": type(e).__name__}
 
 
 async def _ai_review(
