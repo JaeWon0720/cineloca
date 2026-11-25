@@ -15,6 +15,7 @@ from app.api.request_log import DailyJsonlWriter, RequestLogMiddleware
 from app.api.routers import (
     admin,
     admin_courses,
+    admin_review,
     amenities,
     courses,
     health,
@@ -69,6 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(admin_courses.router, prefix="/api")
     app.include_router(query.router, prefix="/api")
     app.include_router(admin.router, prefix="/api")
+    app.include_router(admin_review.router, prefix="/api")
     return app
 
 

@@ -42,12 +42,21 @@ async def known_stations(conn: asyncpg.Connection) -> dict[str, tuple[float, flo
 
 async def review_decisions(conn: asyncpg.Connection) -> dict[str, tuple[str, str | None]]:
     """title_norm → (status, kmdb_id). 관리자가 처리한 매칭 검수(마지막 처리 기준)와
-    대기 중인 것. 규칙 항목만 읽는다(AI 제안 #41은 참고용이라 결정을 덮지 않음)."""
+    대기 중인 것(FR-609).
+
+    규칙 항목은 그대로 읽는다. AI 판정(#41)은 관리자가 승인·수정했을 때만 결정이 된다:
+    KMDb 번호가 있으면 그 작품으로 연결, 없으면(not_listed 승인) 연결 안 함(rejected와 같음).
+    AI 판정을 반려한 것은 'AI 말을 안 따름'일 뿐이라 결정으로 치지 않는다.
+    """
     rows = await conn.fetch(
         """
-        SELECT w.title_norm, r.status, r.proposal->>'kmdb_id' AS kmdb_id
+        SELECT w.title_norm,
+               CASE WHEN r.proposer = 'ai' AND r.proposal->>'kmdb_id' IS NULL THEN 'rejected'
+                    ELSE r.status END AS status,
+               r.proposal->>'kmdb_id' AS kmdb_id
         FROM review_item r JOIN work w ON w.id = r.target_id
-        WHERE r.kind = 'match' AND r.target_type = 'work' AND r.proposer = 'rule'
+        WHERE r.kind = 'match' AND r.target_type = 'work'
+          AND (r.proposer = 'rule' OR r.status IN ('approved', 'modified'))
         ORDER BY r.handled_at NULLS FIRST, r.id
         """
     )

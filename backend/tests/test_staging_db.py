@@ -181,3 +181,30 @@ def test_publish_rebuilds_dictionary() -> None:
         ]
 
     run(body)
+
+
+def test_approved_ai_match_becomes_decision() -> None:
+    """FR-609: 관리자가 승인·수정한 AI 판정은 결정이 되고, 반려한 것은 무시한다."""
+
+    async def body(conn: asyncpg.Connection) -> None:
+        w = work("w1", "review", cand={"kmdb_id": "K9"})
+        await load(conn, [w], [LOC_A], [("w1", "a", "DATA-01", {}, None)])
+        wid = await conn.fetchval("SELECT id FROM work WHERE title_norm = 'w1'")
+
+        async def ai(proposal: str, status: str) -> None:
+            await conn.execute(
+                "INSERT INTO review_item (kind, target_type, target_id, proposal, proposer,"
+                " status, handled_at) VALUES ('match', 'work', $1, $2::jsonb, 'ai', $3, now())",
+                wid,
+                proposal,
+                status,
+            )
+
+        await ai('{"verdict": "match", "kmdb_id": "K7"}', "rejected")
+        assert await staging.review_decisions(conn) == {"w1": ("pending", "K9")}
+        await ai('{"verdict": "not_listed", "kmdb_id": null}', "approved")
+        assert await staging.review_decisions(conn) == {"w1": ("rejected", None)}
+        await ai('{"verdict": "match", "kmdb_id": "K7"}', "modified")
+        assert await staging.review_decisions(conn) == {"w1": ("modified", "K7")}
+
+    run(body)
