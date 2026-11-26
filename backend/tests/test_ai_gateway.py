@@ -362,3 +362,31 @@ def test_query_genres_pass_search_request_validation() -> None:
     request = LocationSearchRequest(base={"lat": 35.1, "lon": 129.0}, genres=conditions.genres)
 
     assert request.genres == ["범죄·느와르", "재난"]
+
+
+def test_query_travel_accepts_type_key_from_gemini() -> None:
+    """#149: Gemini는 스키마를 받지 않아 travel 안쪽 키를 'type'으로 쓰기도 한다 → mode로 받는다."""
+    raw = {**GOOD, "travel": {"type": "walk", "max_min": 10}}
+    conditions = QueryConditions.model_validate_json(json.dumps(raw))
+    assert conditions.travel is not None and conditions.travel.mode == "walk"
+    assert conditions.model_dump()["travel"] == {"mode": "walk", "max_min": 10}  # 캐시·로그는 mode
+    with pytest.raises(ValidationError):  # 다른 키 이름은 그대로 스키마 위반
+        QueryConditions.model_validate({**GOOD, "travel": {"how": "walk"}})
+
+
+def test_query_out_of_scope_null_result_type_defaults_to_location() -> None:
+    """#149: 범위 밖이면 result_type=null이 온다 → 강등하지 않고 out_of_scope로."""
+    empty = {**GOOD, "out_of_scope": True, "work_titles": [], "genres": [], "districts": []}
+    conditions = QueryConditions.model_validate(
+        {**empty, "anchor": None, "travel": None, "result_type": None}
+    )
+    assert conditions.out_of_scope and conditions.result_type == "location"
+    with pytest.raises(ValidationError):
+        QueryConditions.model_validate({**GOOD, "result_type": "drama"})
+
+
+def test_query_schema_for_ollama_is_unchanged() -> None:
+    """너그럽게 받는 것은 검증뿐이고, Ollama에 주는 JSON 스키마는 mode·enum 그대로다."""
+    schema = QueryConditions.model_json_schema()
+    assert schema["$defs"]["Travel"]["required"] == ["mode"]
+    assert schema["properties"]["result_type"]["enum"] == ["location", "work"]

@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
 from app.core.facilities import FacilityKind, FoodCategory, LodgingCategory
 from app.core.genres import GENRE_GROUPS, GenreGroup
@@ -54,8 +54,11 @@ class Anchor(BaseModel):
     name: str | None = None
 
 
+# Gemini에는 JSON 스키마를 보내지 않아(형식은 JSON 지정만) 안쪽 키 이름과 빈 값을 모델이 짐작한다.
+# 프롬프트와 어긋나기 쉬운 두 곳만 너그럽게 받는다(#149). 스키마(Ollama 문법)는 그대로다.
 class Travel(BaseModel):
-    mode: Literal["walk", "subway"]
+    # 프롬프트가 키 이름을 말하지 않아 Gemini가 'type'으로 쓰는 경우가 있다
+    mode: Literal["walk", "subway"] = Field(validation_alias=AliasChoices("mode", "type"))
     max_min: int | None = Field(default=None, ge=1, le=300)
 
 
@@ -70,6 +73,12 @@ class QueryConditions(BaseModel):
     anchor: Anchor | None
     travel: Travel | None
     result_type: Literal["location", "work"]
+
+    @field_validator("result_type", mode="before")
+    @classmethod
+    def _default_result_type(cls, v: object) -> object:
+        # 범위 밖이면 프롬프트 규칙('나머지는 빈 값')대로 null이 온다 → 기본값(촬영지)
+        return "location" if v is None else v
 
 
 # ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
