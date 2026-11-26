@@ -14,6 +14,7 @@ const COURSE_STOPS: Record<number, { title: string; ids: number[] }> = {
 }
 const EXCLUDED: Record<string, string> = {
   no_coordinates: '위치가 확인되지 않은 촬영지라 방문 인증을 할 수 없어요.',
+  closed: '지금은 없어진 곳(폐업·철거)이라 방문 인증을 하지 않아요.',
   private: '사유지라 방문 인증을 하지 않아요. 외부에서만 관람해 주세요.',
   residential: '주민이 사는 곳이라 방문 인증을 하지 않아요. 외부에서만 관람해 주세요.',
   school: '학교라 방문 인증을 하지 않아요. 외부에서만 관람해 주세요.',

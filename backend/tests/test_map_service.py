@@ -32,3 +32,24 @@ def test_cert_info(located: bool, caution: str | None, excluded: bool, reason: s
 def test_every_caution_has_outside_only_notice() -> None:
     assert set(CAUTION_NOTICES) == {"private", "residential", "school"}
     assert all("외부에서만 관람" in text for text in CAUTION_NOTICES.values())  # FR-209
+
+
+@pytest.mark.parametrize(
+    ("name", "located", "caution", "reason"),
+    [
+        ("[폐업] 삼중다방(중앙동)", True, None, "closed"),
+        (" [철거] 옛 시장", True, "school", "closed"),  # 없어진 곳이 주의 장소보다 먼저
+        ("[폐업] 좌표 없는 곳", False, None, "no_coordinates"),  # 좌표 없음이 가장 먼저
+        ("해운대해수욕장", True, None, None),
+        ("폐업한 가게 앞 골목", True, None, None),  # 앞의 [폐업] 표시만 본다
+        ("구) 부산시청", True, None, None),  # 옛 이름 표시는 제외하지 않음
+    ],
+)
+def test_cert_info_closed_place(
+    name: str, located: bool, caution: str | None, reason: str | None
+) -> None:
+    """[폐업]·[철거] 촬영지는 그 장소가 없어 방문 인증을 하지 않는다(BR-06)."""
+    info = cert_info(located, caution, False, 100, name)
+
+    assert info["excluded_reason"] == reason
+    assert info["eligible"] is (reason is None)

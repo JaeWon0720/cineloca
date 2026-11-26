@@ -31,7 +31,9 @@ District = Literal[
     "기장군",
 ]  # BR-15: 부산광역시 16개 구·군
 Caution = Literal["private", "residential", "school"]  # FR-209
-CertExcludedReason = Literal["no_coordinates", "private", "residential", "school", "excluded"]
+CertExcludedReason = Literal[
+    "no_coordinates", "closed", "private", "residential", "school", "excluded"
+]
 
 
 class BasePoint(BaseModel):
