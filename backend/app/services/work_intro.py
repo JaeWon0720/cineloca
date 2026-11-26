@@ -80,10 +80,13 @@ def _base(work: WorkFacts, *, with_scene: bool) -> tuple[list[str], set[str]]:
         facts.append(f"출연: {', '.join(cast)}")
         names.update(cast)
     for loc in work.locations[:MAX_LOCATIONS]:
-        line = f"부산 촬영지: {loc.name}"
+        # 구·군이 있으면 부산 촬영지로 적고, 없으면(부산 밖·위치 미확인) '부산'을 붙이지 않는다
+        # (이름 괄호의 김해·양산 등을 모델이 '부산의 …'로 쓰던 문제, N-05)
         if loc.gu:
-            line += f" ({loc.gu})"
+            line = f"촬영지: {loc.name} (부산 {loc.gu})"
             names.add(loc.gu)
+        else:
+            line = f"촬영지: {loc.name}"
         if with_scene and loc.scene:  # 장면 설명은 줄거리를 담을 수 있어 '일부' 단계에만
             line += f" — {loc.scene}"
         facts.append(line)

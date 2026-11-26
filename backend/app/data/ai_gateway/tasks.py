@@ -192,7 +192,7 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "extract_query",
             QueryConditions,
-            prompt_version="v4",  # v2(PoC) → v3: 장르 묶음 12개 → v4: 묶음에 없는 장르는 뺌
+            prompt_version="v5",  # v4 묶음 밖 장르 뺌 → v5 범위·구·이동·인물 규칙(11/25 N-04)
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
@@ -207,8 +207,8 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "work_intro",  # F1 작품 소개(FR-109)
             GroundedText,
-            temperature=0.3,
-            prompt_version="v1",
+            temperature=0.0,  # 판마다 오류 수가 달라지던 편차를 줄임(N-05)
+            prompt_version="v5",
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
