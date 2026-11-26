@@ -221,7 +221,12 @@ def chips(f: Filters) -> tuple[Chip, ...]:
         out.append(Chip("years", f"개봉: {label}"))
     if f.anchor:
         ref = f.anchor.ref
-        name = "내 위치" if f.anchor.type == "current" else (ref.name if ref else "")
+        if f.anchor.type == "current":
+            name = "내 위치"
+        elif ref:
+            name = ref.name
+        else:  # '지하철역에서 걸어서 10분'처럼 역 이름 없이 역 기준(#149)
+            name = "가까운 역" if f.anchor.type == "station" else "지정 안 함"
         out.append(Chip("anchor", f"기준: {name}"))
     if f.travel and f.travel.max_min:
         how = "도보" if f.travel.mode == "walk" else "도시철도"
