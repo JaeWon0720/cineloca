@@ -57,6 +57,11 @@ SUMMARY = {
             "entities": ["친구", "자갈치시장", "범일동 철길"],
         },
         {"text": "자갈치시장은 자갈치역 도보 5분입니다.", "entities": ["자갈치시장", "자갈치역"]},
+    ]
+}  # 요약은 2문장까지(GroundedSummary). 근거 없는 문장 삭제는 SUMMARY_UNGROUNDED로 본다
+SUMMARY_UNGROUNDED = {
+    "sentences": [
+        {"text": "친구 촬영지는 자갈치시장입니다.", "entities": ["친구", "자갈치시장"]},
         {"text": "감천문화마을도 있습니다.", "entities": ["감천문화마을"]},  # 근거 없음 → 삭제
     ]
 }
@@ -151,7 +156,7 @@ def test_ask_extracts_searches_and_summarizes() -> None:
     assert r.summary == (
         "친구 촬영지는 자갈치시장과 범일동 철길입니다.",
         "자갈치시장은 자갈치역 도보 5분입니다.",
-    )  # 근거 없는 문장은 지움(COMP-09)
+    )
     assert r.ai_generated and r.session_id
     assert [c.task for c in gemini.calls] == ["extract_query", "summarize_results"]
     assert "검색 결과(근거, 4건)" in gemini.calls[1].user  # 조건 + 결과 수 + 2건
@@ -421,3 +426,20 @@ def test_chip_labels() -> None:
     # 역 이름 없이 '지하철역에서 걸어서 10분'이면 칩이 빈 '기준: '이 아니라 '가까운 역'(#149)
     nameless = replace(f, anchor=AnchorFilter("station"), travel=TravelFilter("walk", 10))
     assert [c.label for c in chips(nameless)][-2:] == ["기준: 가까운 역", "도보 10분 이내"]
+
+
+def test_ungrounded_summary_sentence_is_dropped() -> None:  # COMP-09
+    svc, *_ = make(cond(work_titles=["친구"]), SUMMARY_UNGROUNDED)
+    r = asyncio.run(svc.ask("친구 촬영지"))
+    assert r.summary == ("친구 촬영지는 자갈치시장입니다.",)
+
+
+def test_summary_schema_allows_at_most_two_sentences() -> None:  # NFR-006 출력 상한
+    from pydantic import ValidationError
+
+    from app.data.ai_gateway.tasks import GroundedSummary
+
+    three = {"sentences": [{"text": "가", "entities": []}] * 3}
+    with pytest.raises(ValidationError):
+        GroundedSummary.model_validate(three)
+    assert GroundedSummary.model_json_schema()["properties"]["sentences"]["maxItems"] == 2

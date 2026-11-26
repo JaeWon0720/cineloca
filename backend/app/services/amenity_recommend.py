@@ -9,6 +9,7 @@ TourAPI 응답·조건 문장 원문은 저장하지 않는다(NO_STORE, 마스�
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from typing import Any
 
@@ -107,11 +108,12 @@ class AmenityRecommendService:
         if any(targets[i].lat is None or targets[i].lon is None for i in ids):
             raise LocationNotLocated
         stops = [Stop(i, targets[i].lat, targets[i].lon) for i in ids]  # type: ignore[arg-type]
-        searches = await self._finder.find(stops)
-        names = {i: targets[i].name for i in ids}
-        result = await self._facility.recommend(
-            to_segments(searches, names), text=text, selected=selected
+        # 후보 검색(TourAPI)과 조건 구조화(AI)는 서로 기다릴 필요가 없어 동시에 한다(NFR-006)
+        searches, cond = await asyncio.gather(
+            self._finder.find(stops), self._facility.structure(text, selected)
         )
+        names = {i: targets[i].name for i in ids}
+        result = await self._facility.recommend(to_segments(searches, names), conditions=cond)
         return _response(result, searches)
 
 

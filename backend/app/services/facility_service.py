@@ -274,14 +274,22 @@ class FacilityService:
         self._picker = picker or FacilityPicker()
         self._verifier = verifier or GroundingVerifier()
 
+    async def structure(
+        self, text: str | None, selected: FacilityConditions | None = None
+    ) -> ConditionResult:
+        """조건 구조화만(FR-415). 후보 검색과 동시에 돌려 응답 시간을 줄일 때 쓴다(NFR-006)."""
+        return await structure_conditions(self._client, text, selected)
+
     async def recommend(
         self,
         segments: Sequence[FacilitySegment],
         *,
         text: str | None = None,
         selected: FacilityConditions | None = None,
+        conditions: ConditionResult | None = None,
     ) -> FacilityResult:
-        cond = await structure_conditions(self._client, text, selected)
+        """conditions를 주면(미리 구조화한 결과) 구조화를 다시 하지 않는다."""
+        cond = conditions or await structure_conditions(self._client, text, selected)
         picked = self._picker.pick(segments, cond.conditions)
         stops = {name for seg in segments for name in seg.stop_names}
         with_reasons = await self._reasons(picked, stops)

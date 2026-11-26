@@ -82,13 +82,27 @@ class QueryConditions(BaseModel):
 
 
 # ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
+# 출력 길이 상한(NFR-006): 프롬프트의 길이 지시는 모델이 잘 따르지 않아 JSON 스키마로 묶는다.
+# Ollama는 스키마를 문법으로 바꿔 생성하므로 상한을 넘는 출력이 나오지 않는다.
 class GroundedSentence(BaseModel):
-    text: str = Field(min_length=1)
-    entities: list[str]  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
+    text: str = Field(min_length=1, max_length=120)
+    entities: list[str] = Field(max_length=4)  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
 
 
 class GroundedText(BaseModel):
     sentences: list[GroundedSentence] = Field(min_length=1)
+
+
+class GroundedSummary(GroundedText):
+    """F3 결과 요약(FR-307: 3문장 이내). 응답 시간 때문에 2문장까지."""
+
+    sentences: list[GroundedSentence] = Field(min_length=1, max_length=2)
+
+
+class GroundedIntro(GroundedText):
+    """F1 작품 소개(FR-109). 문장 수를 묶어 생성 시간을 줄인다(2문장 미만이면 서비스가 강등)."""
+
+    sentences: list[GroundedSentence] = Field(min_length=1, max_length=5)
 
 
 # ── F4 코스 주변 시설 (FR-415·417, CR-01) ───────────────────
@@ -107,14 +121,14 @@ class FacilityConditions(BaseModel):
 
 class FacilityReason(BaseModel):
     number: int = Field(ge=1)  # 입력 목록의 번호
-    text: str = Field(min_length=1, max_length=150)
-    entities: list[str]  # 문장에 쓴 시설명·장소명(COMP-09 대조용)
+    text: str = Field(min_length=1, max_length=70)  # 40자 안팎 한 문장(FR-417)
+    entities: list[str] = Field(max_length=3)  # 문장에 쓴 시설명·장소명(COMP-09 대조용)
 
 
 class FacilityReasons(BaseModel):
     """추천 이유(FR-417). 시설마다 한 문장. 대조에서 지워지면 템플릿 문장으로 바꾼다."""
 
-    reasons: list[FacilityReason]
+    reasons: list[FacilityReason]  # 고른 시설마다 하나(개수는 서비스가 번호로 맞춤)
 
 
 # ── C1 배치 제안(검수 큐로만 감, FR-608·BR-04) ──────────────
@@ -198,15 +212,15 @@ TASKS: dict[str, TaskSpec] = {
         ),
         TaskSpec(
             "summarize_results",  # F3 결과 요약(FR-307)
-            GroundedText,
+            GroundedSummary,
             temperature=0.2,
-            prompt_version="v1",
+            prompt_version="v2",
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(
             "work_intro",  # F1 작품 소개(FR-109)
-            GroundedText,
+            GroundedIntro,
             temperature=0.0,  # 판마다 오류 수가 달라지던 편차를 줄임(N-05)
             prompt_version="v5",
             cache_ttl_s=_DAY_S,
@@ -222,7 +236,7 @@ TASKS: dict[str, TaskSpec] = {
             "facility_reasons",  # F4 시설 추천 이유(FR-417)
             FacilityReasons,
             temperature=0.2,
-            prompt_version="v1",
+            prompt_version="v2",
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec("suggest_tags", TagSuggestion, prompt_version="v1"),  # FR-608
