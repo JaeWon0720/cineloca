@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractAsyncContextManager
 from typing import Any
@@ -46,11 +47,23 @@ def expand_genres(groups: Iterable[str]) -> list[str]:
     return sorted({g for group in groups for g in GENRE_GROUPS[group]})
 
 
-def cert_info(located: bool, caution: str | None, excluded: bool, radius_m: int) -> dict[str, Any]:
-    """방문 인증 가능 여부(BR-06). 제외 이유는 좌표 없음 → 주의 장소 → 관리자 제외 순."""
+CLOSED_PREFIX = re.compile(r"^\s*\[(?:폐업|철거)\]")  # 원본 장소명 앞 표시: 지금은 없어진 곳
+
+
+def is_closed(name: str | None) -> bool:
+    """[폐업]·[철거]로 시작하는 촬영지. 가도 그 장소가 없어 방문 인증을 하지 않는다(BR-06)."""
+    return bool(name and CLOSED_PREFIX.match(name))
+
+
+def cert_info(
+    located: bool, caution: str | None, excluded: bool, radius_m: int, name: str | None = None
+) -> dict[str, Any]:
+    """방문 인증 가능 여부(BR-06). 제외 이유: 좌표 없음 → 없어진 곳 → 주의 장소 → 관리자 제외."""
     reason = (
         "no_coordinates"
         if not located
+        else "closed"
+        if is_closed(name)
         else caution
         if caution in CAUTION_NOTICES
         else "excluded"
@@ -160,7 +173,7 @@ class MapService:
             "caution": caution,
             "caution_notice": CAUTION_NOTICES.get(caution) if caution else None,
             "safety_note": row.safety_note,
-            "cert": cert_info(located, caution, row.cert_excluded, row.cert_radius_m),
+            "cert": cert_info(located, caution, row.cert_excluded, row.cert_radius_m, row.name),
             "works": [{**_work(w), "kmdb_matched": w.kmdb_matched} for w in row.works],
             "directions_url": kakao_directions_url(row.name, row.lat, row.lon) if located else None,
             "sources": [_source_card(s) for s in cards],

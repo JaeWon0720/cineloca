@@ -46,6 +46,7 @@ TARGETS = {
     4: target(4, lat=None, lon=None),
     5: target(5, cert_excluded=True),
     6: target(6, cert_radius_m=300),
+    7: target(7, name="[폐업] 삼중다방(중앙동)"),  # 없어진 곳(BR-06)
 }
 
 
@@ -136,7 +137,7 @@ def test_per_location_radius() -> None:
 
 
 @pytest.mark.parametrize(
-    ("loc", "reason"), [(3, "residential"), (4, "no_coordinates"), (5, "excluded")]
+    ("loc", "reason"), [(3, "residential"), (4, "no_coordinates"), (5, "excluded"), (7, "closed")]
 )
 def test_excluded_locations_raise(loc: int, reason: str) -> None:
     with pytest.raises(CertExcluded) as e:

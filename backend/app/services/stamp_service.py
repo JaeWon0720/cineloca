@@ -242,7 +242,9 @@ def _earliest_stamps(claims: Iterable[Claims | None]) -> dict[int, Claims]:
 
 def _excluded_reason(t: location_repo.CertTarget) -> str | None:
     located = t.lat is not None and t.lon is not None
-    return cert_info(located, t.caution, t.cert_excluded, t.cert_radius_m)["excluded_reason"]
+    return cert_info(located, t.caution, t.cert_excluded, t.cert_radius_m, t.name)[
+        "excluded_reason"
+    ]
 
 
 def _is_recommended(course_key: str) -> bool:

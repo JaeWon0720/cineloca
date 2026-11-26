@@ -4,6 +4,7 @@ import { MAX_ACCURACY_M, type StampResponse } from '../api/stamps.ts'
 
 export const EXCLUDED_REASON: Record<CertExcludedReason, string> = {
   no_coordinates: '위치를 확인하지 못한 곳이라 방문 인증 대상이 아니에요.',
+  closed: '지금은 없어진 곳(폐업·철거)이라 방문 인증 대상이 아니에요.',
   private: '사유지·영업 시설이라 방문 인증 대상이 아니에요.',
   residential: '주거지라 방문 인증 대상이 아니에요.',
   school: '학교라 방문 인증 대상이 아니에요.',

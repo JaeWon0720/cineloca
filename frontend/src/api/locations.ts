@@ -4,7 +4,7 @@ import type { SourceCard } from './types.ts'
 
 export type RadiusM = 500 | 1000 | 3000 // FR-203
 export type Caution = 'private' | 'residential' | 'school' // FR-209
-export type CertExcludedReason = 'no_coordinates' | 'private' | 'residential' | 'school' | 'excluded'
+export type CertExcludedReason = 'no_coordinates' | 'closed' | 'private' | 'residential' | 'school' | 'excluded'
 
 export type BasePoint = { lat: number; lon: number }
 

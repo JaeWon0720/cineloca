@@ -284,7 +284,7 @@ class CourseService:
                     "lat": t.lat,
                     "lon": t.lon,
                     "stay_min": stays.get(i, STAY_MIN),
-                    "cert": cert_info(True, t.caution, t.cert_excluded, t.cert_radius_m),
+                    "cert": cert_info(True, t.caution, t.cert_excluded, t.cert_radius_m, t.name),
                 }
             )
         # 출발지가 따로 있으면 0번 → 1번 구간부터, 촬영지 출발이면 1번 → 2번부터
