@@ -112,3 +112,32 @@ def rule_tags(name: str | None) -> list[PlaceType]:
     return [
         tag for tag, words in RULE_KEYWORDS.items() if any(_hit(w, text, tokens) for w in words)
     ]
+
+
+# ── 관람 주의 표시(FR-209, BR-06) 규칙: 11/26 팀 기준(SRS TBD-07) ──
+# 이름이 그 시설 자체를 가리킬 때만 붙인다. 근처 도로·육교·사거리, 대학교·캠퍼스(누구나 드나듦),
+# 옛 이름(구))과 없어진 곳([폐업]·[철거])은 붙이지 않는다.
+_CAUTION_SCHOOL = re.compile(r"초등학교|중학교|고등학교|유치원|분교")
+_CAUTION_NOT_SCHOOL = re.compile(r"대학교|대학|캠퍼스")
+_CAUTION_RESIDENTIAL = re.compile(r"아파트|빌라|맨션|주택")
+_CAUTION_PRIVATE = re.compile(r"공장|창고|회사|사무실")
+_CAUTION_NEAR = re.compile(r"부근|사거리|교차로|육교|도로|고가교|스튜디오")
+_CAUTION_SKIP = re.compile(r"^\s*(?:구\)|\[(?:폐업|페업|철거)\])")
+
+
+def rule_caution(name: str | None) -> str | None:
+    """장소명으로 고른 관람 주의 구분(school·residential·private). 맞지 않으면 None."""
+    text = name or ""
+    if not text or _CAUTION_SKIP.match(text):
+        return None
+    if "부근 주택가" in text:  # 'OO학교 부근 주택가'는 주거지
+        return "residential"
+    if _CAUTION_NEAR.search(text):
+        return None
+    if _CAUTION_SCHOOL.search(text) and not _CAUTION_NOT_SCHOOL.search(text):
+        return "school"
+    if _CAUTION_RESIDENTIAL.search(text):
+        return "residential"
+    if _CAUTION_PRIVATE.search(text):
+        return "private"
+    return None

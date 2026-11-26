@@ -135,7 +135,7 @@ _THEME_PLACES = {
 
 _SKIP = (
     " HAVING bool_and(NOT l.cert_excluded AND coalesce(l.caution, '') NOT IN"
-    " ('private', 'residential') AND l.name !~ '^\\s*\\[(폐업|철거)\\]')"
+    " ('private', 'residential') AND l.name !~ '^\\s*\\[(폐업|페업|철거)\\]')"
 )
 
 
