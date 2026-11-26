@@ -19,6 +19,12 @@ AI 제안을 받아 검수 큐에 '미검수'로 넣는다. 공급자는 AI_PROV
 ollama). Gemini 무료 한도(하루 20회)로는 촬영지 수백 곳을 못 돌리므로 로컬 모델에서 켠다.
 --ai-tag-limit N으로 한 번에 묻는 촬영지 수를 줄일 수 있다.
 
+사전 임베딩(FR-617, 선택): --embed를 주면 반영이 성공한 뒤 비어 있는 dict_entry 벡터를 로컬 Ollama
+bge-m3로 채운다(OLLAMA_BASE_URL 필요, 없으면 건너뜀). 동기화 없이 지금 DB의 사전만 채우려면
+--embed-only(DATABASE_URL·OLLAMA_BASE_URL만 필요).
+규칙 태그(FR-607): 동기화 반영 때 태그 없는 촬영지에 장소명 키워드로 붙인다. 동기화 없이 지금 DB
+(예: 시드)에만 붙이려면 --tags-only(DATABASE_URL만 필요, 외부 API를 부르지 않음).
+
 로그: 로그 설정 뒤 PrivacyLogFilter를 붙이고(#39), httpx·httpcore는 WARNING으로 올린다.
 httpx는 요청 URL(serviceKey·confmKey 포함)을 INFO로 남기기 때문이다.
 출력·결과 파일은 UTF-8로 쓴다(#26, Windows 콘솔·파일에서 한글이 깨지지 않게).
@@ -38,10 +44,10 @@ from pathlib import Path
 import asyncpg
 import httpx
 
-from app.batch import job, kmdb
+from app.batch import embed, job, kmdb
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
-from app.data import db, sync_runs
-from app.data.ai_gateway.factory import AISettings, build_llm_client
+from app.data import db, rule_tags, sync_runs
+from app.data.ai_gateway.factory import AISettings, build_embedder, build_llm_client
 from app.data.ai_gateway.store import PgUsageCounter
 from app.support.privacy import install_privacy_log_filter
 
@@ -127,11 +133,20 @@ def build_ai(env: MutableMapping[str, str] = os.environ):
     return build_llm_client(settings, usage=PgUsageCounter())  # Gemini 하루 한도를 지킨다
 
 
+def build_embed(env: MutableMapping[str, str] = os.environ):
+    """FR-617 단계용 임베더. 로컬 Ollama 주소가 없으면 None(단계를 건너뜀)."""
+    embedder = build_embedder(AISettings.from_env(env))
+    if embedder is None:
+        log.warning("OLLAMA_BASE_URL이 없어 사전 임베딩 단계를 건너뜁니다")
+    return embedder
+
+
 async def sync_once(
     trigger: str,
     run_id: int | None = None,
     ai_review: bool = False,
     ai_tag_limit: int | None = None,
+    embed_step: bool = False,
 ) -> dict:
     """동기화 한 번. run_id가 있으면 관리자 요청으로 잡아 둔 기록을 이어 쓴다."""
     async with httpx.AsyncClient() as http:
@@ -139,6 +154,8 @@ async def sync_once(
         if ai_review:
             clients.ai = build_ai()
             clients.ai_tag_limit = ai_tag_limit
+        if embed_step:
+            clients.embedder = build_embed()
         conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
         try:
             run_id, counts, stats = await job.run(conn, clients, trigger, run_id)
@@ -183,7 +200,9 @@ async def next_job(conn: asyncpg.Connection, days: int, now: datetime) -> tuple[
     return "idle", None
 
 
-async def watch(ai_review: bool = False, ai_tag_limit: int | None = None) -> int:
+async def watch(
+    ai_review: bool = False, ai_tag_limit: int | None = None, embed_step: bool = False
+) -> int:
     """관리자 요청·정기 실행을 기다리며 계속 돈다(Ctrl+C로 끝)."""
     if names := missing():
         print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
@@ -199,20 +218,63 @@ async def watch(ai_review: bool = False, ai_tag_limit: int | None = None) -> int
                 await conn.close()
             if kind != "idle":
                 log.info("동기화 시작(%s)", "관리자 요청" if kind == "manual" else "정기")
-                result = await sync_once(kind, run_id, ai_review, ai_tag_limit)
+                result = await sync_once(kind, run_id, ai_review, ai_tag_limit, embed_step)
                 log.info("동기화 %s 결과: %s", result["run_id"], result["status"])
         except Exception:  # 한 번 실패해도 감시는 계속한다. 실패는 sync_run에 남는다
             log.exception("동기화 중 오류가 났습니다")
         await asyncio.sleep(POLL_S)
 
 
+async def embed_only(out: Path | None) -> int:
+    """동기화 없이 지금 DB의 사전 임베딩만 채운다(FR-617, 시드 갱신용)."""
+    if not _env(os.environ, "DATABASE_URL"):
+        print(f"DATABASE_URL 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    embedder = build_embed()
+    if embedder is None:
+        print(f"OLLAMA_BASE_URL 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
+    try:
+        stats = await embed.fill_embeddings(conn, embedder)
+    finally:
+        await conn.close()
+    text = json.dumps({"embeddings": stats.as_dict()}, ensure_ascii=False, indent=1)
+    print(text)
+    if out:
+        out.write_text(text + "\n", encoding="utf-8")
+    return 0 if stats.failed_batches == 0 else 1
+
+
+async def tags_only(out: Path | None) -> int:
+    """동기화 없이 지금 DB의 태그 없는 촬영지에 규칙 태그만 붙인다(FR-607, 시드 갱신용)."""
+    if not _env(os.environ, "DATABASE_URL"):
+        print(f"DATABASE_URL 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            stats = await rule_tags.apply(conn)
+    finally:
+        await conn.close()
+    text = json.dumps({"rule_tags": stats}, ensure_ascii=False, indent=1)
+    print(text)
+    if out:
+        out.write_text(text + "\n", encoding="utf-8")
+    return 0
+
+
 async def main(
-    trigger: str, out: Path | None, ai_review: bool = False, ai_tag_limit: int | None = None
+    trigger: str,
+    out: Path | None,
+    ai_review: bool = False,
+    ai_tag_limit: int | None = None,
+    embed_step: bool = False,
 ) -> int:
     if names := missing():
         print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
         return 2
-    result = await sync_once(trigger, None, ai_review, ai_tag_limit)
+    result = await sync_once(trigger, None, ai_review, ai_tag_limit, embed_step)
     status = result["status"]
     text = json.dumps(result, ensure_ascii=False, indent=1)
     print(text)
@@ -231,11 +293,18 @@ def cli(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--watch", action="store_true", help="관리자 요청·정기 동기화를 기다리며 계속 실행"
     )
+    mode.add_argument(
+        "--embed-only", action="store_true", help="동기화 없이 사전 임베딩만 채움(FR-617)"
+    )
+    mode.add_argument(
+        "--tags-only", action="store_true", help="동기화 없이 규칙 태그만 붙임(FR-607)"
+    )
     p.add_argument("--trigger", choices=["manual", "schedule"], default="manual")
     p.add_argument("--env-file", type=Path, help="KEY=값 파일. 없으면 저장소 루트 .env")
     p.add_argument("--out", type=Path, help="결과 JSON을 UTF-8 파일로도 저장")
     p.add_argument("--ai-review", action="store_true", help="반영 뒤 AI 제안 단계(FR-608)도 실행")
     p.add_argument("--ai-tag-limit", type=int, help="AI에 태그를 물을 촬영지 수(없으면 전부)")
+    p.add_argument("--embed", action="store_true", help="반영 뒤 사전 임베딩 단계(FR-617)도 실행")
     a = p.parse_args(argv)
     if a.env_file and not a.env_file.is_file():
         print(f"{a.env_file} 파일이 없습니다. {ENV_HINT}", file=sys.stderr)
@@ -245,10 +314,14 @@ def cli(argv: list[str] | None = None) -> int:
     setup_logging(_env(os.environ, "LOG_LEVEL") or "INFO")
     if a.watch:
         try:
-            return asyncio.run(watch(a.ai_review, a.ai_tag_limit))
+            return asyncio.run(watch(a.ai_review, a.ai_tag_limit, a.embed))
         except KeyboardInterrupt:
             return 0
-    return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit))
+    if a.embed_only:
+        return asyncio.run(embed_only(a.out))
+    if a.tags_only:
+        return asyncio.run(tags_only(a.out))
+    return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit, a.embed))
 
 
 if __name__ == "__main__":

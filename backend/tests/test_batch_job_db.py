@@ -263,3 +263,48 @@ def test_ai_review_is_off_by_default(monkeypatch) -> None:
             await conn.close()
 
     asyncio.run(main())
+
+
+class VecEmbedder:
+    """FR-617 단계용 가짜 임베더(1024차원)."""
+
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+        self.texts: list[str] = []
+
+    async def embed(self, texts):
+        self.texts += list(texts)
+        if self.fail:
+            raise RuntimeError("임베딩 실패")
+        return [[0.001 * (i % 7)] * 1024 for i, _ in enumerate(texts)]
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_embed_step_after_publish(monkeypatch, fail: bool) -> None:
+    monkeypatch.setattr(guard, "MIN_WORKS", 1)
+    monkeypatch.setattr(guard, "MIN_LOCATIONS", 1)
+
+    async def main() -> None:
+        conn = await asyncpg.connect(DSN)
+        try:
+            await conn.execute(
+                "TRUNCATE dict_entry, review_item, shooting, work, location, station, sync_run"
+                " RESTART IDENTITY CASCADE"
+            )
+            emb = VecEmbedder(fail=fail)
+            async with httpx.AsyncClient(transport=httpx.MockTransport(data_go_kr)) as http:
+                c = job.Clients(http, "D", Juso(), None, Kmdb(), embedder=emb)
+                run_id, _counts, stats = await job.run(conn, c)
+            status = await conn.fetchval("SELECT status FROM sync_run WHERE id=$1", run_id)
+            total, filled = await conn.fetchrow("SELECT count(*), count(embedding) FROM dict_entry")
+            assert status == "succeeded"  # 임베딩 결과와 상관없이 동기화는 성공
+            assert total > 0 and len(emb.texts) == total
+            if fail:
+                assert filled == 0 and stats.embeddings["failed_batches"] >= 1
+            else:
+                assert filled == total
+                assert stats.embeddings == {"targets": total, "filled": total, "failed_batches": 0}
+        finally:
+            await conn.close()
+
+    asyncio.run(main())

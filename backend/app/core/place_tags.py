@@ -8,6 +8,7 @@
 분위기 태그(야경 등)는 이름·주소만으로 알 수 없어 여기에 넣지 않았다.
 """
 
+import re
 from typing import Literal
 
 PlaceType = Literal[
@@ -65,3 +66,49 @@ PLACE_TYPES: dict[PlaceType, tuple[str, ...]] = {
     "산업시설": ("공장", "창고", "조선소", "산업단지", "매립장", "물류센터"),
     "업무 건물": ("빌딩", "본사", "은행", "신협", "사무실"),
 }
+
+
+# ── 규칙 태그 (FR-607) ─────────────────────────────────────────
+# 장소명에 든 키워드로 유형을 붙인다. 주소는 보지 않는다: 도로명(해운대해변로·자갈치로)과
+# '부산광역시'의 '산'·'역' 같은 글자가 대부분의 촬영지에 잘못 걸리기 때문이다.
+# 예시 말(PLACE_TYPES)을 그대로 쓰되, 규칙으로 쓰기 어려운 말만 아래에서 바꾸거나 더한다.
+RULE_KEYWORDS: dict[PlaceType, tuple[str, ...]] = {
+    **PLACE_TYPES,
+    "학교": ("학교", "분교", "유치원", "캠퍼스"),  # '초·중·고등학교'는 묶음 표기라 그대로는 안 맞음
+    "식당·카페": PLACE_TYPES["식당·카페"] + ("반점", "밀면", "국밥", "레스토랑", "분식", "주점"),
+}
+# 한 글자 키워드는 낱말 끝에 올 때만 맞춘다(부산역·황령산·감천항 O, 역사관·산복도로 X).
+_SUFFIX_ONLY = frozenset({"역", "산", "항", "숲"})
+_SUFFIX_EXCEPT: dict[str, tuple[str, ...]] = {
+    "산": ("부산", "수산"),
+    "항": ("공항",),  # 공항은 역·교통
+    "역": ("지역", "광역", "구역"),
+}
+_STATUS_PREFIX = re.compile(r"^(?:\s*(?:\[[^\]]*\]|구\)))+\s*")  # [폐업]·[철거]·구)
+_PAREN = re.compile(r"\([^)]*\)")  # (초량동)·(2호선)
+
+
+def _hit(word: str, text: str, tokens: list[str]) -> bool:
+    if word in _SUFFIX_ONLY:
+        return any(
+            len(t) > 1 and t.endswith(word) and not t.endswith(_SUFFIX_EXCEPT.get(word, ()))
+            for t in tokens
+        )
+    return word in text
+
+
+def rule_tags(name: str | None) -> list[PlaceType]:
+    """장소명 키워드로 고른 유형 태그(목록 순서).
+
+    없어진 곳([폐업]·[철거]·구))은 원래 쓰임으로 본다. 맞는 키워드가 없으면 빈 목록이고,
+    그런 촬영지는 AI 태그 제안(FR-608)과 관리자 검수 대상으로 남는다.
+    """
+    text = _PAREN.sub(" ", _STATUS_PREFIX.sub("", name or ""))
+    # 'OO병원 부근 도로'는 도로다: '부근' 뒤에 말이 있으면 그 부분만 본다
+    near = text.split("부근", 1)
+    if len(near) == 2 and near[1].strip():
+        text = near[1]
+    tokens = text.split()
+    return [
+        tag for tag, words in RULE_KEYWORDS.items() if any(_hit(w, text, tokens) for w in words)
+    ]

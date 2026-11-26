@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
 from app.core.facilities import FacilityKind, FoodCategory, LodgingCategory
 from app.core.genres import GENRE_GROUPS, GenreGroup
@@ -54,8 +54,11 @@ class Anchor(BaseModel):
     name: str | None = None
 
 
+# Gemini에는 JSON 스키마를 보내지 않아(형식은 JSON 지정만) 안쪽 키 이름과 빈 값을 모델이 짐작한다.
+# 프롬프트와 어긋나기 쉬운 두 곳만 너그럽게 받는다(#149). 스키마(Ollama 문법)는 그대로다.
 class Travel(BaseModel):
-    mode: Literal["walk", "subway"]
+    # 프롬프트가 키 이름을 말하지 않아 Gemini가 'type'으로 쓰는 경우가 있다
+    mode: Literal["walk", "subway"] = Field(validation_alias=AliasChoices("mode", "type"))
     max_min: int | None = Field(default=None, ge=1, le=300)
 
 
@@ -70,6 +73,12 @@ class QueryConditions(BaseModel):
     anchor: Anchor | None
     travel: Travel | None
     result_type: Literal["location", "work"]
+
+    @field_validator("result_type", mode="before")
+    @classmethod
+    def _default_result_type(cls, v: object) -> object:
+        # 범위 밖이면 프롬프트 규칙('나머지는 빈 값')대로 null이 온다 → 기본값(촬영지)
+        return "location" if v is None else v
 
 
 # ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
@@ -197,7 +206,7 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "extract_query",
             QueryConditions,
-            prompt_version="v4",  # v2(PoC) → v3: 장르 묶음 12개 → v4: 묶음에 없는 장르는 뺌
+            prompt_version="v5",  # v4 묶음 밖 장르 뺌 → v5 범위·구·이동·인물 규칙(11/25 N-04)
             user_text_fields=("query",),
             cache_ttl_s=_DAY_S,
         ),
@@ -212,8 +221,8 @@ TASKS: dict[str, TaskSpec] = {
         TaskSpec(
             "work_intro",  # F1 작품 소개(FR-109)
             GroundedIntro,
-            temperature=0.3,
-            prompt_version="v1",
+            temperature=0.0,  # 판마다 오류 수가 달라지던 편차를 줄임(N-05)
+            prompt_version="v5",
             cache_ttl_s=_DAY_S,
         ),
         TaskSpec(

@@ -423,6 +423,9 @@ def test_chip_labels() -> None:
     ]
     assert chips(replace(f, year_from=None))[1].label == "개봉: ~2019"
     assert f.without("anchor").travel is None  # 기준을 빼면 이동 제약도 뺀다
+    # 역 이름 없이 '지하철역에서 걸어서 10분'이면 칩이 빈 '기준: '이 아니라 '가까운 역'(#149)
+    nameless = replace(f, anchor=AnchorFilter("station"), travel=TravelFilter("walk", 10))
+    assert [c.label for c in chips(nameless)][-2:] == ["기준: 가까운 역", "도보 10분 이내"]
 
 
 def test_ungrounded_summary_sentence_is_dropped() -> None:  # COMP-09
