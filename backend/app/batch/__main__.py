@@ -22,6 +22,8 @@ ollama). Gemini 무료 한도(하루 20회)로는 촬영지 수백 곳을 못 �
 사전 임베딩(FR-617, 선택): --embed를 주면 반영이 성공한 뒤 비어 있는 dict_entry 벡터를 로컬 Ollama
 bge-m3로 채운다(OLLAMA_BASE_URL 필요, 없으면 건너뜀). 동기화 없이 지금 DB의 사전만 채우려면
 --embed-only(DATABASE_URL·OLLAMA_BASE_URL만 필요).
+규칙 태그(FR-607): 동기화 반영 때 태그 없는 촬영지에 장소명 키워드로 붙인다. 동기화 없이 지금 DB
+(예: 시드)에만 붙이려면 --tags-only(DATABASE_URL만 필요, 외부 API를 부르지 않음).
 
 로그: 로그 설정 뒤 PrivacyLogFilter를 붙이고(#39), httpx·httpcore는 WARNING으로 올린다.
 httpx는 요청 URL(serviceKey·confmKey 포함)을 INFO로 남기기 때문이다.
@@ -44,7 +46,7 @@ import httpx
 
 from app.batch import embed, job, kmdb
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
-from app.data import db, sync_runs
+from app.data import db, rule_tags, sync_runs
 from app.data.ai_gateway.factory import AISettings, build_embedder, build_llm_client
 from app.data.ai_gateway.store import PgUsageCounter
 from app.support.privacy import install_privacy_log_filter
@@ -244,6 +246,24 @@ async def embed_only(out: Path | None) -> int:
     return 0 if stats.failed_batches == 0 else 1
 
 
+async def tags_only(out: Path | None) -> int:
+    """동기화 없이 지금 DB의 태그 없는 촬영지에 규칙 태그만 붙인다(FR-607, 시드 갱신용)."""
+    if not _env(os.environ, "DATABASE_URL"):
+        print(f"DATABASE_URL 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            stats = await rule_tags.apply(conn)
+    finally:
+        await conn.close()
+    text = json.dumps({"rule_tags": stats}, ensure_ascii=False, indent=1)
+    print(text)
+    if out:
+        out.write_text(text + "\n", encoding="utf-8")
+    return 0
+
+
 async def main(
     trigger: str,
     out: Path | None,
@@ -276,6 +296,9 @@ def cli(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--embed-only", action="store_true", help="동기화 없이 사전 임베딩만 채움(FR-617)"
     )
+    mode.add_argument(
+        "--tags-only", action="store_true", help="동기화 없이 규칙 태그만 붙임(FR-607)"
+    )
     p.add_argument("--trigger", choices=["manual", "schedule"], default="manual")
     p.add_argument("--env-file", type=Path, help="KEY=값 파일. 없으면 저장소 루트 .env")
     p.add_argument("--out", type=Path, help="결과 JSON을 UTF-8 파일로도 저장")
@@ -296,6 +319,8 @@ def cli(argv: list[str] | None = None) -> int:
             return 0
     if a.embed_only:
         return asyncio.run(embed_only(a.out))
+    if a.tags_only:
+        return asyncio.run(tags_only(a.out))
     return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit, a.embed))
 
 

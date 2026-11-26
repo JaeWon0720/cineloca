@@ -36,6 +36,9 @@ PostgreSQL 16 + pgvector. 스키마는 SDD 3.5 ERD-01을 따른다.
 - 임베딩(비슷한 이름 찾기, FR-617): `seed-2026-11-25b`부터 사전(dict_entry) 2,828개에 모두 들어 있다(bge-m3, 1024차원).
   질문 쪽 임베딩은 로컬 모델(`OLLAMA_BASE_URL`)이 있을 때만 만들어서, 없는 PC에서는 지금처럼 이름 비교(정확 일치·트라이그램)까지만 쓴다.
   사전이 바뀐 DB에 다시 채우려면 `python -m app.batch --embed-only`(로컬 모델 필요).
+- 장소 유형 태그(FR-607): `seed-2026-11-25b`까지는 비어 있다(#147). 동기화 없이 지금 DB에 규칙 태그만 붙이려면
+  `docker compose exec api python -m app.batch --tags-only`(외부 API를 부르지 않음, 태그 없는 촬영지만 붙여서 여러 번 돌려도 같음).
+  다음 동기화부터는 반영할 때 자동으로 붙는다.
 
 ## 저장하지 않는 데이터 (NFR-003, NFR-007)
 

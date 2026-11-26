@@ -1,0 +1,27 @@
+"""촬영지 규칙 태그 반영 (FR-607). 키워드 규칙은 app/core/place_tags.py rule_tags.
+
+태그가 하나도 없는 촬영지에만 붙인다. 관리자가 고르거나 승인한 태그(FR-609·610)가 있으면
+그대로 두므로, 동기화를 다시 돌려도 관리자가 고친 태그를 덮지 않는다.
+규칙으로 못 붙인 곳은 비어 있고, AI 태그 제안(FR-608, batch/ai_review.py)의 대상이 된다.
+
+동기화 반영(staging.publish)이 같은 트랜잭션에서 부르고, 동기화 없이 지금 DB에만 붙일 때는
+python -m app.batch --tags-only.
+"""
+
+from __future__ import annotations
+
+import asyncpg
+
+from app.core.place_tags import rule_tags
+
+
+async def apply(conn: asyncpg.Connection) -> dict[str, int]:
+    """태그 없는 촬영지 수(checked)와 이번에 태그를 붙인 수(tagged)를 돌려준다."""
+    rows = await conn.fetch("SELECT id, name FROM location WHERE cardinality(tags) = 0")
+    updates = [(r["id"], tags) for r in rows if (tags := rule_tags(r["name"]))]
+    if updates:
+        await conn.executemany(
+            "UPDATE location SET tags = $2::text[] WHERE id = $1 AND cardinality(tags) = 0",
+            updates,
+        )
+    return {"checked": len(rows), "tagged": len(updates)}
