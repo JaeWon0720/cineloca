@@ -77,7 +77,7 @@ class QueryConditions(BaseModel):
     @field_validator("result_type", mode="before")
     @classmethod
     def _default_result_type(cls, v: object) -> object:
-        # 범위 밖(out_of_scope)이면 프롬프트가 '나머지는 빈 값'이라 해서 null이 온다 → 기본값(촬영지)
+        # 범위 밖이면 프롬프트 규칙('나머지는 빈 값')대로 null이 온다 → 기본값(촬영지)
         return "location" if v is None else v
 
 

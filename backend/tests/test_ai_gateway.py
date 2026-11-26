@@ -375,7 +375,7 @@ def test_query_travel_accepts_type_key_from_gemini() -> None:
 
 
 def test_query_out_of_scope_null_result_type_defaults_to_location() -> None:
-    """#149: 범위 밖이면 '나머지는 빈 값' 규칙대로 result_type=null이 온다 → 강등 대신 out_of_scope로."""
+    """#149: 범위 밖이면 result_type=null이 온다 → 강등하지 않고 out_of_scope로."""
     empty = {**GOOD, "out_of_scope": True, "work_titles": [], "genres": [], "districts": []}
     conditions = QueryConditions.model_validate(
         {**empty, "anchor": None, "travel": None, "result_type": None}
