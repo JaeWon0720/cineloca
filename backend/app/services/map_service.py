@@ -47,7 +47,9 @@ def expand_genres(groups: Iterable[str]) -> list[str]:
     return sorted({g for group in groups for g in GENRE_GROUPS[group]})
 
 
-CLOSED_PREFIX = re.compile(r"^\s*\[(?:폐업|철거)\]")  # 원본 장소명 앞 표시: 지금은 없어진 곳
+CLOSED_PREFIX = re.compile(
+    r"^\s*\[(?:폐업|페업|철거)\]"
+)  # 장소명 앞 표시: 지금은 없어진 곳(페업은 원본 오타)
 
 
 def is_closed(name: str | None) -> bool:
