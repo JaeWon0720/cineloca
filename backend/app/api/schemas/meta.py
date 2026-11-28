@@ -39,3 +39,15 @@ class MetaResponse(BaseModel):
     stations: list[StationOption] = Field(description="도시철도역(C1 적재 전에는 빈 목록)")
     genres: list[GenreGroup] = Field(description="장르 묶음(KMDb 장르를 12개로 묶음)")
     year_range: YearRange | None = Field(default=None, description="작품 개봉연도 범위")
+
+
+class PersonOption(BaseModel):
+    """API-026 인물 후보(FR-310 필터 패널). 고른 값은 필터의 persons에 {id, name}으로 넣는다."""
+
+    id: int
+    name: str
+    work: str | None = Field(default=None, description="동명이인 구분용 대표 작품(가장 최근 작품)")
+
+
+class PersonList(BaseModel):
+    items: list[PersonOption]
