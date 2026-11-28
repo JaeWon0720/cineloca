@@ -212,3 +212,23 @@ def test_meta_reads_stations_and_years() -> None:
         assert len(meta["districts"]) == 16 and len(meta["genres"]) == 12
 
     run(body)
+
+
+def test_persons_finds_by_name_and_tells_namesakes_apart() -> None:  # API-026, FR-310
+    from app.data import dictionary
+
+    async def body(s: MapService) -> None:
+        async with s._connect() as conn:  # noqa: SLF001
+            await conn.execute(
+                "INSERT INTO person (id, name) VALUES (1, '송강호'), (2, '송강호'), (3, '마동석');"
+                "INSERT INTO work_person (work_id, person_id, role, ord) VALUES"
+                " (1, 1, 'actor', 1), (3, 2, 'actor', 1), (3, 3, 'actor', 2)"
+            )
+            await dictionary.rebuild(conn)
+
+        same = await s.persons("송강호")
+        assert sorted((p["id"], p["work"]) for p in same) == [(1, "범죄영화"), (2, "웃긴영화")]
+        assert [p["name"] for p in await s.persons("마동")] == ["마동석"]  # 일부만 써도 찾음
+        assert await s.persons("없는사람") == []
+
+    run(body)

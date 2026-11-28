@@ -25,7 +25,7 @@ from app.core.places import (
     RADIUS_OPTIONS,
     kakao_directions_url,
 )
-from app.data import db
+from app.data import db, dictionary
 from app.data import locations as repo
 
 SEARCH_LIMIT = 200  # 반경 3km 최다 165곳(임시 데이터, 남포역) → 마커 클러스터로 묶어 보여 준다
@@ -91,6 +91,9 @@ def _work(w: repo.WorkRow) -> dict[str, Any]:
 
 def _source_card(s: repo.SourceRow) -> dict[str, Any]:
     return {"id": s.id, "provider": s.org, "name": s.name, "base_date": s.base_date, "url": s.url}
+
+
+PERSON_LIMIT = 10  # 인물 후보 최대 수(API-026)
 
 
 class MapService:
@@ -180,6 +183,21 @@ class MapService:
             "directions_url": kakao_directions_url(row.name, row.lat, row.lon) if located else None,
             "sources": [_source_card(s) for s in cards],
         }
+
+    async def persons(self, q: str, limit: int = PERSON_LIMIT) -> list[dict[str, Any]]:
+        """API-026 인물 후보(FR-310 필터 패널). F3 사전 대조와 같은 이름 찾기(정확 일치·트라이그램).
+
+        동명이인은 대표 작품(가장 최근 작품 제목)으로 구분한다(CH-24).
+        """
+        async with self._connect() as conn:
+            matches = await dictionary.lookup(conn, "person", q, limit)
+            ids = list(dict.fromkeys(m.canonical_id for m in matches))
+            targets = await dictionary.describe(conn, "person", ids) if ids else {}
+        return [
+            {"id": int(t.id), "name": t.name, "work": t.detail}
+            for i in ids
+            if (t := targets.get(i)) is not None
+        ]
 
     async def meta(self) -> dict[str, Any]:
         """API-007. 고정값(기본 위치·반경·구·군)과 DB 값(역·개봉연도 범위)."""
