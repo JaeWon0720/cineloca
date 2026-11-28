@@ -84,9 +84,14 @@ class QueryConditions(BaseModel):
 # ── 근거 기반 문장 생성 (F3 요약, F1 소개). 출력은 COMP-09가 문장마다 대조한다 ──
 # 출력 길이 상한(NFR-006): 프롬프트의 길이 지시는 모델이 잘 따르지 않아 JSON 스키마로 묶는다.
 # Ollama는 스키마를 문법으로 바꿔 생성하므로 상한을 넘는 출력이 나오지 않는다.
+# 상한은 스키마(json_schema_extra)에만 두고 응답 검증에서는 거부하지 않는다.
+# Gemini에는 스키마를 보내지 않아 상한을 넘는 응답이 오는데, 이를 거부하면 요약·소개가
+# 통째로 강등된다(#146 뒤 데모에서 발견).
+# 문장 수는 서비스가 근거 대조 때 자른다(GroundingVerifier max_sentences).
 class GroundedSentence(BaseModel):
-    text: str = Field(min_length=1, max_length=120)
-    entities: list[str] = Field(max_length=4)  # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
+    text: str = Field(min_length=1, json_schema_extra={"maxLength": 120})
+    # 문장에 나온 인명·작품명·장소명(COMP-09 대조용)
+    entities: list[str] = Field(json_schema_extra={"maxItems": 4})
 
 
 class GroundedText(BaseModel):
@@ -96,13 +101,13 @@ class GroundedText(BaseModel):
 class GroundedSummary(GroundedText):
     """F3 결과 요약(FR-307: 3문장 이내). 응답 시간 때문에 2문장까지."""
 
-    sentences: list[GroundedSentence] = Field(min_length=1, max_length=2)
+    sentences: list[GroundedSentence] = Field(min_length=1, json_schema_extra={"maxItems": 2})
 
 
 class GroundedIntro(GroundedText):
     """F1 작품 소개(FR-109). 문장 수를 묶어 생성 시간을 줄인다(2문장 미만이면 서비스가 강등)."""
 
-    sentences: list[GroundedSentence] = Field(min_length=1, max_length=5)
+    sentences: list[GroundedSentence] = Field(min_length=1, json_schema_extra={"maxItems": 5})
 
 
 # ── F4 코스 주변 시설 (FR-415·417, CR-01) ───────────────────
@@ -121,8 +126,9 @@ class FacilityConditions(BaseModel):
 
 class FacilityReason(BaseModel):
     number: int = Field(ge=1)  # 입력 목록의 번호
-    text: str = Field(min_length=1, max_length=70)  # 40자 안팎 한 문장(FR-417)
-    entities: list[str] = Field(max_length=3)  # 문장에 쓴 시설명·장소명(COMP-09 대조용)
+    # 40자 안팎 한 문장(FR-417). 상한은 스키마에만(위 GroundedSentence 설명과 같음)
+    text: str = Field(min_length=1, json_schema_extra={"maxLength": 70})
+    entities: list[str] = Field(json_schema_extra={"maxItems": 3})  # 시설명·장소명(COMP-09 대조용)
 
 
 class FacilityReasons(BaseModel):

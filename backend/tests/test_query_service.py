@@ -434,12 +434,16 @@ def test_ungrounded_summary_sentence_is_dropped() -> None:  # COMP-09
     assert r.summary == ("친구 촬영지는 자갈치시장입니다.",)
 
 
-def test_summary_schema_allows_at_most_two_sentences() -> None:  # NFR-006 출력 상한
-    from pydantic import ValidationError
+def test_summary_schema_caps_but_accepts_longer() -> None:  # NFR-006 출력 상한
+    from app.data.ai_gateway.tasks import FacilityReason, GroundedIntro, GroundedSummary
 
-    from app.data.ai_gateway.tasks import GroundedSummary
-
-    three = {"sentences": [{"text": "가", "entities": []}] * 3}
-    with pytest.raises(ValidationError):
-        GroundedSummary.model_validate(three)
-    assert GroundedSummary.model_json_schema()["properties"]["sentences"]["maxItems"] == 2
+    # Ollama 문법용 스키마에는 상한이 그대로 있다
+    summary = GroundedSummary.model_json_schema()
+    assert summary["properties"]["sentences"]["maxItems"] == 2
+    sentence = summary["$defs"]["GroundedSentence"]["properties"]
+    assert sentence["text"]["maxLength"] == 120 and sentence["entities"]["maxItems"] == 4
+    assert GroundedIntro.model_json_schema()["properties"]["sentences"]["maxItems"] == 5
+    assert FacilityReason.model_json_schema()["properties"]["text"]["maxLength"] == 70
+    # 스키마를 받지 않는 Gemini의 긴 응답도 거부하지 않는다(거부하면 요약이 통째로 강등됨)
+    long = {"text": "가" * 200, "entities": [f"이름{i}" for i in range(9)]}
+    assert len(GroundedSummary.model_validate({"sentences": [long] * 3}).sentences) == 3
