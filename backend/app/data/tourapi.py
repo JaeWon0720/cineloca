@@ -67,6 +67,8 @@ class Place:
     lat: float
     lon: float
     lcls_code: str | None  # lclsSystm3(없으면 lclsSystm2)
+    image: str | None = None  # firstimage(대표 이미지 주소). 장소 사진 단계(FR-207)만 쓴다
+    kogl_type1: bool = False  # cpyrhtDivCd == 'Type1'(공공누리 제1유형, BR-03)
 
 
 class TourApiClient:
@@ -78,7 +80,7 @@ class TourApiClient:
         return "TourApiClient()"
 
     async def busan(self, content_type: int) -> list[Place]:
-        """부산 전체 항목(contentTypeId 39 음식점·32 숙박).
+        """부산 전체 항목(contentTypeId 39 음식점·32 숙박, 장소 사진 단계는 12·14·28·38도).
 
         첫 쪽의 totalCount로 나머지 쪽을 동시에 받는다(MAX_PAGES까지).
         """
@@ -137,6 +139,8 @@ def _parse(data: Any) -> list[Place]:
                 lat=lat,
                 lon=lon,
                 lcls_code=(r.get("lclsSystm3") or r.get("lclsSystm2") or None),
+                image=(str(r.get("firstimage") or "").strip() or None),
+                kogl_type1=r.get("cpyrhtDivCd") == "Type1",
             )
         )
     return [p for p in places if p.content_id and p.title]

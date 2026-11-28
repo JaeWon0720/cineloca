@@ -24,6 +24,9 @@ bge-m3로 채운다(OLLAMA_BASE_URL 필요, 없으면 건너뜀). 동기화 없�
 --embed-only(DATABASE_URL·OLLAMA_BASE_URL만 필요).
 규칙 태그(FR-607): 동기화 반영 때 태그 없는 촬영지에 장소명 키워드로 붙인다. 동기화 없이 지금 DB
 (예: 시드)에만 붙이려면 --tags-only(DATABASE_URL만 필요, 외부 API를 부르지 않음).
+장소 사진(FR-207): 동기화 반영 뒤 TourAPI 공공누리 제1유형 대표 이미지 주소를 촬영지에 붙인다.
+동기화 없이 지금 DB에만 붙이려면 --photos-only(DATABASE_URL·DATA_GO_KR_SERVICE_KEY만 필요,
+TourAPI 부산 목록 몇 쪽만 부름).
 
 로그: 로그 설정 뒤 PrivacyLogFilter를 붙이고(#39), httpx·httpcore는 WARNING으로 올린다.
 httpx는 요청 URL(serviceKey·confmKey 포함)을 INFO로 남기기 때문이다.
@@ -44,11 +47,12 @@ from pathlib import Path
 import asyncpg
 import httpx
 
-from app.batch import embed, job, kmdb
+from app.batch import embed, job, kmdb, photos
 from app.batch.geocode import DEFAULT_BASE, JusoGeocoder, keyword_geocoder
 from app.data import db, rule_tags, sync_runs
 from app.data.ai_gateway.factory import AISettings, build_embedder, build_llm_client
 from app.data.ai_gateway.store import PgUsageCounter
+from app.data.tourapi import TourApiClient
 from app.support.privacy import install_privacy_log_filter
 
 log = logging.getLogger("app.batch")
@@ -117,7 +121,9 @@ def build_clients(http: httpx.AsyncClient, env: MutableMapping[str, str] = os.en
         log.warning("KAKAO_REST_API_KEY가 없어 주소 없는 촬영지 좌표를 찾지 않습니다")
     if source is None:
         log.warning("KMDB_SERVICE_KEY·KMDB_CSV_PATH가 없어 KMDb 매칭을 하지 않습니다")
-    return job.Clients(http, _env(env, "DATA_GO_KR_SERVICE_KEY"), juso, kakao, source)
+    clients = job.Clients(http, _env(env, "DATA_GO_KR_SERVICE_KEY"), juso, kakao, source)
+    clients.tourapi = TourApiClient(_env(env, "DATA_GO_KR_SERVICE_KEY"))  # FR-207 장소 사진
+    return clients
 
 
 def build_ai(env: MutableMapping[str, str] = os.environ):
@@ -264,6 +270,24 @@ async def tags_only(out: Path | None) -> int:
     return 0
 
 
+async def photos_only(out: Path | None) -> int:
+    """동기화 없이 지금 DB의 촬영지에 장소 사진만 다시 붙인다(FR-207, 시드 갱신용)."""
+    if names := [n for n in REQUIRED if not _env(os.environ, n)]:
+        print(f"{', '.join(names)} 값이 없습니다. {ENV_HINT}", file=sys.stderr)
+        return 2
+    conn = await asyncpg.connect(_env(os.environ, "DATABASE_URL"))
+    try:
+        client = TourApiClient(_env(os.environ, "DATA_GO_KR_SERVICE_KEY"))
+        stats = await photos.refresh(conn, client)
+    finally:
+        await conn.close()
+    text = json.dumps({"photos": stats}, ensure_ascii=False, indent=1)
+    print(text)
+    if out:
+        out.write_text(text + "\n", encoding="utf-8")
+    return 1 if stats.get("skipped") else 0  # 지난 사진을 그대로 뒀으면 실패로 알린다
+
+
 async def main(
     trigger: str,
     out: Path | None,
@@ -299,6 +323,9 @@ def cli(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--tags-only", action="store_true", help="동기화 없이 규칙 태그만 붙임(FR-607)"
     )
+    mode.add_argument(
+        "--photos-only", action="store_true", help="동기화 없이 장소 사진만 다시 붙임(FR-207)"
+    )
     p.add_argument("--trigger", choices=["manual", "schedule"], default="manual")
     p.add_argument("--env-file", type=Path, help="KEY=값 파일. 없으면 저장소 루트 .env")
     p.add_argument("--out", type=Path, help="결과 JSON을 UTF-8 파일로도 저장")
@@ -321,6 +348,8 @@ def cli(argv: list[str] | None = None) -> int:
         return asyncio.run(embed_only(a.out))
     if a.tags_only:
         return asyncio.run(tags_only(a.out))
+    if a.photos_only:
+        return asyncio.run(photos_only(a.out))
     return asyncio.run(main(a.trigger, a.out, a.ai_review, a.ai_tag_limit, a.embed))
 
 
