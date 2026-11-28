@@ -102,6 +102,25 @@ def test_foreign_script_drops_sentence() -> None:
     assert [(d.reason, d.detail) for d in result.dropped] == [("script", "情风"), ("script", "の")]
 
 
+@pytest.mark.parametrize(
+    ("text", "detail"),
+    [
+        ("부산영화촬영ส튜디오 근처 331m 거리입니다.", "ส"),  # 태국(#156)
+        ("자갈치시장의 рынок 분위기입니다.", "кноры"),  # 키릴
+        ("광안대교는 جميل 합니다.", "جلمي"),  # 아랍
+    ],
+)
+def test_other_scripts_drop_sentence(text: str, detail: str) -> None:
+    result = verify(S(text, []))
+    assert result.sentences == ()
+    assert [(d.reason, d.detail) for d in result.dropped] == [("script", detail)]
+
+
+def test_latin_and_punctuation_are_allowed() -> None:
+    s = S("BIFF 영화제 때 광안대교·자갈치시장(중구)은 붐빕니다~", ["광안대교", "자갈치시장"])
+    assert verify(s).sentences == (s.text,)
+
+
 def test_foreign_script_in_evidence_is_allowed() -> None:
     evidence = Evidence(facts=("친구(親舊, 2001) — 자갈치시장 (중구)",), names=frozenset({"친구"}))
     s = S("친구(親舊)는 자갈치시장에서 찍었습니다.", ["친구", "자갈치시장"])
