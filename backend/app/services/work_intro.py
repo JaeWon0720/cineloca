@@ -28,6 +28,7 @@ from app.support.grounding import Dropped, Evidence, GroundingVerifier, gate
 SpoilerLevel = Literal["none", "partial"]
 MIN_SENTENCES = 2  # FR-110: 남은 문장이 2개 미만이면 원문 강등
 DEADLINE_S = 8.0  # NFR-006: AI 응답 p95 8초
+INTRO_MAX_SENTENCES = 5  # 스키마 상한과 같음. Gemini가 더 길게 보내도 앞 5문장까지
 MAX_CAST = 5  # FR-103: 주요 출연진 최대 5명
 MAX_LOCATIONS = 15  # 프롬프트가 지나치게 길어지지 않게(촬영지가 많은 작품)
 
@@ -178,7 +179,9 @@ class WorkIntroService:
             request_context.note_ai_attempts(e.attempts)
             return IntroResult("degraded", policy.level, fallback=fallback, reason=e.error_code)
         request_context.note_ai_attempts(result.attempts)
-        checked = self._verifier.verify(result.data.sentences, evidence)
+        checked = self._verifier.verify(
+            result.data.sentences, evidence, max_sentences=INTRO_MAX_SENTENCES
+        )
         if not checked.enough(MIN_SENTENCES):
             return IntroResult(
                 "degraded",
