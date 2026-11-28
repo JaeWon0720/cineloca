@@ -285,7 +285,7 @@ async def photos_only(out: Path | None) -> int:
     print(text)
     if out:
         out.write_text(text + "\n", encoding="utf-8")
-    return 0 if stats.get("places") else 1
+    return 1 if stats.get("skipped") else 0  # 지난 사진을 그대로 뒀으면 실패로 알린다
 
 
 async def main(

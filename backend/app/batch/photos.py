@@ -102,30 +102,36 @@ def match(spots: Iterable[Spot], places: Iterable[Place]) -> list[Photo]:
     return out
 
 
-async def fetch(client: TourApiClient, types: Sequence[int] = CONTENT_TYPES) -> list[Place]:
-    """부산 목록을 종류별로 받는다. 한 종류가 실패하면 그 종류만 빼고 계속한다."""
+async def fetch(
+    client: TourApiClient, types: Sequence[int] = CONTENT_TYPES
+) -> tuple[list[Place], list[int]]:
+    """부산 목록을 종류별로 받는다. 받은 항목과 받지 못한 종류(contentTypeId)를 돌려준다."""
     places: list[Place] = []
+    failed: list[int] = []
     for t in types:
         try:
             places += await client.busan(t)
         except TourApiError as e:
+            failed.append(t)
             log.warning("장소 사진 목록 실패 content_type=%s error=%s", t, e.kind)
-    return places
+    return places, failed
 
 
 async def refresh(conn, client: TourApiClient) -> dict:
     """목록을 받아 맞춘 사진으로 DATA-10 사진을 바꾼다.
 
-    목록을 하나도 못 받으면(키 오류·장애) 지난 사진을 그대로 둔다.
+    한 종류라도 목록을 못 받았거나(키 오류·장애) 목록이 비었으면 지난 사진을 그대로 둔다.
+    DATA-10 사진을 통째로 바꾸므로, 일부 목록만으로 바꾸면 못 받은 종류의 사진이 빠지기 때문이다.
     """
-    places = await fetch(client)
+    places, failed = await fetch(client)
     usable = sum(1 for p in places if p.image and p.kogl_type1)
-    if not places:
+    if failed or not places:
         return {
-            "places": 0,
-            "type1_images": 0,
+            "places": len(places),
+            "type1_images": usable,
             "matched": 0,
-            "skipped": "목록 없음, 지난 사진 유지",
+            "failed_types": failed,
+            "skipped": ("목록 일부 실패" if failed else "목록 없음") + ", 지난 사진 유지",
         }
     spots = [Spot(r["id"], r["name"], r["lat"], r["lon"]) for r in await photo_rows.located(conn)]
     found = match(spots, places)

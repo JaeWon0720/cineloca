@@ -90,11 +90,14 @@ class FakeConn:
 
 
 class FakeGet:
-    def __init__(self, items) -> None:
+    def __init__(self, items, fail: tuple[int, ...] = ()) -> None:
         self.items = items
+        self.fail = fail
 
     async def __call__(self, url, params, *, timeout_s):
         assert "areaBasedList2" in url
+        if params["contentTypeId"] in self.fail:  # 이 종류만 오류 응답
+            return {"response": {"header": {"resultCode": "22"}, "body": {}}}
         items = self.items if params["contentTypeId"] == 12 else []
         body = {"totalCount": len(items), "items": {"item": items}}
         return {"response": {"header": {"resultCode": "0000"}, "body": body}}
@@ -119,6 +122,14 @@ def test_refresh_keeps_old_photos_when_list_is_empty() -> None:
     conn.photo = [(1, "https://old.jpg", "옛 사진", "DATA-10")]
     stats = asyncio.run(refresh(conn, TourApiClient("K", FakeGet([]))))
     assert stats["matched"] == 0 and conn.photo == [(1, "https://old.jpg", "옛 사진", "DATA-10")]
+
+
+def test_refresh_keeps_old_photos_when_one_type_fails() -> None:
+    conn = FakeConn()
+    conn.photo = [(1, "https://old.jpg", "옛 사진", "DATA-10")]
+    stats = asyncio.run(refresh(conn, TourApiClient("K", FakeGet([ITEM], fail=(39,)))))
+    assert stats["places"] == 1 and stats["matched"] == 0 and stats["failed_types"] == [39]
+    assert conn.photo == [(1, "https://old.jpg", "옛 사진", "DATA-10")]  # 일부 목록으로 바꾸지 않음
 
 
 def test_cli_photos_only_needs_database_url_and_key(monkeypatch, capsys, tmp_path) -> None:
